@@ -8,4 +8,5 @@ Todos los cambios relevantes de este proyecto se anotan aquí. Formato basado en
 
 - Esqueleto del mod `model-meter` (sin hooks todavía) y marketplace `model-meter`.
 - Gates locales (`npm run check`, `npm run check:core`) y CI: matriz Node 22/24 × Linux/macOS/Windows, validación y tests del mod con la CLI fijada, comprobación de capacidades, CodeQL, revisión de dependencias, Scorecard, gitleaks, actionlint y zizmor.
-- `SECURITY.md`, `CONTRIBUTING.md`, `CODEOWNERS` y Dependabot.
+- `npm run audit`: falla ante cualquier aviso de seguridad sin una excepción aprobada y vigente (`security/audit-exceptions.json`).
+- `SECURITY.md` (con las excepciones activas), `CONTRIBUTING.md`, `CODEOWNERS` y Dependabot.

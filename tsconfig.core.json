@@ -12,6 +12,7 @@
   "include": [
     "scripts/**/*.mjs",
     "plugins/model-meter/hooks/core/**/*.ts",
-    "scripts/fixtures/*.json"
+    "scripts/fixtures/*.json",
+    "security/*.json"
   ]
 }

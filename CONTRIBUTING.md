@@ -24,6 +24,7 @@ npm run check:core   # los que no necesitan la CLI
 | `commitlint` | Conventional Commits en los commits de la rama |
 | `validate` | `claude plugin validate --strict` del mod y del marketplace |
 | `test:mod` | `claude plugin test` del mod |
+| `audit` | `npm audit` sin avisos salvo las excepciones aprobadas y vigentes de `security/audit-exceptions.json` |
 | `capabilities` | El mod solo usa las capacidades permitidas y sus hooks dejan pasar los eventos |
 
 ## Normas
