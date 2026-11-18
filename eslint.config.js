@@ -10,8 +10,13 @@ export default defineConfig(
   js.configs.recommended,
   security.configs.recommended,
   {
-    // Pure core and repo scripts: type-aware rules over tsconfig.core.json.
-    files: ['scripts/**/*.mjs', 'plugins/model-meter/hooks/core/**/*.ts'],
+    // Pure core, its tests and repo scripts: type-aware rules over tsconfig.core.json.
+    files: [
+      'scripts/**/*.mjs',
+      'test/**/*.mjs',
+      'test/**/*.ts',
+      'plugins/model-meter/hooks/core/**/*.ts',
+    ],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
@@ -31,6 +36,13 @@ export default defineConfig(
           ],
         },
       ],
+    },
+  },
+  {
+    // Tests read the repository's own sources and fixtures by computed path.
+    files: ['test/**/*.test.ts', 'test/**/*.test.mjs'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off',
     },
   },
   {

@@ -6,7 +6,7 @@ Backlog del flujo Reviewer–Builder (`docs/WORKFLOW.md`). El Reviewer las escri
 | --- | --- | --- | --- |
 | [T-000](T-000-spike-terminal.md) | Spike en terminal: `/model`, `/effort` y ancho del pie | 0 | Done |
 | [T-001](T-001-scaffold.md) | Estructura del repo, gates locales y CI | 1 | Done |
-| [T-002](T-002-pure-core.md) | Núcleo puro: modelo, esfuerzo, sanitización y encaje por ancho | 2 | Ready |
+| [T-002](T-002-pure-core.md) | Núcleo puro: modelo, esfuerzo, sanitización y encaje por ancho | 2 | In review |
 | [T-003](T-003-compact-footer.md) | Modo compacto en el pie | 3 | Draft |
 | [T-007](T-007-audit-expiry-warning.md) | Aviso anticipado de caducidad de excepciones y auditoría semanal | 1 | In review |
 

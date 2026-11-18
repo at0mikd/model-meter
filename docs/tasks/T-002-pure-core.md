@@ -1,6 +1,6 @@
 # T-002 · Núcleo puro: modelo, esfuerzo, sanitización y encaje por ancho
 
-- **Estado:** Ready (requiere T-001 en `main` ✅)
+- **Estado:** In review
 - **Rama:** `feat/T-002-pure-core`
 - **Plan:** `docs/PLAN.md` §2.4 (decisiones tras T-000), §3.1, §4, §5
 
@@ -44,6 +44,13 @@ Módulos **sin `$`** en `plugins/model-meter/hooks/core/`, totalmente testeados 
    - Tests a 95 y 191 columnas con las pistas `''`, `1 shell · ↓ to manage` y `esc to interrupt`, con y sin un nodo debajo de 30 columnas.
 
 **No entra:** ningún hook, ningún uso de `$` ni de `claude-code` (eso es T-003), ni sprites (T-004).
+
+> **Desviación aceptada por el Reviewer (2026-11-18).** Con el motor 2.1.327, un test de `node:test` dentro de `plugins/model-meter/hooks/` rompe `claude plugin validate --strict` (TS2591: el tsconfig del motor incluye todo `hooks/` y no tiene tipos de Node) y `claude plugin test` (carga todo `*.test.ts` del plugin). Además, un import de valor `./x.ts` entre módulos falla en `validate --strict` (TS5097), y `./x.js` falla en Node. Por eso:
+> - los módulos siguen en `plugins/model-meter/hooks/core/<nombre>.ts` e importan valores entre sí siempre como `./x.js` (los `import type` con `.ts` también valen);
+> - sus tests viven en **`test/core/<nombre>.test.ts`**, fuera del plugin, y los ve `node --test`, pero nunca `claude plugin test`;
+> - `test/resolve-ts.mjs` (con sus propios tests) traduce `./x.js` → `./x.ts` solo para importadores bajo `hooks/core/` cuyo destino sigue en `hooks/core/`, cuando el `.js` no existe y el `.ts` sí;
+> - `engines.node` pasa a `>=22.15` (`module.registerHooks`), solo para desarrollo;
+> - la cobertura sigue midiéndose sobre `hooks/core/` (≥ 95 %).
 
 ## Criterios de aceptación
 
