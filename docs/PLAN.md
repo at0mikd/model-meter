@@ -185,7 +185,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 ### 6.1 Controles adicionales por ser repositorio público
 
 - *Secret scanning* con **push protection** y **private vulnerability reporting** activados.
-- *Branch protection* / *rulesets* en `main`: PR obligatorio, revisión de `CODEOWNERS`, checks requeridos, historial lineal, sin *force-push*.
+- *Ruleset* en `main`: PR obligatorio con **0 aprobaciones requeridas**, checks de estado requeridos (desde T-001), solo squash merge, historial lineal, commits firmados, sin *force-push* ni borrado. No se exige revisión de `CODEOWNERS`: los PRs los abre la cuenta del Maintainer (vía `gh` del Builder) y GitHub no permite aprobar un PR propio, así que bloquearía toda fusión. La aprobación humana queda registrada como se describe en `docs/WORKFLOW.md` §6.
 - Workflows activados por `pull_request` (nunca `pull_request_target` con checkout del PR); `GITHUB_TOKEN` de solo lectura por defecto; aprobación manual para workflows de forks de primeros contribuidores.
 - Publicación del resultado de OpenSSF Scorecard (badge) y licencia MIT ya presente.
 - Sin datos personales en el código, los fixtures ni el historial (revisión con `gitleaks` también sobre el historial completo).
