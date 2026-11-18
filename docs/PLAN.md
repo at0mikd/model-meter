@@ -56,6 +56,20 @@ Fuente: <https://code.claude.com/docs/en/statusline>
 
 Fuentes candidatas para el punto 1 ya identificadas en los tipos: `$.settings.read({ key: 'effortLevel' })` y `$.env.get('CLAUDE_CODE_EFFORT_LEVEL')` (ambas aparecen en el informe de `claude plugin validate`, por lo que entran en la allowlist de forma auditable).
 
+**Resultados del spike (2026-11-18, sesión cloud, CLI 2.1.327):**
+
+| Fuente | Resultado |
+| --- | --- |
+| `$.session.model()` en `session.start` | `claude-opus-5-5` ✅ disponible desde el arranque |
+| `turn.step` (hilo principal) | `model: claude-opus-5-5`, `effort: "medium"` ✅ coincide con la UI |
+| `$.settings.read({ key: 'effortLevel' })` | `undefined` (no configurado en esta sesión) |
+| `CLAUDE_CODE_EFFORT_LEVEL` / `CLAUDE_EFFORT` | `undefined` (no definidas en el proceso del motor) |
+| Renders `SessionMode` / `AbovePrompt` | No se dispararon: la sesión cloud vista desde la app no dibuja ese pie → validar en terminal local |
+
+**Decisión para el esfuerzo antes del primer turno:** cascada `settings.effortLevel` → `CLAUDE_CODE_EFFORT_LEVEL` → último valor en `$.store` (marcado como previo, atenuado) → `?`. Nunca se inventa un valor.
+
+Pendiente: detección de `/model` y `/effort` entre turnos y ancho real del pie (requieren sesión en terminal).
+
 El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt.submit`, `turn.step`, `config.set`, `command.run` y los renders `SessionMode`/`AbovePrompt`, y expone lo observado mediante una herramienta de solo lectura.
 
 ---
