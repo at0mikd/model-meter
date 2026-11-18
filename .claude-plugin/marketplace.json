@@ -1,0 +1,19 @@
+{
+  "name": "model-meter",
+  "owner": {
+    "name": "at0mikd",
+    "url": "https://github.com/at0mikd"
+  },
+  "metadata": {
+    "description": "model-meter: a Claude Code mod that shows the session's model and effort level in 8-bit style."
+  },
+  "plugins": [
+    {
+      "name": "model-meter",
+      "source": "./plugins/model-meter",
+      "description": "Shows which Claude model and effort level the session is using, in 8-bit style.",
+      "version": "0.0.0",
+      "category": "productivity"
+    }
+  ]
+}
