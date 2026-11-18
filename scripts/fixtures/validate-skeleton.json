@@ -1,0 +1,73 @@
+{
+  "success": true,
+  "strict": false,
+  "target": "<redacted>",
+  "manifest": {
+    "file": "<redacted>",
+    "type": "plugin",
+    "errors": [],
+    "warnings": [],
+    "notes": ["types ./types/index.d.ts declares on $: nothing (no EngineInterface member)"],
+    "gatingHooks": [],
+    "wasm": [],
+    "modules": []
+  },
+  "contents": [
+    {
+      "file": "<redacted>",
+      "type": "hooks",
+      "errors": [],
+      "warnings": [],
+      "notes": ["./register.tsx hooks: nothing", "./register.tsx calls: nothing on $"],
+      "gatingHooks": [],
+      "wasm": [],
+      "modules": [
+        {
+          "module": "./register.tsx",
+          "uses": {
+            "events": [],
+            "calls": [],
+            "env": {
+              "reads": [],
+              "writes": []
+            },
+            "state": {
+              "reads": [],
+              "writes": []
+            }
+          },
+          "hooks": [],
+          "nextTo": [],
+          "telemetry": [],
+          "clients": [],
+          "breaksPromptCache": false,
+          "nouns": {
+            "adds": [],
+            "addsUnlessThere": [],
+            "withholds": [],
+            "replaces": []
+          },
+          "shaders": []
+        }
+      ]
+    }
+  ],
+  "provides": {
+    "modules": [
+      {
+        "path": "hooks/register.tsx"
+      }
+    ],
+    "hooks": [],
+    "mcpServers": [],
+    "lspServers": [],
+    "monitors": [],
+    "skills": [],
+    "commands": [],
+    "agents": [],
+    "outputStyles": [],
+    "themes": [],
+    "workflows": [],
+    "bin": []
+  }
+}

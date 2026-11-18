@@ -1,0 +1,200 @@
+{
+  "success": true,
+  "strict": false,
+  "target": "<redacted>",
+  "manifest": {
+    "file": "<redacted>",
+    "type": "plugin",
+    "errors": [],
+    "warnings": [],
+    "notes": [],
+    "gatingHooks": [],
+    "wasm": [],
+    "modules": []
+  },
+  "contents": [
+    {
+      "file": "<redacted>",
+      "type": "hooks",
+      "errors": [],
+      "warnings": [],
+      "notes": [
+        "./register.ts hooks: session.start, prompt.submit, turn.step, config.set, command.run, ui.render{component=SessionMode}, ui.render{component=AbovePrompt} (default matcher key: plugin), tool.run{tool=mcp__wic-spike__report}",
+        "./register.ts gating hook without .catch: prompt.submit",
+        "./register.ts gating hook without .catch: config.set",
+        "./register.ts gating hook without .catch: command.run",
+        "./register.ts gating hook without .catch: tool.run{tool=mcp__wic-spike__report}",
+        "./register.ts calls: $.env.get (via snapshot), $.session.model (via snapshot), $.settings.read (via snapshot), $.tool.register",
+        "./register.ts env writes: nothing",
+        "./register.ts env reads: CLAUDE_CODE_EFFORT_LEVEL, CLAUDE_EFFORT"
+      ],
+      "gatingHooks": [
+        {
+          "module": "./register.ts",
+          "pattern": "prompt.submit",
+          "hook": "prompt.submit",
+          "hasCatch": false
+        },
+        {
+          "module": "./register.ts",
+          "pattern": "config.set",
+          "hook": "config.set",
+          "hasCatch": false
+        },
+        {
+          "module": "./register.ts",
+          "pattern": "command.run",
+          "hook": "command.run",
+          "hasCatch": false
+        },
+        {
+          "module": "./register.ts",
+          "pattern": "tool.run",
+          "hook": "tool.run{tool=mcp__wic-spike__report}",
+          "hasCatch": false
+        }
+      ],
+      "wasm": [],
+      "modules": [
+        {
+          "module": "./register.ts",
+          "uses": {
+            "events": [
+              "session.start",
+              "prompt.submit",
+              "turn.step",
+              "config.set",
+              "command.run",
+              "ui.render",
+              "tool.run"
+            ],
+            "calls": ["env.get", "session.model", "settings.read", "tool.register"],
+            "env": {
+              "reads": ["CLAUDE_CODE_EFFORT_LEVEL", "CLAUDE_EFFORT"],
+              "writes": []
+            },
+            "state": {
+              "reads": [],
+              "writes": []
+            }
+          },
+          "hooks": [
+            {
+              "pattern": "session.start",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "prompt.submit",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": false
+            },
+            {
+              "pattern": "turn.step",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "config.set",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": false
+            },
+            {
+              "pattern": "command.run",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": false
+            },
+            {
+              "pattern": "ui.render",
+              "matcher": {
+                "has": {
+                  "component": {
+                    "is": "SessionMode"
+                  }
+                }
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "ui.render",
+              "matcher": {
+                "has": {
+                  "component": {
+                    "is": "AbovePrompt"
+                  }
+                }
+              },
+              "defaultKeys": ["plugin"],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "tool.run",
+              "matcher": {
+                "has": {
+                  "tool": {
+                    "is": "mcp__wic-spike__report"
+                  }
+                }
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": false
+            }
+          ],
+          "nextTo": [],
+          "telemetry": [],
+          "clients": [],
+          "breaksPromptCache": false,
+          "nouns": {
+            "adds": [],
+            "addsUnlessThere": [],
+            "withholds": [],
+            "replaces": []
+          },
+          "shaders": []
+        }
+      ]
+    }
+  ],
+  "provides": {
+    "modules": [
+      {
+        "path": "hooks/register.ts"
+      }
+    ],
+    "hooks": [],
+    "mcpServers": [],
+    "lspServers": [],
+    "monitors": [],
+    "skills": [],
+    "commands": [],
+    "agents": [],
+    "outputStyles": [],
+    "themes": [],
+    "workflows": [],
+    "bin": []
+  }
+}
