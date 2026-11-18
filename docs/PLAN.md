@@ -12,7 +12,8 @@
 | Tipo de extensión | **Mod** (plugin de *function hooks*, TSX) | Se dibuja en la UI nativa (terminal, desktop, móvil), sin ejecutar procesos externos. Mismo patrón que `sub-meter`. |
 | Fuente del modelo | `$.session.model()` + `e.model` de `turn.step` | API oficial; `turn.step` refleja el modelo *realmente enviado* (incluye fallbacks). |
 | Fuente del esfuerzo | `e.effort` de `turn.step` (solo hilo principal) | Es el nivel efectivo tras límites (`maxEffortLevel`, capacidades del modelo). |
-| Ubicación en UI | **Compacto** en el pie (`SessionMode`) + **modo grande** opcional encima del prompt (`AbovePrompt`) | Convive con `sub-meter` (que ya usa `SessionMode`, ver captura). |
+| Ubicación en UI | **Compacto** en el pie (`SessionMode`) por defecto; **modo grande** (`AbovePrompt`) opcional y modo **`auto`** según el ancho | Pensado para usar Claude Code a media pantalla; convive con `sub-meter` (ver §3.4). |
+| Visibilidad del repo | **Público** | Controles adicionales en §6.1. |
 | Metodología | **Spec-driven + TDD** dentro de un **SSDF (NIST SP 800-218)** ligero | Calidad verificable y seguridad desde el diseño. |
 | Superficie de ataque | **Cero capacidades**: sin `$.fs`, `$.process`, `$.model`, red ni tools | Un indicador visual no necesita más; se verifica en CI. |
 
@@ -53,6 +54,10 @@ Fuente: <https://code.claude.com/docs/en/statusline>
 2. **Cambios con `/model` o `/effort` entre turnos**: comprobar si algún evento (`config.set`, `command.run`, `prompt.submit`) permite refrescar sin esperar al siguiente turno.
 3. **Ancho real** disponible junto a `sub-meter` en el pie (medir con `viewport.columns`).
 
+Fuentes candidatas para el punto 1 ya identificadas en los tipos: `$.settings.read({ key: 'effortLevel' })` y `$.env.get('CLAUDE_CODE_EFFORT_LEVEL')` (ambas aparecen en el informe de `claude plugin validate`, por lo que entran en la allowlist de forma auditable).
+
+El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt.submit`, `turn.step`, `config.set`, `command.run` y los renders `SessionMode`/`AbovePrompt`, y expone lo observado mediante una herramienta de solo lectura.
+
 ---
 
 ## 3. Diseño funcional
@@ -76,9 +81,32 @@ Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Hai
 
 | Campo | Tipo | Default |
 | --- | --- | --- |
-| `placement` | `footer` \| `band` \| `both` | `footer` |
+| `placement` | `footer` \| `auto` \| `band` | `footer` |
+| `autoMinColumns` | number | `140` |
 | `showEffortMeter` | boolean | `true` |
 | `palette` | `classic` \| `gameboy` \| `mono` | `classic` |
+
+### 3.4 Evaluación: modo `auto` (compacto a media pantalla, grande a pantalla completa)
+
+**Viable.** Cada `ui.render` recibe `e.viewport = { columns, rows, isFullscreen? }` y, en la terminal, un cambio de ancho redibuja todos los sitios enganchados al asentarse el redimensionado. No hacen falta timers ni sondeos.
+
+| Señal | ¿Sirve? | Motivo |
+| --- | --- | --- |
+| `viewport.columns` | **Sí, señal principal** | Refleja el ancho real de la terminal y dispara redibujado. |
+| `viewport.rows` | Secundaria | Informativa: un cambio *solo* de alto no redibuja. |
+| `viewport.isFullscreen` | **No** como criterio | Indica el modo de pantalla alternativa de Claude Code (fijo por sesión), no si la ventana está maximizada. |
+| `AbovePrompt.props.bodyColumns` / `maxRows` | Sí, para dimensionar el sprite | Ancho útil real de la banda (descuenta un `Pane` acoplado). |
+
+Regla propuesta para `placement: auto`:
+
+- Pie compacto **siempre** (es la información esencial).
+- Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas).
+- **Histéresis** para evitar parpadeo al redimensionar: entra con ≥ 140 y sale con < 120.
+- `mobile` → siempre compacto; `desktop` → según el viewport que informe el cliente.
+
+Referencia orientativa: un monitor de 1920 px con fuente de 14 px da ~200 columnas a pantalla completa y ~95–110 a media pantalla, por lo que 140 separa bien ambos casos. Se ajustará con los datos del spike.
+
+**Coste:** la banda ocupa filas verticales encima del prompt en cada turno (comparte espacio con las encuestas del motor y el usuario puede plegarla con `[-]`). Por eso el default es `footer` y `auto` es *opt-in*; se reevaluará como default tras usarlo.
 
 ---
 
@@ -139,6 +167,14 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Postura | OpenSSF Scorecard | ≥ 8/10 |
 | Commits | Conventional Commits (commitlint) + commits firmados | Obligatorio |
 | Releases | SemVer, `CHANGELOG.md`, *build provenance* (GitHub attestations) | Por tag |
+
+### 6.1 Controles adicionales por ser repositorio público
+
+- *Secret scanning* con **push protection** y **private vulnerability reporting** activados.
+- *Branch protection* / *rulesets* en `main`: PR obligatorio, revisión de `CODEOWNERS`, checks requeridos, historial lineal, sin *force-push*.
+- Workflows activados por `pull_request` (nunca `pull_request_target` con checkout del PR); `GITHUB_TOKEN` de solo lectura por defecto; aprobación manual para workflows de forks de primeros contribuidores.
+- Publicación del resultado de OpenSSF Scorecard (badge) y licencia MIT ya presente.
+- Sin datos personales en el código, los fixtures ni el historial (revisión con `gitleaks` también sobre el historial completo).
 
 Archivos de gobierno: `SECURITY.md`, `CODEOWNERS`, `CONTRIBUTING.md`, plantilla de PR con checklist de seguridad, `.editorconfig`.
 
