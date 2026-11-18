@@ -205,6 +205,8 @@ Archivos de gobierno: `SECURITY.md`, `CODEOWNERS`, `CONTRIBUTING.md`, plantilla 
 
 Cada historia: especificación (criterios de aceptación) → test que falla → implementación mínima → refactor → gates verdes → PR.
 
+**Patrón Reviewer–Builder** (detalle en `docs/WORKFLOW.md`): una sesión Claude Code en la nube diseña, planifica y revisa; una sesión Claude Code local del mantenedor implementa y prueba en el entorno real (terminal, CLI `claude`); la persona aprueba y fusiona. Las tareas viven en `docs/tasks/` con criterios de aceptación verificables, y GitHub (ramas y PRs) es el canal y el registro auditable.
+
 ---
 
 ## 8. Plan por fases
