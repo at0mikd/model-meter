@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 import process from 'node:process'
 import { describe, test } from 'node:test'
 
-import { allowedGhsas, findAuditProblems, main } from './audit.mjs'
+import {
+  EXPIRY_WARNING_DAYS,
+  allowedGhsas,
+  expiryWarnings,
+  findAuditProblems,
+  main,
+} from './audit.mjs'
 import exceptionsFile from '../security/audit-exceptions.json' with { type: 'json' }
 import auditReport from './fixtures/npm-audit.json' with { type: 'json' }
 import lsReport from './fixtures/npm-ls-runtime.json' with { type: 'json' }
@@ -251,12 +257,45 @@ describe('allowedGhsas', () => {
   })
 })
 
+describe('expiryWarnings', () => {
+  const exception = first(inputs().exceptions) // expires 2026-12-18
+  const at = (/** @type {string} */ today) => expiryWarnings([exception], today)
+  const warning = (/** @type {number} */ daysLeft) => [
+    { id: 'GHSA-fc5q-39xc-vjpf', expires: '2026-12-18', daysLeft },
+  ]
+
+  test('the margin is 14 days', () => {
+    assert.equal(EXPIRY_WARNING_DAYS, 14)
+  })
+
+  test('warns from 14 days before the expiry date up to the day itself (UTC)', () => {
+    assert.deepEqual(at('2026-12-03'), []) // 15 days left
+    assert.deepEqual(at('2026-12-04'), warning(14))
+    assert.deepEqual(at('2026-12-17'), warning(1))
+    assert.deepEqual(at('2026-12-18'), warning(0))
+  })
+
+  test('an expired exception is no warning: rule 2 fails the audit instead', () => {
+    assert.deepEqual(at('2026-12-19'), [])
+  })
+
+  test('with several exceptions, warns only for those close to expiry, soonest first', () => {
+    const later = { ...exception, id: 'GHSA-aaaa-bbbb-cccc', expires: '2027-03-01' }
+    const sooner = { ...exception, id: 'GHSA-dddd-eeee-ffff', expires: '2026-12-10' }
+    assert.deepEqual(expiryWarnings([exception, later, sooner], '2026-12-08'), [
+      { id: 'GHSA-dddd-eeee-ffff', expires: '2026-12-10', daysLeft: 2 },
+      { id: 'GHSA-fc5q-39xc-vjpf', expires: '2026-12-18', daysLeft: 10 },
+    ])
+  })
+})
+
 describe('main', () => {
   /**
    * @param {Partial<Record<'audit' | 'ls' | 'exceptions' | 'workflow', string>>} [over]
    * @param {string} [today]
+   * @param {boolean} [githubActions]
    */
-  function capture(over = {}, today = TODAY) {
+  function capture(over = {}, today = TODAY, githubActions = false) {
     const files = {
       audit: JSON.stringify(auditReport),
       ls: JSON.stringify(lsReport),
@@ -269,10 +308,105 @@ describe('main', () => {
       run: (args) => (args[0] === 'audit' ? files.audit : files.ls),
       read: (which) => (which === 'exceptions' ? files.exceptions : files.workflow),
       today,
+      githubActions,
       write: (text) => (out += text),
     })
     return { code, out }
   }
+
+  /**
+   * Runs `fn` with GITHUB_ACTIONS set to `value` (or unset), then restores it.
+   *
+   * @param {string | undefined} value
+   * @param {() => void} fn
+   */
+  function withGithubActions(value, fn) {
+    const saved = process.env.GITHUB_ACTIONS
+    if (value === undefined) delete process.env.GITHUB_ACTIONS
+    else process.env.GITHUB_ACTIONS = value
+    try {
+      fn()
+    } finally {
+      if (saved === undefined) delete process.env.GITHUB_ACTIONS
+      else process.env.GITHUB_ACTIONS = saved
+    }
+  }
+
+  test('CA1: 10 days before expiry it warns and still exits 0', () => {
+    const { code, out } = capture({}, '2026-12-08')
+    assert.equal(code, 0)
+    assert.equal(
+      out,
+      'audit: warning: GHSA-fc5q-39xc-vjpf expires on 2026-12-18 (10 days left); renewing it needs the Maintainer\n' +
+        'audit: ok, 1 advisory covered by an exception (GHSA-fc5q-39xc-vjpf, expires 2026-12-18)\n',
+    )
+  })
+
+  test('CA1: more than 14 days ahead there is no warning', () => {
+    const { code, out } = capture({}, '2026-12-03')
+    assert.equal(code, 0)
+    assert.doesNotMatch(out, /warning/)
+  })
+
+  test('says "1 day left", and "expires today" on the day itself', () => {
+    assert.match(capture({}, '2026-12-17').out, /expires on 2026-12-18 \(1 day left\)/)
+    assert.match(capture({}, '2026-12-18').out, /GHSA-fc5q-39xc-vjpf expires today \(2026-12-18\)/)
+  })
+
+  test('CA1: once expired it fails as before, with no warning', () => {
+    const { code, out } = capture({}, '2026-12-19')
+    assert.equal(code, 1)
+    assert.match(out, /exception expired on 2026-12-18/)
+    assert.doesNotMatch(out, /warning/)
+  })
+
+  test('the warning still shows when the audit fails for another reason', () => {
+    const audit = /** @type {AuditReport} */ (copy(auditReport))
+    addAdvisory(audit, { id: 'GHSA-aaaa-bbbb-cccc', name: 'left-pad', severity: 'low' })
+    const { code, out } = capture({ audit: JSON.stringify(audit) }, '2026-12-08')
+    assert.equal(code, 1)
+    assert.match(out, /^audit: warning: GHSA-fc5q-39xc-vjpf expires on 2026-12-18/)
+    assert.match(out, /advisory without an exception: GHSA-aaaa-bbbb-cccc/)
+  })
+
+  test('no warning from an exceptions file it cannot trust', () => {
+    for (const exceptions of ['{oops', '{}', '[null]']) {
+      const { code, out } = capture({ exceptions }, '2026-12-08')
+      assert.equal(code, 1, exceptions)
+      assert.doesNotMatch(out, /warning/, exceptions)
+    }
+  })
+
+  test('CA2: under GitHub Actions the warning is also an annotation', () => {
+    const { code, out } = capture({}, '2026-12-08', true)
+    assert.equal(code, 0)
+    assert.match(out, /^audit: warning: GHSA-fc5q-39xc-vjpf/)
+    assert.ok(
+      out.includes(
+        '::warning title=Audit exception expires soon::GHSA-fc5q-39xc-vjpf expires on 2026-12-18 (10 days left). Renewing it needs the Maintainer (security/audit-exceptions.json).\n',
+      ),
+    )
+    assert.doesNotMatch(capture({}, '2026-12-08', false).out, /::warning/)
+  })
+
+  test('CA2: reads GITHUB_ACTIONS from the environment by default', () => {
+    /** @param {string | undefined} value */
+    const run = (value) => {
+      let out = ''
+      withGithubActions(value, () => {
+        main({
+          run: (args) => JSON.stringify(args[0] === 'audit' ? auditReport : lsReport),
+          read: (which) => (which === 'exceptions' ? JSON.stringify(exceptionsFile) : WORKFLOW),
+          today: '2026-12-08',
+          write: (text) => (out += text),
+        })
+      })
+      return out
+    }
+    assert.match(run('true'), /::warning title=/)
+    assert.doesNotMatch(run(undefined), /::warning/)
+    assert.doesNotMatch(run('false'), /::warning/)
+  })
 
   test('exits 0 and names the exceptions in force', () => {
     const { code, out } = capture()

@@ -4,7 +4,7 @@ El proyecto sigue el flujo **Reviewer–Builder** descrito en [`docs/WORKFLOW.md
 
 ## Requisitos
 
-- Node.js 22 o posterior.
+- Node.js 22.15 o posterior (los tests del núcleo usan `module.registerHooks`; el mod en sí corre en el motor de Claude Code).
 - Claude Code ≥ 2.1.327 (la CLI `claude`) para los gates del mod.
 
 ## Puesta en marcha
@@ -20,7 +20,7 @@ npm run check:core   # los que no necesitan la CLI
 | `typecheck` | Núcleo puro y scripts con TypeScript estricto |
 | `lint` | ESLint (`strict-type-checked` + `eslint-plugin-security`), 0 avisos |
 | `format:check` | Prettier |
-| `test:node` | Tests `node --test` con cobertura ≥ 95 % (`c8`) |
+| `test:node` | Tests `node --test` (núcleo en `test/`, scripts en `scripts/`) con cobertura ≥ 95 % (`c8`) |
 | `commitlint` | Conventional Commits en los commits de la rama |
 | `validate` | `claude plugin validate --strict` del mod y del marketplace |
 | `test:mod` | `claude plugin test` del mod |

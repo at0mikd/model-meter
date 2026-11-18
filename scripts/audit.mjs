@@ -7,6 +7,10 @@
 //   4. an exception is not scope "dev" or its package is a runtime dependency;
 //   5. allow-ghsas in dependency-review.yml differs from the exceptions file.
 // Anything it cannot read fails closed. No dependencies.
+//
+// It also warns, without failing, when an exception expires within
+// EXPIRY_WARNING_DAYS (T-007): on stdout, and as a GitHub Actions annotation
+// when GITHUB_ACTIONS is "true".
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -16,6 +20,10 @@ import { pathToFileURL } from 'node:url'
 export const EXCEPTIONS_FILE = 'security/audit-exceptions.json'
 export const DEPENDENCY_REVIEW_FILE = '.github/workflows/dependency-review.yml'
 
+/** How many days before an exception expires the audit starts warning. */
+export const EXPIRY_WARNING_DAYS = 14
+
+const DAY_MS = 86_400_000
 const SEVERITIES = ['info', 'low', 'moderate', 'high', 'critical']
 const GHSA = /GHSA-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}/
 
@@ -203,6 +211,49 @@ export function findAuditProblems({ audit, ls, exceptions, workflow, today }) {
   return problems
 }
 
+/**
+ * The exceptions that expire within `margin` days of `today` (both UTC days),
+ * soonest first. An expired one is not listed: rule 2 fails the audit for it.
+ *
+ * @param {readonly AuditException[]} exceptions
+ * @param {string} today
+ * @param {number} [margin]
+ * @returns {{ id: string, expires: string, daysLeft: number }[]}
+ */
+export function expiryWarnings(exceptions, today, margin = EXPIRY_WARNING_DAYS) {
+  const start = Date.parse(`${today}T00:00:00Z`)
+  return exceptions
+    .map(({ id, expires }) => ({
+      id,
+      expires,
+      daysLeft: Math.round((Date.parse(`${expires}T00:00:00Z`) - start) / DAY_MS),
+    }))
+    .filter(({ daysLeft }) => daysLeft >= 0 && daysLeft <= margin)
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+}
+
+/**
+ * The warning lines for an exception close to expiry. Its id and date have
+ * passed isException (a GHSA id and a calendar day), so they hold nothing a
+ * workflow command would need escaped.
+ *
+ * @param {{ id: string, expires: string, daysLeft: number }} warning
+ * @param {boolean} githubActions
+ */
+function warningLines({ id, expires, daysLeft }, githubActions) {
+  const when =
+    daysLeft === 0
+      ? `expires today (${expires})`
+      : `expires on ${expires} (${String(daysLeft)} ${daysLeft === 1 ? 'day' : 'days'} left)`
+  const lines = [`audit: warning: ${id} ${when}; renewing it needs the Maintainer\n`]
+  if (githubActions) {
+    lines.push(
+      `::warning title=Audit exception expires soon::${id} ${when}. Renewing it needs the Maintainer (${EXCEPTIONS_FILE}).\n`,
+    )
+  }
+  return lines
+}
+
 /* c8 ignore start -- spawns npm; exercised by `npm run audit` */
 /**
  * Runs npm with the same npm that runs this script, and returns its stdout:
@@ -252,13 +303,14 @@ function parse(text, what) {
 
 /**
  * @param {{ run?: (args: string[]) => string, read?: (which: 'exceptions' | 'workflow') => string, today?: string,
- *   write?: (text: string) => void }} [io]
+ *   githubActions?: boolean, write?: (text: string) => void }} [io]
  * @returns {0 | 1}
  */
 export function main({
   run = runNpm,
   read = readInput,
   today = new Date().toISOString().slice(0, 10),
+  githubActions = process.env.GITHUB_ACTIONS === 'true',
   write = (text) => process.stdout.write(text),
 } = {}) {
   let texts
@@ -287,6 +339,13 @@ export function main({
           workflow: texts.workflow,
           today,
         })
+  // Warn from the exceptions file only when every entry in it is well formed.
+  const entries = 'value' in exceptions ? exceptions.value : undefined
+  if (Array.isArray(entries) && entries.every(isException)) {
+    for (const warning of expiryWarnings(entries, today)) {
+      for (const line of warningLines(warning, githubActions)) write(line)
+    }
+  }
   if (problems.length === 0) {
     const list = /** @type {AuditException[]} */ (exceptions.value)
     const covered = list.map((e) => `${e.id}, expires ${e.expires}`).join('; ')

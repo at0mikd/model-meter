@@ -1,6 +1,6 @@
 # T-007 · Aviso anticipado de caducidad de excepciones y auditoría semanal
 
-- **Estado:** Ready
+- **Estado:** In review
 - **Rama:** `chore/T-007-audit-expiry-warning`
 - **Plan:** `docs/PLAN.md` §6; T-001 «Excepciones de seguridad»
 
