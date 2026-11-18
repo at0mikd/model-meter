@@ -1,5 +1,7 @@
 // The mod's `$.state` contract: exactly the keys it reads and writes, all its
-// own (check-capabilities rejects any other, and any other plugin's state).
+// own (check-capabilities rejects any other, and any other plugin's state). The
+// hint line's width is not here: it is measured while drawing, when the engine
+// refuses state writes, so register.tsx keeps it in its own closure.
 // Nothing here is drawn as is: ids and typed text go through parseModel,
 // parseLevel or effortState first.
 declare module 'claude-code' {
@@ -13,8 +15,6 @@ declare module 'claude-code' {
       stored: string | null
       /** What was typed after /effort, sanitized, until the next `turn.step`; null when nothing is pending. */
       pending: { args: string } | null
-      /** Columns of the prompt's hint line as last drawn on the terminal. */
-      hintWidth: number
     }
   }
 }
