@@ -11,7 +11,7 @@ declare module 'claude-code' {
       model: string | null
       /** `effort` of the last main-thread `turn.step`: a level, or a number in internal builds; null before any. */
       step: string | number | null
-      /** The level `$.store` kept from an earlier session, validated with parseLevel; null when none. */
+      /** The level in `$.store`: read (and validated) when the session starts, kept in step with each write; null when none. */
       stored: string | null
       /** What was typed after /effort, sanitized, until the next `turn.step`; null when nothing is pending. */
       pending: { args: string } | null

@@ -5,7 +5,8 @@ import type { CommandRunInput, ConfigSetInput, On } from 'claude-code'
 
 const OPUS = 'claude-opus-5-5'
 const SONNET = 'claude-sonnet-5-5'
-const MODES = ['⏵⏵ auto mode on']
+// SessionMode's own labels, at the right end of the footer (the permission mode's is at the left).
+const MODES = ['focus']
 const SHELL = '1 shell · ↓ to manage'
 const WORKING = 'esc to interrupt'
 const BENEATH = 'x'.repeat(30) // another mod's drawing beneath, 30 columns
@@ -73,7 +74,7 @@ function world(
       return (
         <Box key="engine">
           {options.beneath === undefined ? null : <Text>{options.beneath}</Text>}
-          <Text>{e.props.modes.join(' & ')}</Text>
+          {e.props.modes.length === 0 ? null : <Text>{e.props.modes.join(' & ')}</Text>}
         </Box>
       )
     }
@@ -298,13 +299,15 @@ describe('the badge fits the row (CA4)', () => {
     return /HIGH|---/.test(text) ? 'noMeter' : 'modelOnly'
   }
 
+  // The row: 4 of padding, 26 for the permission mode's label, the hint (and a
+  // space), 2 of gap, ' · ' and what is beneath ('focus', plus 30 of another mod).
   const cases: [columns: number, hint: string, beneath: string | undefined, expected: string][] = [
     [95, '', undefined, 'full'],
     [95, SHELL, undefined, 'full'],
     [95, WORKING, undefined, 'full'],
     [95, '', BENEATH, 'full'],
-    [95, SHELL, BENEATH, 'noMeter'],
-    [95, WORKING, BENEATH, 'full'],
+    [95, SHELL, BENEATH, 'none'], // 3 columns left: the badge gives way, all the rest stays
+    [95, WORKING, BENEATH, 'none'], // 8 left
     [191, '', undefined, 'full'],
     [191, SHELL, BENEATH, 'full'],
     [191, WORKING, BENEATH, 'full'],
@@ -323,13 +326,23 @@ describe('the badge fits the row (CA4)', () => {
     })
   }
 
+  test("leaves room for the permission mode's label at the left, which no site exposes", async ($, on) => {
+    world(on)
+    await start($)
+    await turn($, 'high')
+    // Padding 4 + label 26 + gap 2 + ' · focus' 8 = 40: full needs 64 columns, not 38.
+    expect(variantOf(await shown(await footer($, 64)))).toBe('full')
+    expect(variantOf(await shown(await footer($, 63)))).toBe('noMeter')
+    expect(variantOf(await shown(await footer($, 51)))).toBe('none')
+  })
+
   test('narrowing the row gives up the meter, then the effort, then the badge, in that order', async ($, on) => {
     world(on, { beneath: BENEATH })
     await start($)
     await turn($, 'high')
     await hintLine($, SHELL)
     const seen: string[] = []
-    for (const columns of [191, 99, 98, 93, 92, 87, 86, 60]) {
+    for (const columns of [191, 116, 115, 110, 109, 104, 103, 60]) {
       const text = await shown(await footer($, columns))
       seen.push(variantOf(text))
       expect(text).toContain(BENEATH)
@@ -349,6 +362,18 @@ describe('the badge fits the row (CA4)', () => {
 })
 
 describe('$.store holds a level and nothing else (CA5)', () => {
+  test('a level is written only when it changes', async ($, on) => {
+    const w = world(on, { stored: 'medium' })
+    await start($)
+    await turn($, 'medium')
+    expect(w.writes).toEqual([])
+    await turn($, 'high')
+    await turn($, 'high')
+    expect(w.writes).toEqual(['high'])
+    await turn($, 'max')
+    expect(w.writes).toEqual(['high', 'max'])
+  })
+
   test('only levels reach the store: a numeric effort does not', async ($, on) => {
     const w = world(on)
     await start($)

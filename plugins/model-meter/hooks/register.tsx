@@ -2,8 +2,10 @@
 // hands the engine's event on as it came; the badge is drawn on the terminal
 // alone, where the app does not already show the model and effort.
 //
-// No hook holds an event up: its own work starts beside `next(e)`, and the hook
-// waits for that work only after the engine has handled the event.
+// The engine always handles an event first: work that needs the event done (a
+// session start, a /clear, a /model) runs after `next(e)`; work that can run
+// alongside it (recording a turn, a pending /effort) starts beside `next(e)` and
+// is only awaited once the engine has answered.
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderNode } from 'claude-code'
@@ -22,12 +24,16 @@ const step = atom({ plugin: 'model-meter', key: 'step' } as const, null)
 const stored = atom({ plugin: 'model-meter', key: 'stored' } as const, null)
 const pending = atom({ plugin: 'model-meter', key: 'pending' } as const, null)
 
-// The terminal footer's row: two columns of padding at each end, at least two
-// between the hint line and what this site draws, which sits at its right end.
+// The terminal footer's row: two columns of padding at each end; at the left,
+// the permission mode's label and the hint line after it; at the right, this
+// site; at least two columns between them.
 const FOOTER_PADDING = 4
 const HINT_GAP = 2
 const SEPARATOR = ' · '
-// The engine's own node in SessionMode draws the permission modes, joined so.
+// No site exposes the permission mode's label: room for the longest one.
+const MODE_LABEL = widthOf('⏵⏵ bypass permissions on ·')
+// The engine's own node in SessionMode draws its mode labels (`focus`,
+// `memory paused`), joined so.
 const MODES_JOIN = ' & '
 // What was typed after /effort is kept only for parseEffortArg: a level at most.
 const ARGS_MAX = 16
@@ -50,14 +56,17 @@ async function begin($: EngineInterface): Promise<void> {
 /** A main-thread turn.step: the model and effort really sent; /effort is no longer pending. */
 async function observeStep($: EngineInterface, id: string, effort: unknown): Promise<void> {
   const level = parseLevel(effort)
+  const kept = level === undefined ? undefined : await read($, stored)
   await Promise.all([
     update($, model, () => id),
     update($, step, () =>
       typeof effort === 'string' || typeof effort === 'number' ? effort : null,
     ),
     update($, pending, () => null),
-    // Only a value of the allowlist ever reaches the store.
-    level === undefined ? undefined : $.store.set('effort', level),
+    // Only a value of the allowlist reaches the store, and only when it changes.
+    level === undefined || level === kept
+      ? undefined
+      : Promise.all([$.store.set('effort', level), update($, stored, () => level)]),
   ])
 }
 
@@ -161,7 +170,11 @@ export const register: Register = (on) => {
     try {
       const below = widthOfTree(beneath, widthOf(e.props.modes.join(MODES_JOIN)))
       const reserved =
-        FOOTER_PADDING + HINT_GAP + hintColumns + (below > 0 ? SEPARATOR.length + below : 0)
+        FOOTER_PADDING +
+        MODE_LABEL +
+        (hintColumns > 0 ? 1 + hintColumns : 0) +
+        HINT_GAP +
+        (below > 0 ? SEPARATOR.length + below : 0)
       const variant = fitBadge({
         columns: e.viewport?.columns ?? 0,
         reserved,
