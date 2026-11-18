@@ -1,6 +1,6 @@
 # T-002 · Núcleo puro: modelo, esfuerzo, sanitización y encaje por ancho
 
-- **Estado:** Ready (requiere T-001 en `main` ✅)
+- **Estado:** In progress
 - **Rama:** `feat/T-002-pure-core`
 - **Plan:** `docs/PLAN.md` §2.4 (decisiones tras T-000), §3.1, §4, §5
 
