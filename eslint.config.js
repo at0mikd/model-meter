@@ -39,6 +39,13 @@ export default defineConfig(
     },
   },
   {
+    // Tests read the repository's own sources and fixtures by computed path.
+    files: ['test/**/*.test.ts', 'test/**/*.test.mjs'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off',
+    },
+  },
+  {
     // Hooks run against the engine's types, which are not versioned: syntax-level
     // strict rules here, type checking through `claude plugin validate --strict`.
     files: ['plugins/model-meter/hooks/*.tsx'],
