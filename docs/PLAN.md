@@ -164,13 +164,16 @@ plugins/model-meter/
 ├── .claude-plugin/plugin.json
 ├── hooks/
 │   ├── hooks.json
-│   ├── register.tsx        # cableado de eventos y render (fino)
-│   ├── model.ts            # PURO: normalizar id de modelo → { family, label }
-│   ├── effort.ts           # PURO: nivel → { cells, label, color }
-│   ├── sanitize.ts         # PURO: limpiar/acotar texto mostrado
-│   ├── sprites.ts          # PURO: matrices de píxeles → filas de texto
-│   └── *.test.ts(x)
-├── types/index.d.ts        # contrato de $.state: { model, effort, seenAt }
+│   ├── register.tsx        # cableado de eventos y render (fino; tipos del motor vía validate --strict)
+│   ├── register.test.tsx   # tests de mod (claude plugin test)
+│   └── core/               # PURO, sin `$` ni `claude-code` (tsc + node --test)
+│       ├── sanitize.ts     # limpiar/acotar texto mostrado
+│       ├── model.ts        # id de modelo → { family, label }
+│       ├── effort.ts       # nivel → { cells, label }; parseEffortArg
+│       ├── state.ts        # cascada step / stored / pending / unknown
+│       ├── layout.ts       # anchos y elección de variante por espacio
+│       └── sprites.ts      # (T-004) matrices de píxeles → filas de texto
+├── types/index.d.ts        # contrato de $.state
 ├── tsconfig.json
 └── README.md
 .claude-plugin/marketplace.json   # el repo es un marketplace

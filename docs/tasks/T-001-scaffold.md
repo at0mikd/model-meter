@@ -1,6 +1,6 @@
 # T-001 · Estructura del repo, gates locales y CI
 
-- **Estado:** In review
+- **Estado:** Done ([#6](https://github.com/at0mikd/model-meter/pull/6))
 - **Rama:** `chore/T-001-scaffold`
 - **Plan:** `docs/PLAN.md` §4, §6, §6.1, fase 1
 
