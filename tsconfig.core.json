@@ -1,5 +1,5 @@
 {
-  "//": "Layer 1: pure core and repo scripts, checked without the claude CLI. Hooks (*.tsx) are checked by `claude plugin validate --strict`.",
+  "//": "Layer 1: pure core, its tests (test/) and repo scripts, checked without the claude CLI. Hooks (*.tsx) are checked by `claude plugin validate --strict`.",
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true,
@@ -13,6 +13,8 @@
     "scripts/**/*.mjs",
     "plugins/model-meter/hooks/core/**/*.ts",
     "scripts/fixtures/*.json",
-    "security/*.json"
+    "security/*.json",
+    "test/**/*.ts",
+    "test/**/*.mjs"
   ]
 }
