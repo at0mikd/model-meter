@@ -4,7 +4,7 @@ Backlog del flujo Reviewer–Builder (`docs/WORKFLOW.md`). El Reviewer las escri
 
 | ID | Título | Fase del plan | Estado |
 | --- | --- | --- | --- |
-| [T-000](T-000-spike-terminal.md) | Spike en terminal: `/model`, `/effort` y ancho del pie | 0 | Ready |
+| [T-000](T-000-spike-terminal.md) | Spike en terminal: `/model`, `/effort` y ancho del pie | 0 | In progress |
 | [T-001](T-001-scaffold.md) | Estructura del repo, gates locales y CI | 1 | Ready |
 | [T-002](T-002-pure-core.md) | Núcleo puro: modelo, esfuerzo y sanitización | 2 | Draft |
 

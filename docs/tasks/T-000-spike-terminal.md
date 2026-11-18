@@ -1,6 +1,6 @@
 # T-000 · Spike en terminal: `/model`, `/effort` y ancho del pie
 
-- **Estado:** Ready
+- **Estado:** In progress
 - **Rama:** `spike/T-000-terminal`
 - **Plan:** `docs/PLAN.md` §2.4
 
