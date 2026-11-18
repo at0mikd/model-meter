@@ -1,0 +1,14 @@
+{
+  "name": "model-meter",
+  "version": "0.0.0",
+  "description": "Shows which Claude model and effort level the session is using, in 8-bit style.",
+  "author": {
+    "name": "at0mikd",
+    "url": "https://github.com/at0mikd"
+  },
+  "homepage": "https://github.com/at0mikd/model-meter",
+  "repository": "https://github.com/at0mikd/model-meter",
+  "license": "MIT",
+  "keywords": ["model", "effort", "status", "mod", "8-bit"],
+  "types": "./types/index.d.ts"
+}

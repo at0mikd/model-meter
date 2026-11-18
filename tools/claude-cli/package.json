@@ -1,0 +1,9 @@
+{
+  "name": "claude-cli-pin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pins the claude CLI that CI's mod job runs. Not a dependency of the project.",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.327"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "model-meter",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Claude Code mod that shows the session's model and effort level in 8-bit style.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.core.json",
+    "lint": "eslint --max-warnings=0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:node": "c8 node --test \"scripts/**/*.test.mjs\" \"plugins/model-meter/hooks/core/**/*.test.ts\"",
+    "commitlint": "commitlint --from origin/main --to HEAD --verbose",
+    "audit": "node scripts/audit.mjs",
+    "check:core": "npm run typecheck && npm run lint && npm run format:check && npm run test:node && npm run commitlint && npm run audit",
+    "validate": "claude plugin validate --strict plugins/model-meter && claude plugin validate .",
+    "test:mod": "claude plugin test plugins/model-meter",
+    "capabilities": "node scripts/check-capabilities.mjs",
+    "check": "npm run check:core && npm run validate && npm run test:mod && npm run capabilities"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "c8": "12.0.0",
+    "eslint": "10.15.0",
+    "eslint-plugin-security": "4.2.1",
+    "fast-check": "4.10.2",
+    "prettier": "3.10.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0"
+  },
+  "overrides": {
+    "glob": "14.0.6",
+    "minimatch": "11.0.9"
+  }
+}

@@ -1,0 +1,12 @@
+# Generated or vendored
+node_modules/
+coverage/
+package-lock.json
+**/.claude-plugin/types/
+
+# Throwaway spikes are outside the product gates (spikes/README.md)
+spikes/
+
+# Prose is reviewed by people, not reformatted by a tool: Markdown keeps its
+# hand-written tables and line breaks.
+*.md
