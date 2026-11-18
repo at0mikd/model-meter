@@ -1,0 +1,35 @@
+name: Scheduled audit
+
+# A weekly, read-only `npm run audit` on main (T-007), so an advisory or an
+# exception about to expire shows up even when no pull request is open. A
+# failed run reaches the Maintainer through GitHub's standard email; nothing
+# here writes to the repository, opens issues or uses a secret.
+on:
+  schedule:
+    - cron: '37 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: npm run audit and the claude CLI lockfile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: npm run audit (warns 14 days before an exception expires)
+        run: npm run audit
+      - name: Audit the claude CLI's lockfile
+        if: ${{ !cancelled() }}
+        run: npm audit --prefix tools/claude-cli --audit-level=low
