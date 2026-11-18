@@ -1,7 +1,7 @@
 {
   "name": "wic-spike",
   "version": "0.0.1",
-  "description": "Throwaway spike: observes model, effort and viewport for who-is-claude. Not for release.",
+  "description": "Throwaway spike: observes model, effort and viewport for model-meter. Not for release.",
   "license": "MIT",
   "author": {
     "name": "at0mikd",

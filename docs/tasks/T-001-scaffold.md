@@ -4,6 +4,8 @@
 - **Rama:** `chore/T-001-scaffold`
 - **Plan:** `docs/PLAN.md` §4, §6, §6.1, fase 1
 
+> **Decisión (Maintainer, tras el bloqueo del Builder en CA2):** el proyecto se llama **`model-meter`** en todo: el plugin (`plugins/model-meter/`), el marketplace (`name` en `.claude-plugin/marketplace.json`) y el repositorio (`at0mikd/model-meter`, renombrado por el Maintainer en GitHub). No se añade ninguna excepción al gate `--strict`.
+
 ## Objetivo
 
 Dejar el repositorio listo para que todo el código posterior pase por los mismos controles de calidad y seguridad en local (`npm run check`) y en CI, con un mod vacío que valida.
@@ -15,12 +17,12 @@ Dejar el repositorio listo para que todo el código posterior pase por los mismo
 - La CLI `claude` **no** es devDependency: en local, la global ≥ 2.1.327; en CI, `npm i -g @anthropic-ai/claude-code@2.1.327` (versión exacta, en su propio job). `validate` y `test` funcionan **sin autenticación** (verificado por el Reviewer con `HOME` vacío): ningún secreto en CI.
 - `tsconfig.base.json` estricto (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`).
 - **Tipos, en dos capas** (los tipos del motor no se versionan: son del motor, se regeneran por versión y `validate` no los escribe):
-  - Núcleo puro (`plugins/who-is-claude/hooks/core/*.ts`, sin importar `claude-code`): `tsc -p tsconfig.core.json` propio, sin la CLI.
+  - Núcleo puro (`plugins/model-meter/hooks/core/*.ts`, sin importar `claude-code`): `tsc -p tsconfig.core.json` propio, sin la CLI.
   - Hooks: `claude plugin validate --strict --json`. Con `--strict` falla ante los errores TypeScript que el validador reporta como avisos (verificado: un `const n: number = 'x'` hace salir con 1).
-  - En local, si el motor ya ha escrito `.claude-plugin/types/` (al cargar el mod con `--plugin-dir`), `tsc -p plugins/who-is-claude` es un extra opcional, no un gate.
+  - En local, si el motor ya ha escrito `.claude-plugin/types/` (al cargar el mod con `--plugin-dir`), `tsc -p plugins/model-meter` es un extra opcional, no un gate.
 - ESLint (`strict-type-checked` + `eslint-plugin-security`), Prettier, `.editorconfig`.
-- Mod esqueleto `plugins/who-is-claude/` (manifest con `license: MIT`, `author`, `types`; `hooks/hooks.json`; `register.tsx` que registra cero hooks; `types/index.d.ts`; `tsconfig.json`; `README.md`) y `.claude-plugin/marketplace.json` en la raíz.
-- `scripts/check-capabilities.mjs`: ejecuta `claude plugin validate plugins/who-is-claude --json`, lee `contents[].notes` y extrae las entradas `calls:` y `env reads:` (sin depender de las rutas absolutas del informe, que nunca se imprimen ni se pegan como evidencia) y falla si aparece algo fuera de la allowlist definida en el propio script (inicial: `$.session.model`, `$.store.get`, `$.store.set`, `$.ui.*`, `$.clock.now`; env: ninguna — actualizado tras T-000). Además falla si algún elemento de `gatingHooks` del informe JSON no tiene `.catch` (`docs/PLAN.md` §2.4, decisión 6). Con tests propios sobre salidas de ejemplo.
+- Mod esqueleto `plugins/model-meter/` (manifest con `license: MIT`, `author`, `types`; `hooks/hooks.json`; `register.tsx` que registra cero hooks; `types/index.d.ts`; `tsconfig.json`; `README.md`) y `.claude-plugin/marketplace.json` en la raíz.
+- `scripts/check-capabilities.mjs`: ejecuta `claude plugin validate plugins/model-meter --json`, lee `contents[].notes` y extrae las entradas `calls:` y `env reads:` (sin depender de las rutas absolutas del informe, que nunca se imprimen ni se pegan como evidencia) y falla si aparece algo fuera de la allowlist definida en el propio script (inicial: `$.session.model`, `$.store.get`, `$.store.set`, `$.ui.*`, `$.clock.now`; env: ninguna — actualizado tras T-000). Además falla si algún elemento de `gatingHooks` del informe JSON no tiene `.catch` (`docs/PLAN.md` §2.4, decisión 6). Con tests propios sobre salidas de ejemplo.
 - Scripts npm: `typecheck` (núcleo), `lint`, `format:check`, `test:node` (con `c8`, umbral 95 %), `commitlint`; `check:core` encadena los anteriores **sin la CLI**. `validate` (`--strict`), `test:mod`, `capabilities` requieren la CLI; `check` = `check:core` + esos tres.
 - `node --test` en Node 22 solo elimina tipos de `.ts` (no `.tsx`, `enum`, `namespace` ni parameter properties): el núcleo puro y sus tests son `.ts` con sintaxis borrable (`erasableSyntaxOnly` en su tsconfig).
 - `claude plugin test` sale con 1 si no hay tests: el esqueleto incluye un test mínimo del mod (p. ej., que `register` no registra hooks de escritura).
@@ -36,7 +38,7 @@ Dejar el repositorio listo para que todo el código posterior pase por los mismo
 ## Criterios de aceptación
 
 - **CA1** — `npm ci && npm run check` pasa en local desde un clon limpio, y `npm run check:core` pasa sin la CLI instalada.
-- **CA2** — `claude plugin validate --strict plugins/who-is-claude` y `claude plugin validate .` pasan; un error de tipos introducido a propósito en `register.tsx` hace fallar `npm run validate` (demostrado y revertido).
+- **CA2** — `claude plugin validate --strict plugins/model-meter` y `claude plugin validate .` pasan; un error de tipos introducido a propósito en `register.tsx` hace fallar `npm run validate` (demostrado y revertido).
 - **CA3** — `npm run capabilities` falla si se añade una llamada no permitida (demostrado con un test del script).
 - **CA4** — Todos los workflows que se disparan en `pull_request` pasan; `actionlint` y `zizmor` sin hallazgos.
 - **CA5** — Ninguna acción referenciada por tag o rama; todas por SHA.
