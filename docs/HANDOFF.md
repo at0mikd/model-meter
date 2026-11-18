@@ -29,8 +29,8 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 ## Siguientes pasos del Reviewer
 
 1. Revisar el PR de T-007 cuando el Builder lo abra.
-2. Pasar **T-002** (núcleo puro) de Draft a Ready: incorporar la sanitización de `args` de `/effort` y la allowlist de niveles (PLAN §2.4, decisión 3) y `effortState` con el estado «pendiente».
-3. Redactar **T-003** (modo compacto en `SessionMode`): composición con `next(e)`, medición observadora de `PromptHint` (PLAN §3.1), degradación por ancho, hooks de `config.set`/`command.run` que dejan pasar el evento con `.catch` (PLAN §2.4, decisión 6), y aviso en el README de que `/model` y `/effort` cambian los valores por defecto.
+2. ✅ **T-002** (núcleo puro) en `Ready`: el Builder puede ejecutarla en paralelo con T-007 en cuanto este PR esté en `main`.
+3. ✅ **T-003** (modo compacto) redactada en `Draft`; pasa a `Ready` cuando T-002 esté en `main`. Revisar el borrador con los aprendizajes de T-002.
 4. Después: T-004 (banda 8-bit y modo `auto`), T-005 (config y persistencia), T-006 (hardening y release).
 
 ## Notas operativas
