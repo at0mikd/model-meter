@@ -1,6 +1,6 @@
 # T-003 · Modo compacto en el pie (`SessionMode`)
 
-- **Estado:** Ready (T-002 en `main` ✅, #10)
+- **Estado:** In progress
 - **Rama:** `feat/T-003-compact-footer`
 - **Plan:** `docs/PLAN.md` §2.4 (decisiones 1–6), §3.1, §5, §6
 
