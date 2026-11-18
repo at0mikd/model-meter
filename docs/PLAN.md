@@ -66,7 +66,26 @@ Fuentes candidatas para el punto 1 ya identificadas en los tipos: `$.settings.re
 | `CLAUDE_CODE_EFFORT_LEVEL` / `CLAUDE_EFFORT` | `undefined` (no definidas en el proceso del motor) |
 | Renders `SessionMode` / `AbovePrompt` | No se dispararon: la sesión cloud vista desde la app no dibuja ese pie → validar en terminal local |
 
-**Decisión para el esfuerzo antes del primer turno:** cascada `settings.effortLevel` → `CLAUDE_CODE_EFFORT_LEVEL` → último valor en `$.store` (marcado como previo, atenuado) → `?`. Nunca se inventa un valor.
+~~Decisión inicial: cascada `settings.effortLevel` → `CLAUDE_CODE_EFFORT_LEVEL` → `$.store` → `?`.~~ **Sustituida tras T-000** (ver abajo).
+
+**Resultados de T-000 en terminal** (`docs/spikes/T-000-results.md`, Fedora + Ghostty, CLI 2.1.327):
+
+| Pregunta | Resultado |
+| --- | --- |
+| `/model` entre turnos | `command.run` + `config.set { key: "model", value: <alias>, previous }` **antes** del siguiente `turn.step`; `$.session.model()` ya devuelve el id nuevo |
+| `/effort` entre turnos | Solo `command.run`; sin `config.set`. El nivel nuevo se conoce en el siguiente `turn.step` |
+| `settings.effortLevel` | **No fiable**: vale `medium` mientras el esfuerzo efectivo es `xhigh`/`high`; `/effort` guarda su valor en otro sitio |
+| Variables de entorno | `CLAUDE_CODE_EFFORT_LEVEL` y `CLAUDE_EFFORT` vacías |
+| Viewport | 95×47 a media pantalla, 191×47 maximizada; `bodyColumns = columns − 5`; `maxRows` 18 en uso |
+| `isFullscreen` | `true` con el renderer fullscreen (a cualquier ancho), `false` con el clásico |
+
+**Decisiones (vigentes):**
+
+1. **Esfuerzo antes del primer `turn.step`:** último valor de `$.store`, atenuado y marcado como previo; si no hay, `?`. No se leen settings ni variables de entorno: `$.settings.read` y `$.env.get` **salen de la allowlist**.
+2. **`/model`:** un hook `config.set` (solo observa) con `key === "model"` refresca con `$.session.model()` al momento.
+3. **`/effort`:** un hook `command.run` (solo observa) para el comando `effort` marca el esfuerzo como **pendiente** (atenuado, con el último valor conocido) hasta el siguiente `turn.step`. Si algún día `args` trae el nivel de forma fiable, se podrá usar; hoy no se depende de ello.
+4. **Ancho propio de `sub-meter`:** se mide en el producto, sobre el nodo que devuelve `next(e)` en `SessionMode`, con tests de degradación por ancho.
+5. **Probar el mod con `/model` o `/effort` cambia el valor por defecto del usuario:** se avisa en el README («Cómo probar»).
 
 Pendiente: detección de `/model` y `/effort` entre turnos y ancho real del pie (requieren sesión en terminal).
 
@@ -114,7 +133,7 @@ Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Hai
 Regla propuesta para `placement: auto`:
 
 - Pie compacto **siempre** (es la información esencial).
-- Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas).
+- Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas). Confirmado en T-000: 95 columnas a media pantalla y 191 maximizada; `maxRows` = 18 en uso.
 - **Histéresis** para evitar parpadeo al redimensionar: entra con ≥ 140 y sale con < 120.
 - `mobile` → siempre compacto; `desktop` → según el viewport que informe el cliente.
 
@@ -167,7 +186,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Gate | Herramienta | Umbral |
 | --- | --- | --- |
 | Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.settings.read`, `$.env.get` (`CLAUDE_CODE_EFFORT_LEVEL`), `$.store.*`, `$.ui.*`, `$.clock.now` |
+| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.*`, `$.ui.*`, `$.clock.now`; **ninguna** variable de entorno |
 | Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
 | Formato | Prettier (o Biome) | `--check` |
