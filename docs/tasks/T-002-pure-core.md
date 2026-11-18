@@ -1,6 +1,6 @@
 # T-002 · Núcleo puro: modelo, esfuerzo, sanitización y encaje por ancho
 
-- **Estado:** In review
+- **Estado:** Done ([#10](https://github.com/at0mikd/model-meter/pull/10))
 - **Rama:** `feat/T-002-pure-core`
 - **Plan:** `docs/PLAN.md` §2.4 (decisiones tras T-000), §3.1, §4, §5
 

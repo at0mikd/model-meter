@@ -12,11 +12,14 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 | #4 | Nombre único `model-meter` (plugin, marketplace, repo) |
 | #5 | Excepción acotada de picomatch (T-001) y ancho dinámico de `PromptHint` |
 
-| #6 | T-001: scaffold, gates de calidad y seguridad, CI (fusionado en `0500b52`, 14/14 checks en verde) |
+| #6 | T-001: scaffold, gates de calidad y seguridad, CI (`0500b52`) |
+| #7 | T-002 Ready, T-003 Draft, T-007, traspaso |
+| #9 | T-007: aviso de caducidad a 14 días y auditoría semanal (`f7bd95c`; ejecución manual en verde) |
+| #10 | T-002: núcleo puro con 100 % de cobertura (`503db20`) |
 
 ## En curso
 
-- **T-007** (Ready): aviso de caducidad de excepciones a 14 días y auditoría semanal programada. Decisión del Maintainer: opción 3. Lista para que el Builder la ejecute con `/build T-007`.
+- **T-003** (Ready): modo compacto en el pie. Siguiente tarea del Builder (`/build T-003`). CA7 requiere capturas del Maintainer en su terminal.
 
 ## Pendiente del Maintainer
 
@@ -28,9 +31,9 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 
 ## Siguientes pasos del Reviewer
 
-1. Revisar el PR de T-007 cuando el Builder lo abra.
-2. ✅ **T-002** (núcleo puro) en `Ready`: el Builder puede ejecutarla en paralelo con T-007 en cuanto este PR esté en `main`.
-3. ✅ **T-003** (modo compacto) redactada en `Draft`; pasa a `Ready` cuando T-002 esté en `main`. Revisar el borrador con los aprendizajes de T-002.
+1. Revisar el PR de T-003 cuando el Builder lo abra (incluye las capturas de CA7).
+2. ✅ T-002 y T-007 fusionadas; T-003 en `Ready` con la especificación completa.
+3. Redactar T-004 (banda 8-bit y modo `auto`) mientras el Builder hace T-003. Nota pendiente para `SECURITY.md`: GitHub desactiva los workflows programados tras 60 días sin actividad.
 4. Después: T-004 (banda 8-bit y modo `auto`), T-005 (config y persistencia), T-006 (hardening y release).
 
 ## Notas operativas

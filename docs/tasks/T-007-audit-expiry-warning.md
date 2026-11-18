@@ -1,6 +1,6 @@
 # T-007 · Aviso anticipado de caducidad de excepciones y auditoría semanal
 
-- **Estado:** In review
+- **Estado:** Done ([#9](https://github.com/at0mikd/model-meter/pull/9); CA4: ejecución manual en verde sobre `main`)
 - **Rama:** `chore/T-007-audit-expiry-warning`
 - **Plan:** `docs/PLAN.md` §6; T-001 «Excepciones de seguridad»
 
