@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { VARIANTS, fitBadge, widthOf } from '../../plugins/model-meter/hooks/core/layout.ts'
+import {
+  VARIANTS,
+  fitBadge,
+  widthOf,
+  widthOfTree,
+} from '../../plugins/model-meter/hooks/core/layout.ts'
 import type { Variant } from '../../plugins/model-meter/hooks/core/layout.ts'
 
 describe('widthOf', () => {
@@ -98,5 +103,64 @@ describe('fitBadge', () => {
         `${String(columns)}/${String(reserved)}`,
       )
     }
+  })
+})
+
+describe('widthOfTree', () => {
+  test('a string measures as widthOf does', () => {
+    assert.equal(widthOfTree('5h ━━━━ 58%'), 11)
+  })
+
+  test('an element adds up its children, nested', () => {
+    const tree = {
+      type: 'Box',
+      props: { flexDirection: 'row' },
+      children: [
+        { type: 'Text', props: { dimColor: true }, children: ['5h'] },
+        { type: 'Text', children: [' ━━━━━━', { type: 'Text', children: ['────'] }] },
+        ' 58%',
+      ],
+    }
+    assert.equal(widthOfTree(tree), 2 + 7 + 4 + 4)
+  })
+
+  test("the engine's own node counts as the width the caller gives (it draws the mode labels)", () => {
+    const beneath = {
+      type: 'Box',
+      children: [{ type: 'Text', children: ['meter'] }, ' · ', { type: 'engine', ref: 1 }],
+    }
+    assert.equal(widthOfTree(beneath), 5 + 3)
+    assert.equal(widthOfTree(beneath, 15), 5 + 3 + 15)
+  })
+
+  test('a button draws its label between "[ " and " ]"', () => {
+    assert.equal(widthOfTree({ type: 'Button', props: { key: 'go', label: 'go' } }), 6)
+
+    assert.equal(widthOfTree({ type: 'Button' }), 0)
+    assert.equal(widthOfTree({ type: 'Button', props: { label: 5 } }), 0)
+  })
+
+  test('nothing, or anything that is not a drawing, measures 0', () => {
+    for (const node of [
+      undefined,
+      null,
+      false,
+      42,
+      {},
+      { type: 'Box', children: 'x' },
+      { children: [] },
+    ]) {
+      assert.equal(widthOfTree(node), 0, JSON.stringify(node))
+    }
+    assert.equal(
+      widthOfTree({ type: 'Box', children: [null, undefined, { type: 'Text', children: ['ab'] }] }),
+      2,
+    )
+  })
+
+  test('a tree nested deeper than any drawing stops counting instead of recursing forever', () => {
+    let node: unknown = 'x'
+    for (let i = 0; i < 200; i += 1) node = { type: 'Box', children: [node] }
+    assert.equal(widthOfTree(node), 0)
   })
 })
