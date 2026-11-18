@@ -83,11 +83,19 @@ Fuentes candidatas para el punto 1 ya identificadas en los tipos: `$.settings.re
 
 1. **Esfuerzo antes del primer `turn.step`:** último valor de `$.store`, atenuado y marcado como previo; si no hay, `?`. No se leen settings ni variables de entorno: `$.settings.read` y `$.env.get` **salen de la allowlist**.
 2. **`/model`:** un hook `config.set` (solo observa) con `key === "model"` refresca con `$.session.model()` al momento.
-3. **`/effort`:** un hook `command.run` (solo observa) para el comando `effort` marca el esfuerzo como **pendiente** (atenuado, con el último valor conocido) hasta el siguiente `turn.step`. Si algún día `args` trae el nivel de forma fiable, se podrá usar; hoy no se depende de ello.
+3. **`/effort`:** `on('command.run', { command: 'effort' }, …)` (solo observa; `command` llega sin barra y con alias resueltos, `args` es lo escrito tras el nombre, y el evento llega **antes** de que el comando se ejecute):
+   - `args` vacío (selector interactivo) → **pendiente** con el último valor conocido.
+   - `args` que es un nivel válido (`/effort high`) → **pendiente** mostrando ese nivel.
+   - En ambos casos lo confirma o corrige el siguiente `turn.step`: el comando puede fallar o el modelo puede limitar el nivel.
+   - `args` pasa por la sanitización y una allowlist de niveles; cualquier otro valor se ignora.
 4. **Ancho propio de `sub-meter`:** se mide en el producto, sobre el nodo que devuelve `next(e)` en `SessionMode`, con tests de degradación por ancho.
 5. **Probar el mod con `/model` o `/effort` cambia el valor por defecto del usuario:** se avisa en el README («Cómo probar»).
+6. **Hooks en puntos que pueden bloquear un evento** (`config.set`, `command.run`, `prompt.submit`): son observadores y deben **dejar pasar siempre**. Un hook que lanza una excepción ahí se salta y el evento sigue, pero un hook que devuelve **sin** llamar a `next(e)` se queda con el evento y anularía el `/model` o el `/effort` del usuario. Por eso:
+   - el cuerpo va en `try/catch` y siempre termina en `return next(e)`;
+   - cada uno lleva un `.catch` explícito que deja pasar (`($, e, next) => next(e)`; si `next` ya se llamó, eso repite su resultado sin volver a ejecutar nada), para que el fallo hacia «dejar pasar» sea una decisión escrita;
+   - tests que prueban que el comando llega intacto a lo que hay debajo, incluso si la lógica interna lanza;
+   - `check-capabilities` falla si `validate --json` lista algún `gatingHooks` sin `.catch`.
 
-Pendiente: detección de `/model` y `/effort` entre turnos y ancho real del pie (requieren sesión en terminal).
 
 El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt.submit`, `turn.step`, `config.set`, `command.run` y los renders `SessionMode`/`AbovePrompt`, y expone lo observado mediante una herramienta de solo lectura.
 
