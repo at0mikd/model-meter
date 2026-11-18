@@ -12,23 +12,23 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 | #4 | Nombre único `model-meter` (plugin, marketplace, repo) |
 | #5 | Excepción acotada de picomatch (T-001) y ancho dinámico de `PromptHint` |
 
+| #6 | T-001: scaffold, gates de calidad y seguridad, CI (fusionado en `0500b52`, 14/14 checks en verde) |
+
 ## En curso
 
-**PR #6 — T-001 (scaffold, gates y CI)**, cabeza `5b57a9e4abe51baacbe99422670329119f7652e5`.
-- LGTM del Reviewer en ese SHA (verificado de forma independiente: `npm run check`, mutaciones de los gates, SHAs de acciones, checksums).
-- CI 13/14 en verde. Falta **Dependency review** (`Forbidden`): el *Dependency graph* no está activado.
+- **T-007** (Ready): aviso de caducidad de excepciones a 14 días y auditoría semanal programada. Decisión del Maintainer: opción 3. Lista para que el Builder la ejecute con `/build T-007`.
 
 ## Pendiente del Maintainer
 
-1. Activar Settings → Advanced Security → **Dependency graph** y relanzar «Review dependency changes» en #6.
-2. Con todo en verde, escribir al Reviewer «apruebo #6» (fusión fijada a `5b57a9e`; un push nuevo invalida la aprobación).
-3. Tras fusionar #6: en el ruleset de `main`, marcar como obligatorios `check:core` (6), `validate, test:mod, capabilities`, CodeQL, Gitleaks, Dependency review, actionlint y zizmor.
+1. ~~Dependency graph~~ ✅ activado. ~~Aprobar #6~~ ✅ fusionado.
+2. Activar **Dependabot security updates** (Settings → Advanced Security): abre el PR solo cuando salga el arreglo de picomatch, aunque sea una dependencia transitiva.
+3. En el ruleset de `main`, marcar como obligatorios `check:core` (6), `validate, test:mod, capabilities`, CodeQL, Gitleaks, Dependency review, actionlint y zizmor.
 4. Ruleset de `main` (si no está): PR obligatorio, 0 aprobaciones, solo squash, commits firmados, sin force-push; secret scanning + push protection; private vulnerability reporting.
-5. Decidir si el Reviewer programa un recordatorio para revisar picomatch antes de que caduque la excepción (**2026-12-18**; desde el 19 la CI falla por diseño).
+5. Aviso de caducidad de picomatch (**2026-12-18**): decidido, **opción 3** → T-007.
 
 ## Siguientes pasos del Reviewer
 
-1. Fusionar #6 con la aprobación (comentario de registro + `expectedHeadSha`).
+1. Revisar el PR de T-007 cuando el Builder lo abra.
 2. Pasar **T-002** (núcleo puro) de Draft a Ready: incorporar la sanitización de `args` de `/effort` y la allowlist de niveles (PLAN §2.4, decisión 3) y `effortState` con el estado «pendiente».
 3. Redactar **T-003** (modo compacto en `SessionMode`): composición con `next(e)`, medición observadora de `PromptHint` (PLAN §3.1), degradación por ancho, hooks de `config.set`/`command.run` que dejan pasar el evento con `.catch` (PLAN §2.4, decisión 6), y aviso en el README de que `/model` y `/effort` cambian los valores por defecto.
 4. Después: T-004 (banda 8-bit y modo `auto`), T-005 (config y persistencia), T-006 (hardening y release).
