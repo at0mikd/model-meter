@@ -66,9 +66,36 @@ Fuentes candidatas para el punto 1 ya identificadas en los tipos: `$.settings.re
 | `CLAUDE_CODE_EFFORT_LEVEL` / `CLAUDE_EFFORT` | `undefined` (no definidas en el proceso del motor) |
 | Renders `SessionMode` / `AbovePrompt` | No se dispararon: la sesión cloud vista desde la app no dibuja ese pie → validar en terminal local |
 
-**Decisión para el esfuerzo antes del primer turno:** cascada `settings.effortLevel` → `CLAUDE_CODE_EFFORT_LEVEL` → último valor en `$.store` (marcado como previo, atenuado) → `?`. Nunca se inventa un valor.
+~~Decisión inicial: cascada `settings.effortLevel` → `CLAUDE_CODE_EFFORT_LEVEL` → `$.store` → `?`.~~ **Sustituida tras T-000** (ver abajo).
 
-Pendiente: detección de `/model` y `/effort` entre turnos y ancho real del pie (requieren sesión en terminal).
+**Resultados de T-000 en terminal** (`docs/spikes/T-000-results.md`, Fedora + Ghostty, CLI 2.1.327):
+
+| Pregunta | Resultado |
+| --- | --- |
+| `/model` entre turnos | `command.run` + `config.set { key: "model", value: <alias>, previous }` **antes** del siguiente `turn.step`; `$.session.model()` ya devuelve el id nuevo |
+| `/effort` entre turnos | Solo `command.run`; sin `config.set`. El nivel nuevo se conoce en el siguiente `turn.step` |
+| `settings.effortLevel` | **No fiable**: vale `medium` mientras el esfuerzo efectivo es `xhigh`/`high`; `/effort` guarda su valor en otro sitio |
+| Variables de entorno | `CLAUDE_CODE_EFFORT_LEVEL` y `CLAUDE_EFFORT` vacías |
+| Viewport | 95×47 a media pantalla, 191×47 maximizada; `bodyColumns = columns − 5`; `maxRows` 18 en uso |
+| `isFullscreen` | `true` con el renderer fullscreen (a cualquier ancho), `false` con el clásico |
+
+**Decisiones (vigentes):**
+
+1. **Esfuerzo antes del primer `turn.step`:** último valor de `$.store`, atenuado y marcado como previo; si no hay, `?`. No se leen settings ni variables de entorno: `$.settings.read` y `$.env.get` **salen de la allowlist**.
+2. **`/model`:** un hook `config.set` (solo observa) con `key === "model"` refresca con `$.session.model()` al momento.
+3. **`/effort`:** `on('command.run', { command: 'effort' }, …)` (solo observa; `command` llega sin barra y con alias resueltos, `args` es lo escrito tras el nombre, y el evento llega **antes** de que el comando se ejecute):
+   - `args` vacío (selector interactivo) → **pendiente** con el último valor conocido.
+   - `args` que es un nivel válido (`/effort high`) → **pendiente** mostrando ese nivel.
+   - En ambos casos lo confirma o corrige el siguiente `turn.step`: el comando puede fallar o el modelo puede limitar el nivel.
+   - `args` pasa por la sanitización y una allowlist de niveles; cualquier otro valor se ignora.
+4. **Ancho propio de `sub-meter`:** se mide en el producto, sobre el nodo que devuelve `next(e)` en `SessionMode`, con tests de degradación por ancho.
+5. **Probar el mod con `/model` o `/effort` cambia el valor por defecto del usuario:** se avisa en el README («Cómo probar»).
+6. **Hooks en puntos que pueden bloquear un evento** (`config.set`, `command.run`, `prompt.submit`): son observadores y deben **dejar pasar siempre**. Un hook que lanza una excepción ahí se salta y el evento sigue, pero un hook que devuelve **sin** llamar a `next(e)` se queda con el evento y anularía el `/model` o el `/effort` del usuario. Por eso:
+   - el cuerpo va en `try/catch` y siempre termina en `return next(e)`;
+   - cada uno lleva un `.catch` explícito que deja pasar (`($, e, next) => next(e)`; si `next` ya se llamó, eso repite su resultado sin volver a ejecutar nada), para que el fallo hacia «dejar pasar» sea una decisión escrita;
+   - tests que prueban que el comando llega intacto a lo que hay debajo, incluso si la lógica interna lanza;
+   - `check-capabilities` falla si `validate --json` lista algún `gatingHooks` sin `.catch`.
+
 
 El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt.submit`, `turn.step`, `config.set`, `command.run` y los renders `SessionMode`/`AbovePrompt`, y expone lo observado mediante una herramienta de solo lectura.
 
@@ -114,7 +141,7 @@ Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Hai
 Regla propuesta para `placement: auto`:
 
 - Pie compacto **siempre** (es la información esencial).
-- Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas).
+- Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas). Confirmado en T-000: 95 columnas a media pantalla y 191 maximizada; `maxRows` = 18 en uso.
 - **Histéresis** para evitar parpadeo al redimensionar: entra con ≥ 140 y sale con < 120.
 - `mobile` → siempre compacto; `desktop` → según el viewport que informe el cliente.
 
@@ -167,7 +194,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Gate | Herramienta | Umbral |
 | --- | --- | --- |
 | Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.settings.read`, `$.env.get` (`CLAUDE_CODE_EFFORT_LEVEL`), `$.store.*`, `$.ui.*`, `$.clock.now` |
+| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.*`, `$.ui.*`, `$.clock.now`; **ninguna** variable de entorno |
 | Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
 | Formato | Prettier (o Biome) | `--check` |
