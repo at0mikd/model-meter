@@ -1,6 +1,6 @@
 # T-001 · Estructura del repo, gates locales y CI
 
-- **Estado:** In progress
+- **Estado:** In review
 - **Rama:** `chore/T-001-scaffold`
 - **Plan:** `docs/PLAN.md` §4, §6, §6.1, fase 1
 
