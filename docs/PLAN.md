@@ -167,8 +167,8 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Gate | Herramienta | Umbral |
 | --- | --- | --- |
 | Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `validate` | Solo `session.model`, `store`, `ui.*`, `clock.now` |
-| Tipos | `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) | 0 errores |
+| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.settings.read`, `$.env.get` (`CLAUDE_CODE_EFFORT_LEVEL`), `$.store.*`, `$.ui.*`, `$.clock.now` |
+| Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
 | Formato | Prettier (o Biome) | `--check` |
 | Tests lógicos | `node --test` + `c8` | Cobertura ≥ 95 % líneas/ramas del núcleo puro |
@@ -179,7 +179,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Dependencias | `npm audit --audit-level=low`, Dependabot, *dependency-review-action* | 0 vulnerabilidades |
 | Workflows | `zizmor` / `actionlint`; `permissions: contents: read` | 0 hallazgos |
 | Postura | OpenSSF Scorecard | ≥ 8/10 |
-| Commits | Conventional Commits (commitlint) + commits firmados | Obligatorio |
+| Commits | Conventional Commits (commitlint); `main` solo por squash merge firmado por GitHub | Obligatorio |
 | Releases | SemVer, `CHANGELOG.md`, *build provenance* (GitHub attestations) | Por tag |
 
 ### 6.1 Controles adicionales por ser repositorio público

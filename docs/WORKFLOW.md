@@ -58,7 +58,7 @@ Estados de una tarea (campo `Estado` en su fichero): `Draft` → `Ready` → `In
 - Sin dependencias nuevas fuera de las permitidas por la tarea; lockfile actualizado si aplica.
 - Capacidades del mod (salida de `claude plugin validate`) dentro de la allowlist.
 - Sin secretos, rutas personales ni datos del entorno local en código, fixtures, logs ni capturas.
-- Commits en formato Conventional Commits, firmados.
+- Commits en formato Conventional Commits. Firma recomendada en las ramas; en `main` cada commit llega por *squash merge* de GitHub, que lo firma (verificado) y es lo que exige el ruleset.
 - Plantilla de PR completa.
 
 ## 6. Reglas de revisión (Reviewer)

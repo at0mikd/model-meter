@@ -2,5 +2,9 @@
   "name": "wic-spike",
   "version": "0.0.1",
   "description": "Throwaway spike: observes model, effort and viewport for who-is-claude. Not for release.",
-  "license": "MIT"
+  "license": "MIT",
+  "author": {
+    "name": "at0mikd",
+    "url": "https://github.com/at0mikd"
+  }
 }

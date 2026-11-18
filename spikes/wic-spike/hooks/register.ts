@@ -1,9 +1,25 @@
 import type { EngineInterface, Register } from 'claude-code'
 
-const log: unknown[] = []
+// One small ring buffer per event kind, so frequent renders never evict
+// the rare events (config.set, command.run) the spike exists to catch.
+const PER_KIND = 40
+const logs = new Map<string, unknown[]>()
+const lastRender = new Map<string, string>()
+let seq = 0
+
 const push = (kind: string, data: unknown) => {
-  log.push({ kind, at: log.length, data })
-  if (log.length > 200) log.shift()
+  const list = logs.get(kind) ?? []
+  list.push({ seq: seq++, data })
+  if (list.length > PER_KIND) list.shift()
+  logs.set(kind, list)
+}
+
+// Renders are recorded only when what they report changes.
+const pushRender = (kind: string, data: unknown) => {
+  const key = JSON.stringify(data)
+  if (lastRender.get(kind) === key) return
+  lastRender.set(kind, key)
+  push(kind, data)
 }
 
 async function snapshot ($: EngineInterface, kind: string) {
@@ -48,18 +64,19 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'SessionMode' }, ($, e, next) => {
-    push('render.SessionMode', { surface: e.surface, viewport: e.viewport, modes: e.props.modes })
+    pushRender('render.SessionMode', { surface: e.surface, viewport: e.viewport, modes: e.props.modes })
     return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => {
-    push('render.AbovePrompt', { surface: e.surface, viewport: e.viewport, bodyColumns: e.props.bodyColumns, maxRows: e.props.maxRows })
+    pushRender('render.AbovePrompt', { surface: e.surface, viewport: e.viewport, bodyColumns: e.props.bodyColumns, maxRows: e.props.maxRows })
     return next(e)
   })
 
   on('tool.run', { tool: 'mcp__wic-spike__report' }, async ($, e, next) => {
     await snapshot($, 'report')
-    const text = JSON.stringify(log, null, 1).slice(-20000)
+    // Whole entries only, so the report is always parseable JSON.
+    const text = JSON.stringify(Object.fromEntries(logs))
     return { result: text, text }
   })
 }

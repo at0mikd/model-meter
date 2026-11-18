@@ -15,12 +15,15 @@ Responder con datos reales de una terminal las dos incógnitas que la sesión cl
 
 ## Procedimiento
 
-1. `claude --plugin-dir spikes/wic-spike` en una terminal **a media pantalla**, con `sub-meter` instalado si lo usas.
+1. `claude --plugin-dir spikes/wic-spike` en una terminal **a media pantalla**, con `sub-meter` activo.
 2. Envía un prompt cualquiera y espera la respuesta.
 3. Ejecuta `/model` y cambia de modelo; luego `/effort` y cambia de nivel. **No envíes prompt todavía.**
 4. Pide: «llama a la herramienta report de wic-spike» (esto es un turno: anota que el informe incluye los eventos previos a él).
 5. Maximiza la terminal a **pantalla completa**, envía otro prompt y vuelve a pedir el informe.
-6. Repite el paso 1 con `claude --plugin-dir spikes/wic-spike` dentro del modo de pantalla completa de Claude Code, si lo usas, y anota `viewport.isFullscreen`.
+6. Para la pasada **sin** `sub-meter`: `/plugin` → desactívalo temporalmente, repite los pasos 1–5 y vuelve a activarlo al terminar.
+7. Modo de pantalla completa de Claude Code: búscalo en `/config` o en la documentación de tu versión. Si existe, repite el paso 1 en ese modo y anota `viewport.isFullscreen`; si no lo encuentras en 10 minutos, marca CA4 como N/A con lo que buscaste.
+
+El informe (`report`) devuelve JSON completo y parseable, agrupado por tipo de evento (hasta 40 entradas por tipo; los renders solo se registran cuando cambian), así que los eventos de `/model` y `/effort` no se pierden entre redibujados.
 
 ## Criterios de aceptación
 
