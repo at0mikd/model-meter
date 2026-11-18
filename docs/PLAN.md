@@ -114,6 +114,11 @@ El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt
 - Medidor de esfuerzo de 5 "píxeles": `low=1 … max=5`; numérico → escalado.
 - Paleta retro por familia (tokens del tema: `claude`, `warning`, `success`…; nunca ANSI crudo).
 - Degradación por ancho: completo → sin medidor → solo modelo → nada (como `sub-meter`).
+- **El espacio disponible no es fijo.** El pie comparte fila con la etiqueta del modo de permisos (`⏵⏵ auto mode on`) y con la línea de pistas (`PromptHint`). Esa línea crece con indicadores temporales: `1 shell · ↓ to manage` cuando hay una shell en segundo plano, `esc to interrupt` mientras Claude trabaja, `(shift+tab to cycle)`, etc. (observado por el Maintainer, 2026-11-18). Por tanto:
+  - el mod observa `ui.render { component: 'PromptHint' }` **solo para medir** `e.props.hint` (devuelve `next(e)` intacto: no oculta ni reescribe pistas del motor) y guarda su ancho;
+  - si el ancho cambia, pide redibujar (`$.ui.invalidate('ui.render')`) para que el pie se recalcule en el momento, sin esperar a otro evento;
+  - el espacio se calcula como `columns − márgenes − etiqueta de modo − ancho de las pistas − lo que devuelve next(e)` (p. ej. `sub-meter`), y la insignia se degrada en ese orden;
+  - tests de degradación con pistas de distintos anchos (vacía, `1 shell · ↓ to manage`, `esc to interrupt`) a 95 y 191 columnas, con y sin un nodo debajo.
 
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 

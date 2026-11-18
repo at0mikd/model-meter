@@ -35,6 +35,23 @@ Dejar el repositorio listo para que todo el código posterior pase por los mismo
 
 **No entra:** lógica del mod (T-002 en adelante), configuración del repositorio en GitHub (protección de ramas, secret scanning: la hace el Maintainer, el PR debe listarla como checklist).
 
+## Excepciones de seguridad (decisión del Maintainer, 2026-11-18)
+
+**Contexto:** GHSA-fc5q-39xc-vjpf (picomatch, ReDoS, high) afecta a todo picomatch ≤ 4.0.7, la última versión publicada, y no hay versión corregida (verificado por el Reviewer con `npm view` y `npm audit`). Llega solo como dependencia de desarrollo (typescript-eslint → typescript-estree → tinyglobby) y solo procesa los globs fijos de nuestra configuración. Riesgo real: despreciable. Se acepta una **excepción acotada, versionada y con caducidad**, nunca un umbral relajado.
+
+- `security/audit-exceptions.json`: lista de objetos `{ id, package, severity, scope: "dev", reason, approvedBy: "maintainer", approvedOn, expires }`. Entrada inicial: `GHSA-fc5q-39xc-vjpf`, `picomatch`, `high`, aprobada el `2026-11-18`, caduca el `2026-12-18`.
+- `scripts/audit.mjs` (sin dependencias; script `npm run audit`): ejecuta `npm audit --json` sobre **todas** las dependencias y falla si:
+  1. aparece cualquier aviso, de cualquier severidad, cuyo GHSA no esté en el fichero;
+  2. una excepción ha caducado (`expires` < hoy, en UTC);
+  3. una excepción ya no corresponde a ningún aviso activo (excepción obsoleta: hay que borrarla);
+  4. una excepción afecta a una dependencia de runtime (`scope` distinto de `dev` o el paquete aparece en `npm ls --omit=dev`);
+  5. los GHSA de `allow-ghsas` en `.github/workflows/dependency-review.yml` no coinciden exactamente con los del fichero.
+  Con tests sobre informes JSON de ejemplo, uno por cada regla.
+- `dependency-review.yml`: `fail-on-severity: low` se mantiene; `allow-ghsas: GHSA-fc5q-39xc-vjpf`, con un comentario que apunta a `security/audit-exceptions.json`.
+- `SECURITY.md`: sección «Excepciones activas» con el GHSA, el motivo y la fecha de caducidad.
+- Los `overrides` de `glob` (14.0.6) y `minimatch` (11.0.9) para los otros dos avisos, que sí tienen arreglo, se aceptan: van con un comentario en el PR y se retiran cuando `c8` / `test-exclude` publiquen versiones que los incluyan.
+- Renovar una excepción exige una nueva aprobación del Maintainer en la conversación con el Reviewer; ningún agente cambia `expires` por su cuenta.
+
 ## Criterios de aceptación
 
 - **CA1** — `npm ci && npm run check` pasa en local desde un clon limpio, y `npm run check:core` pasa sin la CLI instalada.
@@ -42,7 +59,7 @@ Dejar el repositorio listo para que todo el código posterior pase por los mismo
 - **CA3** — `npm run capabilities` falla si se añade una llamada no permitida (demostrado con un test del script).
 - **CA4** — Todos los workflows que se disparan en `pull_request` pasan; `actionlint` y `zizmor` sin hallazgos.
 - **CA5** — Ninguna acción referenciada por tag o rama; todas por SHA.
-- **CA6** — `npm ls --omit=dev` vacío (cero dependencias de runtime); `npm audit --audit-level=low` limpio.
+- **CA6** — `npm ls --omit=dev` vacío (cero dependencias de runtime); `npm run audit` en verde, con `GHSA-fc5q-39xc-vjpf` como única excepción, y cada una de las cinco reglas de `scripts/audit.mjs` demostrada por un test.
 - **CA7** — El PR incluye la checklist de ajustes de GitHub que debe aplicar el Maintainer (§6.1 del plan).
 
 ## Restricciones de seguridad
