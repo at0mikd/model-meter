@@ -14,6 +14,21 @@ updates:
         dependency-type: development
         patterns: ['*']
 
+  # The claude CLI pinned for CI's mod job (tools/claude-cli): its own group,
+  # so a CLI bump is reviewed on its own (it changes the API the mod is tested on).
+  - package-ecosystem: npm
+    directory: /tools/claude-cli
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      claude-cli:
+        patterns: ['*']
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

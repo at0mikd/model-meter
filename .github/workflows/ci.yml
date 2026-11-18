@@ -51,6 +51,10 @@ jobs:
       # installed here (the three steps below use only the CLI and Node built-ins).
       - name: Install the claude CLI (exact version, from its lockfile)
         run: npm ci --prefix tools/claude-cli
+      # The only tree here that runs install scripts is audited too; an advisory
+      # without a fix is a new exception for the Maintainer, never silenced.
+      - name: Audit the claude CLI's lockfile
+        run: npm audit --prefix tools/claude-cli --audit-level=low
       - name: Put the claude CLI on PATH
         run: echo "$GITHUB_WORKSPACE/tools/claude-cli/node_modules/.bin" >> "$GITHUB_PATH"
       - run: claude --version
