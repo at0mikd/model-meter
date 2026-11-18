@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+*.log
+.env
+.env.*
+# Tipos generados por el motor de Claude Code al cargar un mod
+**/.claude-plugin/types/
+.claude/settings.local.json
