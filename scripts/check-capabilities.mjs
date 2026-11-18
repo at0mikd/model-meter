@@ -14,12 +14,18 @@ import { pathToFileURL } from 'node:url'
 
 export const PLUGIN_DIR = 'plugins/model-meter'
 
-/** What the mod may call on `$`, spelled `noun.method`; `noun.*` allows a whole noun. */
+/**
+ * What the mod may call on `$`, spelled `noun.method` as validate reports it.
+ * Every entry is one exact call: no wildcards, since a noun such as `ui` also
+ * holds `ask`, `copy`, `selection` or `notify`, which an indicator never needs.
+ * Widening it needs the Maintainer's approval.
+ */
 export const ALLOWED_CALLS = Object.freeze([
   'session.model',
   'store.get',
   'store.set',
-  'ui.*',
+  'ui.invalidate',
+  'ui.resolve',
   'clock.now',
 ])
 
@@ -37,9 +43,7 @@ export const ALLOWED_ENV = Object.freeze(/** @type {string[]} */ ([]))
  * @param {readonly string[]} [allowed]
  */
 export function isAllowedCall(call, allowed = ALLOWED_CALLS) {
-  return allowed.some((entry) =>
-    entry.endsWith('.*') ? call.startsWith(entry.slice(0, -1)) : call === entry,
-  )
+  return allowed.includes(call)
 }
 
 /** @param {unknown} value */

@@ -71,26 +71,32 @@ function cleanReport() {
 }
 
 describe('isAllowedCall', () => {
-  test('accepts exact entries and the ui.* family', () => {
-    assert.equal(isAllowedCall('session.model'), true)
-    assert.equal(isAllowedCall('ui.resolve'), true)
-    assert.equal(isAllowedCall('ui.notify'), true)
+  test('accepts each listed call exactly', () => {
+    for (const call of ALLOWED_CALLS) assert.equal(isAllowedCall(call), true, call)
   })
 
-  test('rejects lookalikes of a wildcard entry', () => {
-    assert.equal(isAllowedCall('ui'), false)
-    assert.equal(isAllowedCall('uix.draw'), false)
-    assert.equal(isAllowedCall('session.models'), false)
+  test('rejects the rest of $.ui: an indicator never asks, copies or reads the selection', () => {
+    for (const call of ['ui.ask', 'ui.copy', 'ui.selection', 'ui.notify', 'ui.open', 'ui.blit']) {
+      assert.equal(isAllowedCall(call), false, call)
+    }
   })
 
-  test('the allowlist is the one in docs/PLAN.md §6, with no environment variables', () => {
+  test('rejects nouns and lookalikes: there are no wildcards', () => {
+    for (const call of ['ui', 'ui.*', 'ui.resolve.x', 'uix.resolve', 'session.models', 'store']) {
+      assert.equal(isAllowedCall(call), false, call)
+    }
+  })
+
+  test('the allowlist lists single calls, with no wildcard and no environment variables', () => {
     assert.deepEqual(ALLOWED_CALLS, [
       'session.model',
       'store.get',
       'store.set',
-      'ui.*',
+      'ui.invalidate',
+      'ui.resolve',
       'clock.now',
     ])
+    assert.ok(ALLOWED_CALLS.every((call) => !call.includes('*')))
     assert.deepEqual(ALLOWED_ENV, [])
   })
 })
@@ -98,6 +104,16 @@ describe('isAllowedCall', () => {
 describe('findViolations', () => {
   test('a mod inside the allowlist passes', () => {
     assert.deepEqual(findViolations(cleanReport()), [])
+  })
+
+  test('ui.ask, ui.copy and ui.selection each fail', () => {
+    const report = cleanReport()
+    firstModule(report).uses.calls.push('ui.ask', 'ui.copy', 'ui.selection')
+    assert.deepEqual(findViolations(report), [
+      './register.ts: call not allowed: $.ui.ask',
+      './register.ts: call not allowed: $.ui.copy',
+      './register.ts: call not allowed: $.ui.selection',
+    ])
   })
 
   test('the real skeleton report passes', () => {
