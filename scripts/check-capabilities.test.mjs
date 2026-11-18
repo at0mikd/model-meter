@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { describe, test } from 'node:test'
 
 import {
   ALLOWED_CALLS,
   ALLOWED_ENV,
+  STATE_PLUGIN,
+  declaredStateKeys,
   findViolations,
   isAllowedCall,
   main,
@@ -16,7 +19,8 @@ import spikeReport from './fixtures/validate-spike.json' with { type: 'json' }
  * The part of `claude plugin validate --json` these tests touch.
  *
  * @typedef {{ module: string, pattern: string, hook: string, hasCatch: boolean }} GatingHook
- * @typedef {{ module: string, uses: { calls: string[], env?: { reads: string[], writes: string[] } } }} ModuleEntry
+ * @typedef {{ plugin: unknown, key: unknown, id?: unknown }} StateEntry
+ * @typedef {{ module: string, uses: { calls: string[], env?: { reads: string[], writes: string[] }, state?: unknown } }} ModuleEntry
  * @typedef {{ type?: string, file?: string, gatingHooks: GatingHook[], modules: ModuleEntry[] | null }} FileEntry
  * @typedef {{ success: boolean, target?: string, manifest: FileEntry | null, contents: FileEntry[] }} Report
  */
@@ -95,9 +99,146 @@ describe('isAllowedCall', () => {
       'ui.invalidate',
       'ui.resolve',
       'clock.now',
+      'state.get',
+      'state.set',
     ])
     assert.ok(ALLOWED_CALLS.every((call) => !call.includes('*')))
     assert.deepEqual(ALLOWED_ENV, [])
+  })
+})
+
+// The mod's contract, in the shape types/index.d.ts declares it (T-003).
+const CONTRACT = `// The mod's $.state contract.
+declare module 'claude-code' {
+  interface PluginState {
+    'model-meter': {
+      /** The model id: { not a brace that counts } */
+      model: string | null
+      step: string | number | null
+      readonly stored?: string | null
+      pending: { args: string } | null
+      'hintWidth': number
+    }
+  }
+}
+`
+const KEYS = ['hintWidth', 'model', 'pending', 'step', 'stored']
+
+describe('declaredStateKeys', () => {
+  test("reads the keys declared under PluginState['model-meter']", () => {
+    assert.equal(STATE_PLUGIN, 'model-meter')
+    assert.deepEqual(declaredStateKeys(CONTRACT), KEYS)
+  })
+
+  test('the real contract of the mod is readable', () => {
+    const keys = declaredStateKeys(readFileSync('plugins/model-meter/types/index.d.ts', 'utf8'))
+    assert.ok(Array.isArray(keys))
+  })
+
+  test('another plugin, or nothing declared for this one, is no contract', () => {
+    assert.equal(declaredStateKeys(''), undefined)
+    assert.equal(declaredStateKeys('export type X = 1\n'), undefined)
+    assert.equal(
+      declaredStateKeys(
+        "declare module 'claude-code' { interface PluginState { other: { a: number } } }",
+      ),
+      undefined,
+    )
+    assert.deepEqual(
+      declaredStateKeys(
+        'interface PluginState { other: { a: number }; "model-meter": { b: { c: 1 }, d?: 2 } }',
+      ),
+      ['b', 'd'],
+    )
+  })
+
+  test('members it cannot name (an index signature) declare nothing', () => {
+    assert.deepEqual(
+      declaredStateKeys("interface PluginState { 'model-meter': { [k: string]: number, a: 1 } }"),
+      ['a'],
+    )
+  })
+
+  test('an unbalanced contract fails closed', () => {
+    assert.equal(
+      declaredStateKeys("interface PluginState { 'model-meter': { a: ), b: 1 } }"),
+      undefined,
+    )
+    assert.equal(
+      declaredStateKeys("interface PluginState { 'model-meter': { a: (, b: 1 } }"),
+      undefined,
+    )
+    assert.equal(
+      declaredStateKeys("interface PluginState { 'model-meter': { a: 1 } | { b: 2 } }"),
+      undefined,
+    )
+    assert.equal(
+      declaredStateKeys("interface PluginState { 'model-meter': { a: { b: 1 } }"),
+      undefined,
+    )
+    assert.equal(declaredStateKeys("interface PluginState { 'model-meter': a }"), undefined)
+  })
+})
+
+describe('findViolations: $.state, only the mod own declared keys (T-003)', () => {
+  /**
+   * @param {unknown} state what validate reports as uses.state
+   */
+  function withState(state) {
+    const report = cleanReport()
+    firstModule(report).uses.state = state
+    return report
+  }
+  const own = (/** @type {string} */ key) => ({ plugin: 'model-meter', key })
+
+  test('its own declared keys pass, read or written', () => {
+    const report = withState({
+      reads: [own('model'), own('step')],
+      writes: [own('hintWidth'), { ...own('pending'), id: 'x' }],
+    })
+    assert.deepEqual(findViolations(report, { state: KEYS }), [])
+  })
+
+  test("another plugin's state is rejected", () => {
+    const report = withState({ reads: [{ plugin: 'sub-meter', key: 'limits' }], writes: [] })
+    assert.deepEqual(findViolations(report, { state: KEYS }), [
+      './register.ts: state of another plugin: sub-meter.limits',
+    ])
+  })
+
+  test('a key the contract does not declare is rejected', () => {
+    const report = withState({ reads: [], writes: [own('secret')] })
+    assert.deepEqual(findViolations(report, { state: KEYS }), [
+      './register.ts: state key not declared in types/index.d.ts: model-meter.secret',
+    ])
+  })
+
+  test('state with no readable contract is rejected', () => {
+    assert.deepEqual(findViolations(withState({ reads: [own('model')], writes: [] })), [
+      './register.ts: uses $.state, but types/index.d.ts declares no model-meter state',
+    ])
+  })
+
+  test('an odd uses.state shape fails closed', () => {
+    for (const state of [
+      'x',
+      null,
+      { reads: 'x', writes: [] },
+      { reads: ['x'], writes: [] },
+      { reads: [], writes: [{ plugin: 1, key: 'a' }] },
+      { reads: [{ plugin: 'model-meter' }], writes: [] },
+      { reads: [{ ...own('model'), id: 3 }], writes: [] },
+    ]) {
+      assert.deepEqual(
+        findViolations(withState(state), { state: KEYS }),
+        ['unexpected validate report shape'],
+        JSON.stringify(state),
+      )
+    }
+  })
+
+  test('a module that uses no $.state needs no contract', () => {
+    assert.deepEqual(findViolations(withState(undefined)), [])
   })
 })
 
@@ -265,10 +406,13 @@ describe('findViolations', () => {
 })
 
 describe('main', () => {
-  /** @param {() => string} run */
-  function capture(run) {
+  /**
+   * @param {() => string} run
+   * @param {() => string} [readContract]
+   */
+  function capture(run, readContract = () => CONTRACT) {
     let out = ''
-    const code = main({ run, write: (text) => (out += text) })
+    const code = main({ run, readContract, write: (text) => (out += text) })
     return { code, out }
   }
 
@@ -284,6 +428,23 @@ describe('main', () => {
     const { code, out } = capture(() => JSON.stringify(report))
     assert.equal(code, 1)
     assert.match(out, /call not allowed: \$\.http\.fetch/)
+  })
+
+  test('reads the contract to check $.state, and fails closed when it cannot', () => {
+    const report = cleanReport()
+    firstModule(report).uses.state = {
+      reads: [{ plugin: 'model-meter', key: 'model' }],
+      writes: [],
+    }
+    assert.equal(capture(() => JSON.stringify(report)).code, 0)
+    const missing = capture(
+      () => JSON.stringify(report),
+      () => {
+        throw new Error('ENOENT')
+      },
+    )
+    assert.equal(missing.code, 1)
+    assert.match(missing.out, /declares no model-meter state/)
   })
 
   test('exits 1 when validate prints nothing (an unexpected failure, exit 2)', () => {
