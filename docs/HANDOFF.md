@@ -1,4 +1,4 @@
-# Traspaso de sesión — 2026-11-18
+# Traspaso de sesión — 2026-11-18 (2.ª ventana)
 
 Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en la nube, Builder local).
 
@@ -16,10 +16,18 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 | #7 | T-002 Ready, T-003 Draft, T-007, traspaso |
 | #9 | T-007: aviso de caducidad a 14 días y auditoría semanal (`f7bd95c`; ejecución manual en verde) |
 | #10 | T-002: núcleo puro con 100 % de cobertura (`503db20`) |
+| #11 | T-003 Ready con el estado «desactivado» 8-bit (`1094cf6`) |
 
 ## En curso
 
-- **T-003** (Ready): modo compacto en el pie. Siguiente tarea del Builder (`/build T-003`). CA7 requiere capturas del Maintainer en su terminal.
+**PR #12 — T-003 (modo compacto en el pie)**, cabeza `c6700b588b5e3d898f9cc5445cb129495829e40e`.
+- Revisión del Reviewer: los 3 puntos de la primera ronda están resueltos (reserva de la etiqueta de modo de la izquierda, `$.store` solo cuando cambia, comentario corregido). Desviaciones aceptadas: `hintColumns` en el closure, `stored` en el contrato, huecos de ancho fijo, `unknown` frente a «sin leer».
+- `$.state` acotado a `model-meter` (decisión del Maintainer); `check-capabilities` rechaza estado ajeno y claves no declaradas (verificado con una mutación).
+- **Falta para el LGTM:** CI completa de `c6700b5` y las **capturas de CA7** del Maintainer (el Builder lo guía).
+- **Riesgo de producto que decidirán las capturas:** con la reserva pesimista de 26 columnas para la etiqueta de modo, a media pantalla (~95 columnas) junto a `sub-meter` la insignia probablemente **no cabe**. Opciones, para una tarea posterior:
+  1. medir la etiqueta real con `permission_mode` de los eventos clásicos (en `default` se recuperan 26 columnas);
+  2. una variante mínima de unas 6 columnas;
+  3. recurso a la banda `AbovePrompt` (T-004).
 
 ## Pendiente del Maintainer
 
@@ -31,7 +39,7 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 
 ## Siguientes pasos del Reviewer
 
-1. Revisar el PR de T-003 cuando el Builder lo abra (incluye las capturas de CA7).
+1. Con la CI en verde y las capturas de CA7, dar el LGTM de #12 (o pedir cambios) y fusionar con «apruebo #12». Según lo que muestren las capturas, proponer al Maintainer una de las tres opciones de espacio como tarea nueva (T-003b) antes de T-004.
 2. ✅ T-002 y T-007 fusionadas; T-003 en `Ready` con la especificación completa.
 3. Redactar T-004 (banda 8-bit y modo `auto`) mientras el Builder hace T-003. Nota pendiente para `SECURITY.md`: GitHub desactiva los workflows programados tras 60 días sin actividad.
 4. Después: T-004 (banda 8-bit y modo `auto`), T-005 (config y persistencia), T-006 (hardening y release).
