@@ -32,6 +32,11 @@ Primera versión usable del mod: `◆ OPUS 5.5 ▮▮▯▯▯ MED` en el pie de
    - **`unknown`:** `? ` + etiqueta atenuada, para que no se confunda con un modelo reconocido (comentario de la revisión de #10).
    - **Medidor:** `▮` llenas con color, `▯` vacías atenuadas. `CUSTOM` sin medidor.
    - **Estados** según `source`: `stored` atenuado; `pending` atenuado con `…` al final; `unknown` como `?`.
+6b. **Estado «desactivado» 8-bit** (PLAN §3.1.1, petición del Maintainer). Función **pura** nueva `badgeState({ model, effort })` en `hooks/core/badge.ts`, con tests en `test/core/badge.test.ts`:
+   - recibe la salida de `parseModel` (o `null` si el modelo aún no se ha leído) y la de `effortState`;
+   - devuelve `{ state: 'active' | 'partial' | 'disabled', model: { enabled, text }, effort: { enabled, cells, text } }` con los glifos de la tabla de §3.1.1 (`◆`/`◇`, `▮▯`/`░`, `---`);
+   - las tres variantes (`full`, `noMeter`, `modelOnly`) miden lo mismo en estado activo y apagado, para que la insignia no salte al activarse;
+   - el render pinta las partes `enabled: false` con el token atenuado del tema.
 7. **Estado**: `atom`s con contrato en `types/index.d.ts`: `model: string | null`, `step: unknown` (validado al leer), `pending: { args: string } | null` y `hintWidth: number`. En `$.store` solo se guarda `effort` (un `Level`).
 8. **README** del plugin: qué muestra, cómo instalarlo, «Cómo probar», con el aviso de que `/model` y `/effort` cambian los valores por defecto del usuario (T-000, hallazgo 7), y qué datos guarda (solo el último nivel de esfuerzo).
 
@@ -45,6 +50,10 @@ Primera versión usable del mod: `◆ OPUS 5.5 ▮▮▯▯▯ MED` en el pie de
   - `config.set` del modelo la refresca;
   - `/effort high` la muestra como pendiente;
   - un `turn.step` posterior la confirma.
+- **CA1b** — Estado desactivado, probado desde el principio:
+  - tests puros de `badgeState` para **todas** las combinaciones de modelo (conocido, `unknown`, `null`) × esfuerzo (`step`, `pending`, `stored`, `unknown`, `CUSTOM`), con glifo, texto y `enabled` de cada parte;
+  - test de anchos: las variantes activa y apagada miden lo mismo;
+  - test de mod: la **primera** insignia de una sesión sin esfuerzo previo sale `partial` (esfuerzo apagado) y pasa a `active` con el primer `turn.step`; con el modelo aún sin leer y sin esfuerzo, sale `disabled`.
 - **CA2** — En `desktop`, la salida es exactamente la del motor (`next(e)`), y lo prueba un test.
 - **CA3** — Tests de que `/model` y `/effort` llegan intactos a lo que hay debajo, también cuando la lógica interna lanza (inyectado en el test).
 - **CA4** — Tests de degradación a 95 y 191 columnas con las pistas `''`, `1 shell · ↓ to manage` y `esc to interrupt`, con y sin un nodo debajo de 30 columnas: el orden `full` → `noMeter` → `modelOnly` → `none` se cumple y lo que hay debajo nunca se pierde.
@@ -53,7 +62,8 @@ Primera versión usable del mod: `◆ OPUS 5.5 ▮▮▯▯▯ MED` en el pie de
 - **CA7** — Prueba manual del Maintainer en su terminal, con capturas en el PR:
   - junto a `sub-meter`, a media pantalla y maximizada;
   - con una shell en segundo plano (`1 shell · ↓ to manage`);
-  - tras `/model` y `/effort`.
+  - tras `/model` y `/effort`;
+  - **el estado apagado**: una sesión nueva antes del primer turno (borrando antes el valor guardado del mod, o en una instalación limpia).
 
 ## Restricciones de seguridad
 

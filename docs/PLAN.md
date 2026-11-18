@@ -120,6 +120,22 @@ El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt
   - el espacio se calcula como `columns − márgenes − etiqueta de modo − ancho de las pistas − lo que devuelve next(e)` (p. ej. `sub-meter`), y la insignia se degrada en ese orden;
   - tests de degradación con pistas de distintos anchos (vacía, `1 shell · ↓ to manage`, `esc to interrupt`) a 95 y 191 columnas, con y sin un nodo debajo.
 
+### 3.1.1 Estado «desactivado» 8-bit (petición del Maintainer, 2026-11-18)
+
+Cuando falta información, la insignia no desaparece ni inventa datos: se ve **apagada**, como una ranura de cartucho vacía. Se aplica por partes, sin cambiar el ancho de la insignia, para que no salte al activarse:
+
+| Modelo | Esfuerzo | Aspecto (`full`) | Estado |
+| --- | --- | --- | --- |
+| conocido | de `turn.step` o pendiente | `◆ OPUS 5.5 ▮▮▯▯▯ MED` | `active` |
+| conocido | previo (`$.store`) | `◆ OPUS 5.5` + `▮▮▯▯▯ MED` atenuado | `partial` |
+| conocido | desconocido | `◆ OPUS 5.5` + `░░░░░ ---` apagado | `partial` |
+| desconocido o aún sin leer | conocido | `◇ ?` + `▮▮▯▯▯ MED` | `partial` |
+| desconocido | desconocido | `◇ ----- ░░░░░ ---` todo apagado | `disabled` |
+
+- **Glifos «apagados»:** rombo hueco `◇` en vez de `◆`, celdas `░` en vez de `▮▯` y guiones `---`, todo con el token de color atenuado del tema (nunca ANSI crudo).
+- **Cuándo es habitual:** al abrir una sesión antes del primer turno (sin esfuerzo previo guardado) y en el instante anterior a que `$.session.model()` responda.
+- **Dónde se decide:** en la lógica pura (`badgeState` en `hooks/core/`), así se prueba con tests de todas las combinaciones, desde la primera tarea que dibuja la insignia.
+
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 
 Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido) + rótulo `PLAYER: OPUS 5.5  POWER: ▮▮▮▯▯`. Diseño original (no se replica ningún personaje ni arte existente).
