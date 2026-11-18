@@ -45,6 +45,22 @@ export const FAMILY_COLOR: Readonly<Record<Exclude<Family, 'unknown'>, string>> 
   fable: 'merged',
 })
 
+/** The theme key to draw a family in; none for an unknown family or no model. */
+export function familyColor(family: Family | null): string | undefined {
+  switch (family) {
+    case 'opus':
+      return FAMILY_COLOR.opus
+    case 'sonnet':
+      return FAMILY_COLOR.sonnet
+    case 'haiku':
+      return FAMILY_COLOR.haiku
+    case 'fable':
+      return FAMILY_COLOR.fable
+    default:
+      return undefined
+  }
+}
+
 const CELLS = 5
 const PENDING = '…'
 
