@@ -219,7 +219,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Gate | Herramienta | Umbral |
 | --- | --- | --- |
 | Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.*`, `$.ui.*`, `$.clock.now`; **ninguna** variable de entorno |
+| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.get`/`set`, `$.ui.invalidate`/`resolve`, `$.clock.now` y `$.state.get`/`set` **acotado** al estado propio de `model-meter` con las claves que declara su contrato (`types/index.d.ts`) (decisión del Maintainer, 2026-11-18, T-003); **ninguna** variable de entorno; todo hook que pueda bloquear un evento, con `.catch` |
 | Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
 | Formato | Prettier (o Biome) | `--check` |

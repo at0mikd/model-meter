@@ -8,6 +8,8 @@
 
 Primera versión usable del mod: `◆ OPUS 5.5 ▮▮▯▯▯ MED` en el pie de la terminal, compartiendo fila con otros mods (`sub-meter`) y con las pistas del motor, y actualizada en vivo con `/model`, `/effort` y cada turno. Toda la lógica de decisión sale de `hooks/core/` (T-002); `register.tsx` solo cablea eventos y dibuja.
 
+> **Decisión del Maintainer (2026-11-18): `$.state` acotado a `model-meter`.** Los `atom`s del punto 7 son `$.state` y `claude plugin validate` los cuenta como `state.get`/`state.set`, fuera de la allowlist de CA6. Se acepta la opción B: la allowlist suma `state.get` y `state.set`, nada más, y `check-capabilities` falla si cualquier entrada de `uses.state` (lecturas y escrituras) no es `plugin: 'model-meter'`, si su clave no está declarada en `types/index.d.ts` bajo `PluginState['model-meter']`, o si `uses.state` tiene una forma inesperada. El contrato declara exactamente las claves que usa el mod. En `$.store` solo se guarda `effort` (un `Level`).
+
 ## Alcance
 
 **Entra:**

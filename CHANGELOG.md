@@ -6,6 +6,8 @@ Todos los cambios relevantes de este proyecto se anotan aquí. Formato basado en
 
 ### Añadido
 
+- **Insignia compacta en el pie de la terminal** (`model-meter`): modelo y esfuerzo en vivo con `/model`, `/effort` y cada turno; el esfuerzo pendiente atenuado con `…`; lo que falta, «apagado» en 8-bit (`◇`, `░`, `---`) sin cambiar de ancho; degradación por ancho junto a las pistas y otros mods. Solo observa y guarda únicamente el último nivel de esfuerzo.
+- `check-capabilities` admite `$.state` solo para las claves propias de `model-meter` declaradas en su contrato.
 - Esqueleto del mod `model-meter` (sin hooks todavía) y marketplace `model-meter`.
 - Núcleo puro del mod (`hooks/core/`): sanitización del texto, lectura del id de modelo (incluidos Bedrock y Vertex), niveles de esfuerzo como lista cerrada, cascada del esfuerzo a mostrar y encaje de la insignia según el ancho del pie. Sin `$` ni dependencias; sus tests viven en `test/core/`.
 - Gates locales (`npm run check`, `npm run check:core`) y CI: matriz Node 22/24 × Linux/macOS/Windows, validación y tests del mod con la CLI fijada, comprobación de capacidades, CodeQL, revisión de dependencias, Scorecard, gitleaks, actionlint y zizmor.
