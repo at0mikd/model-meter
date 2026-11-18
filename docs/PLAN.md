@@ -1,4 +1,4 @@
-# who-is-claude — Plan de implementación
+# model-meter — Plan de implementación
 
 > Mod para Claude Code que muestra **qué modelo y qué nivel de esfuerzo** usa la sesión, con estética **8-bit**.
 > Estado: propuesta · Versión del motor analizada: Claude Code `2.1.327`
@@ -14,7 +14,7 @@
 | Fuente del esfuerzo | `e.effort` de `turn.step` (solo hilo principal) | Es el nivel efectivo tras límites (`maxEffortLevel`, capacidades del modelo). |
 | Ubicación en UI | **Compacto** en el pie (`SessionMode`) por defecto; **modo grande** (`AbovePrompt`) opcional y modo **`auto`** según el ancho | Pensado para usar Claude Code a media pantalla; convive con `sub-meter` (ver §3.4). |
 | Visibilidad del repo | **Público** | Controles adicionales en §6.1. |
-| Nombre del plugin | **`model-meter`** (repo y marketplace siguen como `who-is-claude`) | Claude Code 2.1.327 rechaza en `validate --strict` el nombre `who-is-claude` («reads as one of Anthropic's own»), y `--strict` es la barrera de tipos de los hooks. Decisión del Maintainer; coherente con `sub-meter`, `context-meter`, `token-meter`. |
+| Nombre | **`model-meter`** para el plugin, el marketplace y el repositorio | Claude Code 2.1.327 rechaza en `validate --strict` el nombre `who-is-claude` («reads as one of Anthropic's own»), y `--strict` es la barrera de tipos de los hooks. Decisión del Maintainer: un único nombre en todo el proyecto, coherente con `sub-meter`, `context-meter` y `token-meter`. |
 | Metodología | **Spec-driven + TDD** dentro de un **SSDF (NIST SP 800-218)** ligero | Calidad verificable y seguridad desde el diseño. |
 | Superficie de ataque | **Cero capacidades**: sin `$.fs`, `$.process`, `$.model`, red ni tools | Un indicador visual no necesita más; se verifica en CI. |
 
@@ -247,7 +247,7 @@ Cada historia: especificación (criterios de aceptación) → test que falla →
 | **3. Modo compacto** | `register.tsx`: `turn.step` (observador), `session.*`, render `SessionMode` componiendo con lo de debajo | Tests de mod en `terminal` y `desktop`; convive con `sub-meter` |
 | **4. Modo grande 8-bit** | Banda `AbovePrompt` con sprites y paletas | Tests de render y de ancho |
 | **5. Config y persistencia** | `userConfig`, `$.store` del último valor conocido | Tests con `test(name, { options })` |
-| **6. Hardening y release** | Revisión de seguridad, README con capturas, `marketplace.json`, tag `v0.1.0` con provenance | Todos los gates verdes; instalación con `/plugin install model-meter --marketplace at0mikd/who-is-claude` |
+| **6. Hardening y release** | Revisión de seguridad, README con capturas, `marketplace.json`, tag `v0.1.0` con provenance | Todos los gates verdes; instalación con `/plugin install model-meter --marketplace at0mikd/model-meter` |
 
 ---
 

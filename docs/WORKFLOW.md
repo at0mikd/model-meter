@@ -1,6 +1,6 @@
 # Flujo de trabajo Reviewer–Builder
 
-> Cómo colaboran dos agentes Claude Code y una persona para construir `who-is-claude` con controles de calidad y seguridad verificables.
+> Cómo colaboran dos agentes Claude Code y una persona para construir `model-meter` con controles de calidad y seguridad verificables.
 
 ## 1. Roles y separación de funciones
 

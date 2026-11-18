@@ -1,4 +1,4 @@
-# who-is-claude
+# model-meter
 
 Mod para Claude Code que muestra el modelo y el nivel de esfuerzo de la sesión con estética 8-bit.
 

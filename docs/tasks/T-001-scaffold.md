@@ -4,7 +4,7 @@
 - **Rama:** `chore/T-001-scaffold`
 - **Plan:** `docs/PLAN.md` §4, §6, §6.1, fase 1
 
-> **Decisión (Maintainer, tras el bloqueo del Builder en CA2):** el plugin se llama **`model-meter`** y vive en `plugins/model-meter/`. El repositorio y el marketplace siguen llamándose `who-is-claude`. No se añade ninguna excepción al gate `--strict`.
+> **Decisión (Maintainer, tras el bloqueo del Builder en CA2):** el proyecto se llama **`model-meter`** en todo: el plugin (`plugins/model-meter/`), el marketplace (`name` en `.claude-plugin/marketplace.json`) y el repositorio (`at0mikd/model-meter`, renombrado por el Maintainer en GitHub). No se añade ninguna excepción al gate `--strict`.
 
 ## Objetivo
 
