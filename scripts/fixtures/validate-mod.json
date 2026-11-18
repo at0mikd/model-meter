@@ -7,7 +7,10 @@
     "type": "plugin",
     "errors": [],
     "warnings": [],
-    "notes": ["types ./types/index.d.ts declares on $: nothing (no EngineInterface member)"],
+    "notes": [
+      "types ./types/index.d.ts declares on $: nothing (no EngineInterface member)",
+      "types ./types/index.d.ts declares state: model-meter.model, model-meter.step, model-meter.stored, model-meter.pending"
+    ],
     "gatingHooks": [],
     "wasm": [],
     "modules": []
@@ -18,25 +21,181 @@
       "type": "hooks",
       "errors": [],
       "warnings": [],
-      "notes": ["./register.tsx hooks: nothing", "./register.tsx calls: nothing on $"],
-      "gatingHooks": [],
+      "notes": [
+        "./register.tsx hooks: session.start, classic.SessionStart, turn.step, config.set{key=model}, command.run{command=effort}, ui.render{component=PromptHint}, ui.render{component=SessionMode}",
+        "./register.tsx gating hook with .catch: classic.SessionStart",
+        "./register.tsx gating hook with .catch: config.set{key=model}",
+        "./register.tsx gating hook with .catch: command.run{command=effort}",
+        "./register.tsx calls: $.session.model, $.state.get, $.state.set, $.store.get (via begin), $.store.set (via observeStep), $.ui.invalidate, $.ui.resolve",
+        "./register.tsx state writes: model-meter.model, model-meter.pending, model-meter.step, model-meter.stored",
+        "./register.tsx state reads: model-meter.model, model-meter.pending, model-meter.step, model-meter.stored"
+      ],
+      "gatingHooks": [
+        {
+          "module": "./register.tsx",
+          "pattern": "classic.SessionStart",
+          "hook": "classic.SessionStart",
+          "hasCatch": true
+        },
+        {
+          "module": "./register.tsx",
+          "pattern": "config.set",
+          "hook": "config.set{key=model}",
+          "hasCatch": true
+        },
+        {
+          "module": "./register.tsx",
+          "pattern": "command.run",
+          "hook": "command.run{command=effort}",
+          "hasCatch": true
+        }
+      ],
       "wasm": [],
       "modules": [
         {
           "module": "./register.tsx",
           "uses": {
-            "events": [],
-            "calls": [],
+            "events": [
+              "session.start",
+              "classic.SessionStart",
+              "turn.step",
+              "config.set",
+              "command.run",
+              "ui.render"
+            ],
+            "calls": [
+              "session.model",
+              "state.get",
+              "state.set",
+              "store.get",
+              "store.set",
+              "ui.invalidate",
+              "ui.resolve"
+            ],
             "env": {
               "reads": [],
               "writes": []
             },
             "state": {
-              "reads": [],
-              "writes": []
+              "reads": [
+                {
+                  "plugin": "model-meter",
+                  "key": "model"
+                },
+                {
+                  "plugin": "model-meter",
+                  "key": "pending"
+                },
+                {
+                  "plugin": "model-meter",
+                  "key": "step"
+                },
+                {
+                  "plugin": "model-meter",
+                  "key": "stored"
+                }
+              ],
+              "writes": [
+                {
+                  "plugin": "model-meter",
+                  "key": "model"
+                },
+                {
+                  "plugin": "model-meter",
+                  "key": "pending"
+                },
+                {
+                  "plugin": "model-meter",
+                  "key": "step"
+                },
+                {
+                  "plugin": "model-meter",
+                  "key": "stored"
+                }
+              ]
             }
           },
-          "hooks": [],
+          "hooks": [
+            {
+              "pattern": "session.start",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "classic.SessionStart",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": true
+            },
+            {
+              "pattern": "turn.step",
+              "matcher": {
+                "has": {}
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "config.set",
+              "matcher": {
+                "has": {
+                  "key": {
+                    "is": "model"
+                  }
+                }
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": true
+            },
+            {
+              "pattern": "command.run",
+              "matcher": {
+                "has": {
+                  "command": {
+                    "is": "effort"
+                  }
+                }
+              },
+              "defaultKeys": [],
+              "isGate": true,
+              "hasCatch": true
+            },
+            {
+              "pattern": "ui.render",
+              "matcher": {
+                "has": {
+                  "component": {
+                    "is": "PromptHint"
+                  }
+                }
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            },
+            {
+              "pattern": "ui.render",
+              "matcher": {
+                "has": {
+                  "component": {
+                    "is": "SessionMode"
+                  }
+                }
+              },
+              "defaultKeys": [],
+              "isGate": false,
+              "hasCatch": false
+            }
+          ],
           "nextTo": [],
           "telemetry": [],
           "clients": [],

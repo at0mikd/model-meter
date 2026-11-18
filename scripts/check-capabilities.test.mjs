@@ -12,7 +12,7 @@ import {
   isAllowedCall,
   main,
 } from './check-capabilities.mjs'
-import skeletonReport from './fixtures/validate-skeleton.json' with { type: 'json' }
+import modReport from './fixtures/validate-mod.json' with { type: 'json' }
 import spikeReport from './fixtures/validate-spike.json' with { type: 'json' }
 
 /**
@@ -257,8 +257,11 @@ describe('findViolations', () => {
     ])
   })
 
-  test('the real skeleton report passes', () => {
-    assert.deepEqual(findViolations(fixture(skeletonReport)), [])
+  test('the real report of the mod passes, with the keys its contract declares', () => {
+    const declared = declaredStateKeys(readFileSync('plugins/model-meter/types/index.d.ts', 'utf8'))
+    assert.deepEqual(declared, ['model', 'pending', 'step', 'stored'])
+    assert.deepEqual(findViolations(fixture(modReport), { state: declared }), [])
+    assert.notDeepEqual(findViolations(fixture(modReport)), [])
   })
 
   test('CA3: a call outside the allowlist fails, named with its module', () => {
