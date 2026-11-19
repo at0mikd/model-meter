@@ -9,7 +9,7 @@ import {
   findAuditProblems,
   main,
 } from './audit.mjs'
-import exceptionsFile from '../security/audit-exceptions.json' with { type: 'json' }
+import exceptionsFile from './fixtures/audit-exceptions.json' with { type: 'json' }
 import auditReport from './fixtures/npm-audit.json' with { type: 'json' }
 import lsReport from './fixtures/npm-ls-runtime.json' with { type: 'json' }
 
@@ -44,7 +44,11 @@ function copy(value) {
   return clone
 }
 
-/** The real inputs of today's tree: one advisory, covered by the one exception. */
+/**
+ * A tree with one advisory, covered by its one exception: picomatch, as the
+ * repository had it until GitHub withdrew the advisory (fixtures, not the
+ * repository's own files, so the tests do not change with them).
+ */
 function inputs() {
   return {
     audit: copy(auditReport),
@@ -79,7 +83,7 @@ function addAdvisory(audit, { id, name, severity }) {
 }
 
 describe('findAuditProblems', () => {
-  test('the real tree passes: its only advisory has a current exception', () => {
+  test('a tree whose only advisory has a current exception passes', () => {
     assert.deepEqual(findAuditProblems(inputs()), [])
   })
 

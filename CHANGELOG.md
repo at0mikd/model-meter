@@ -14,3 +14,7 @@ Todos los cambios relevantes de este proyecto se anotan aquí. Formato basado en
 - `npm run audit`: falla ante cualquier aviso de seguridad sin una excepción aprobada y vigente (`security/audit-exceptions.json`).
 - `npm run audit` avisa 14 días antes de que caduque una excepción (también como anotación en GitHub Actions), y una auditoría semanal de solo lectura (`Scheduled audit`) la ejecuta sobre `main`.
 - `SECURITY.md` (con las excepciones activas), `CONTRIBUTING.md`, `CODEOWNERS` y Dependabot.
+
+### Seguridad
+
+- Se quita la excepción de auditoría de `picomatch` (GHSA-fc5q-39xc-vjpf): GitHub retiró el aviso el 2026-11-18 y `npm run audit` ya no la necesita.
