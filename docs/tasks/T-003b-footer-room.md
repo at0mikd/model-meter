@@ -1,6 +1,6 @@
 # T-003b · Espacio real en el pie: la insignia a media pantalla junto a `sub-meter`
 
-- **Estado:** Ready
+- **Estado:** In progress
 - **Rama:** `fix/T-003b-footer-room`
 - **Plan:** `docs/PLAN.md` §3.1; CA7 de T-003 ([#12](https://github.com/at0mikd/model-meter/pull/12#issuecomment-7005912032))
 
