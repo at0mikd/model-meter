@@ -1,5 +1,6 @@
 // Turns the model id the engine reports into a family and a short label:
-// `claude-opus-5-5` → OPUS 5.5. Known shapes are rebuilt from constants and
+// `claude-opus-5-5` → opus 5.5, in lowercase like the rest of the terminal
+// footer. Known shapes are rebuilt from constants and
 // digits; anything else is sanitized, so no engine text reaches the screen raw.
 
 import { sanitize } from './sanitize.js'
@@ -19,7 +20,7 @@ type Known = (typeof FAMILIES)[number]
 const isKnown = (value: string): value is Known => (FAMILIES as readonly string[]).includes(value)
 const isVersion = (value: string): boolean => /^\d{1,2}$/.test(value)
 
-/** `[1m]` → `1M`: the context window suffix, when there is one. */
+/** `[1m]` → `1m`: the context window suffix, when there is one. */
 const CONTEXT = /\[(\d{1,3}[km])\]$/
 /** Cloud wrappers: Bedrock `us.anthropic.` and `-v1:0`, Vertex `@20250805`, and dates. */
 const REGION_PREFIX = /^[a-z]{2,8}\.anthropic\./
@@ -31,7 +32,7 @@ const DATE = /-\d{8}$/
 
 function label(family: Known, version: string[], context: string | undefined): string {
   const number = version.length === 0 ? '' : ` ${version.join('.')}`
-  return `${family.toUpperCase()}${number}${context === undefined ? '' : ` ${context}`}`
+  return `${family}${number}${context === undefined ? '' : ` ${context}`}`
 }
 
 /** `claude-opus-4-1` (current order) or `claude-3-5-sonnet` (older order) → family and version. */
@@ -48,18 +49,18 @@ function familyAndVersion(name: string): { family: Known; version: string[] } | 
 }
 
 function unknown(id: string): ModelView {
-  const text = sanitize(id, 16).toUpperCase()
+  const text = sanitize(id, 16).toLowerCase()
   return { family: 'unknown', label: text === '' ? '?' : text }
 }
 
 /**
  * The family and label of a model id; never throws. A known label is at most
- * 18 columns (`SONNET 12.34 123K`); an unknown one, at most 16.
+ * 18 columns (`sonnet 12.34 123k`); an unknown one, at most 16.
  */
 export function parseModel(id: string): ModelView {
   if (typeof id !== 'string') return unknown('')
   let name = id.trim().toLowerCase()
-  const context = CONTEXT.exec(name)?.[1]?.toUpperCase()
+  const context = CONTEXT.exec(name)?.[1]
   name = name
     .replace(CONTEXT, '')
     .replace(REGION_PREFIX, '')

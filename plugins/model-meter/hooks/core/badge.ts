@@ -27,7 +27,7 @@ export interface EffortPart {
   cells: string
   /** How many cells are filled. */
   filled: number
-  /** LOW … MAX, CUSTOM or ---, with … while an /effort is pending. */
+  /** low … max, custom or ---, with … while an /effort is pending. */
   text: string
 }
 
@@ -65,8 +65,8 @@ const CELLS = 5
 const PENDING = '…'
 
 /** Columns each variant always takes, so lighting a part never moves the badge (§3.1.1). */
-const MODEL_FIELD = 10 // `SONNET 5.5`, the longest current label
-const EFFORT_FIELD = 5 // `HIGH…`
+const MODEL_FIELD = 10 // `sonnet 5.5`, the longest current label
+const EFFORT_FIELD = 5 // `high…`
 export const SLOT = Object.freeze({
   modelOnly: 2 + MODEL_FIELD,
   noMeter: 2 + MODEL_FIELD + 1 + EFFORT_FIELD,
@@ -107,7 +107,7 @@ function effortPart(effort: EffortView): EffortPart {
       text: effortLabel(effort.level) + mark,
     }
   }
-  if (effort.custom === true) return { enabled: lit, cells: '', filled: 0, text: `CUSTOM${mark}` }
+  if (effort.custom === true) return { enabled: lit, cells: '', filled: 0, text: `custom${mark}` }
   return { enabled: false, cells: '░'.repeat(CELLS), filled: 0, text: `---${mark}` }
 }
 
