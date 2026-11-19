@@ -37,7 +37,7 @@ Reglas que hay que marcar:
 | **Require status checks to pass** | ✓ · **Require branches to be up to date before merging** ✓ · los 12 checks de la tabla siguiente | Evita fusionar en rojo, y que la CI pruebe una mezcla con un `main` antiguo |
 | **Require code scanning results** (opcional) | Tool **CodeQL** · *Security alerts*: **High or higher** · *Alerts*: **Errors** | Bloquea alertas nuevas graves de CodeQL |
 
-> **`require_extra_approval_for_unattributed_changes: true`.** GitHub lo activa por defecto en todos los rulesets (regla «additional approval for unattributed Copilot pull requests», en *public preview*). Solo exige una aprobación extra cuando el agente de Copilot abre un PR no atribuido a una persona. Nuestros PRs salen atribuidos al Maintainer y Dependabot no es Copilot, así que no nos afecta. Se deja activo, porque protege si algún día se usa Copilot, y se revisará cuando salga de *preview*.
+> **`require_extra_approval_for_unattributed_changes: true`.** GitHub lo activa por defecto en todos los rulesets, nuevos y existentes (regla [«Additional approval for unattributed Copilot pull requests»](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), en *public preview*; verificado en la documentación oficial el 2026-11-19). Solo exige una aprobación extra cuando el agente de Copilot abre un PR no atribuido a una persona. Nuestros PRs salen atribuidos al Maintainer y Dependabot no es Copilot, así que no nos afecta. Se deja activo, porque protege si algún día se usa Copilot, y se revisará cuando salga de *preview*.
 
 Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Actions* como origen:
 
