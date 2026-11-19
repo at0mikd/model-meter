@@ -138,8 +138,8 @@ describe('the badge on the terminal (CA1)', () => {
     world(on, { stored: 'medium' })
     await start($)
     const ui = await footer($)
-    expect(await shown(ui)).toContain('◆ opus 5.5 ▮▮▯▯▯ med · ')
-    expect((await ui.find({ type: 'Text', text: '◆ opus 5.5' }))?.props).toMatchObject({
+    expect(await shown(ui)).toContain('◆ Opus 5.5 ▮▮▯▯▯ med · ')
+    expect((await ui.find({ type: 'Text', text: '◆ Opus 5.5' }))?.props).toMatchObject({
       color: 'claude',
     })
     expect((await ui.find({ type: 'Text', text: 'med' }))?.props).toMatchObject({ dimColor: true })
@@ -150,9 +150,9 @@ describe('the badge on the terminal (CA1)', () => {
     await start($)
     const ui = await footer($)
     await turn($, 'max', 'agent-1')
-    expect(await shown(ui)).toContain('◆ opus 5.5 ░░░░░ ---')
+    expect(await shown(ui)).toContain('◆ Opus 5.5 ░░░░░ ---')
     await turn($, 'high')
-    expect(await shown(ui)).toContain('◆ opus 5.5 ▮▮▮▯▯ high')
+    expect(await shown(ui)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high')
     expect((await ui.find({ type: 'Text', text: 'high' }))?.props.dimColor).toBeUndefined()
     expect(w.store.get('effort')).toBe('high')
   })
@@ -168,8 +168,8 @@ describe('the badge on the terminal (CA1)', () => {
       provider: { plugin: 'core', tier: 'core' },
       origin: { kind: 'composer' },
     })
-    expect(await shown(ui)).toContain('◆ sonnet 5.5')
-    expect((await ui.find({ type: 'Text', text: '◆ sonnet 5.5' }))?.props).toMatchObject({
+    expect(await shown(ui)).toContain('◆ Sonnet 5.5')
+    expect((await ui.find({ type: 'Text', text: '◆ Sonnet 5.5' }))?.props).toMatchObject({
       color: 'suggestion',
     })
   })
@@ -185,7 +185,7 @@ describe('the badge on the terminal (CA1)', () => {
       origin: { kind: 'composer' },
       presentation: { isFullscreen: false, columns: 191 },
     })
-    expect(await shown(ui)).toContain('◆ opus 5.5 ▮▮▮▯▯ high…')
+    expect(await shown(ui)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high…')
     expect((await ui.find({ type: 'Text', text: 'high…' }))?.props).toMatchObject({
       dimColor: true,
     })
@@ -208,7 +208,7 @@ describe('the badge on the terminal (CA1)', () => {
     await turn($, 'high')
     const ui = await footer($)
     await $.classic.SessionStart({ source: 'clear' })
-    expect(await shown(ui)).toContain('◆ opus 5.5 ▮▮▮▯▯ high')
+    expect(await shown(ui)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high')
     expect((await ui.find({ type: 'Text', text: 'high' }))?.props).toMatchObject({ dimColor: true })
   })
 })
@@ -228,10 +228,10 @@ describe('the off look of what is missing (CA1b, PLAN §3.1.1)', () => {
     await start($)
     const ui = await footer($)
     const before = await shown(ui)
-    expect(before).toContain('◆ opus 5.5 ░░░░░ ---')
+    expect(before).toContain('◆ Opus 5.5 ░░░░░ ---')
     await turn($, 'medium')
     const after = await shown(ui)
-    expect(after).toContain('◆ opus 5.5 ▮▮▯▯▯ med')
+    expect(after).toContain('◆ Opus 5.5 ▮▮▯▯▯ med')
     // Lighting a part never moves the badge: the same columns before and after.
     expect(after.indexOf(' · ')).toBe(before.indexOf(' · '))
   })
@@ -294,7 +294,7 @@ describe('/model and /effort reach the engine untouched (CA3)', () => {
 describe('the badge fits the row (CA4)', () => {
   /** Which size of the badge a drawing shows. */
   function variantOf(text: string): string {
-    if (!text.includes('◆ opus 5.5')) return 'none'
+    if (!text.includes('◆ Opus 5.5')) return 'none'
     if (/[▮▯░]/.test(text)) return 'full'
     return /high|---/.test(text) ? 'noMeter' : 'modelOnly'
   }
@@ -389,6 +389,6 @@ describe('$.store holds a level and nothing else (CA5)', () => {
     world(on, { stored: { level: 'high', hack: '\u001b[31m' } })
     await start($)
     const ui = await footer($)
-    expect(await shown(ui)).toContain('◆ opus 5.5 ░░░░░ ---')
+    expect(await shown(ui)).toContain('◆ Opus 5.5 ░░░░░ ---')
   })
 })

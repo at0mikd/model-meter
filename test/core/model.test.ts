@@ -8,26 +8,27 @@ import { FAMILIES, parseModel } from '../../plugins/model-meter/hooks/core/model
 describe('parseModel', () => {
   const cases: [string, string, string][] = [
     // [what the engine reports, family, label]
-    ['claude-opus-5-5', 'opus', 'opus 5.5'],
-    ['claude-fable-5-2', 'fable', 'fable 5.2'],
-    ['claude-sonnet-5-5', 'sonnet', 'sonnet 5.5'],
-    ['claude-haiku-5-5', 'haiku', 'haiku 5.5'],
-    ['claude-sonnet-5-5[1m]', 'sonnet', 'sonnet 5.5 1m'],
-    ['claude-opus-4-1-20250805', 'opus', 'opus 4.1'],
-    ['claude-sonnet-4-20250514', 'sonnet', 'sonnet 4'],
-    ['claude-3-5-sonnet-20241022', 'sonnet', 'sonnet 3.5'],
-    ['claude-3-haiku-20240307', 'haiku', 'haiku 3'],
-    ['us.anthropic.claude-opus-4-1-20250805-v1:0', 'opus', 'opus 4.1'],
-    ['anthropic.claude-3-5-sonnet-20241022-v2:0', 'sonnet', 'sonnet 3.5'],
-    ['global.anthropic.claude-sonnet-4-5-20250929-v1:0', 'sonnet', 'sonnet 4.5'],
-    ['claude-opus-4-1@20250805', 'opus', 'opus 4.1'],
-    ['claude-3-5-sonnet-v2@20241022', 'sonnet', 'sonnet 3.5'],
-    ['opus', 'opus', 'opus'],
-    ['sonnet', 'sonnet', 'sonnet'],
-    ['haiku', 'haiku', 'haiku'],
-    ['fable', 'fable', 'fable'],
-    ['sonnet[1m]', 'sonnet', 'sonnet 1m'],
-    ['  Claude-Opus-5-5  ', 'opus', 'opus 5.5'],
+    ['claude-opus-5-5', 'opus', 'Opus 5.5'],
+    ['claude-fable-5-2', 'fable', 'Fable 5.2'],
+    ['claude-sonnet-5-5', 'sonnet', 'Sonnet 5.5'],
+    ['claude-haiku-5-5', 'haiku', 'Haiku 5.5'],
+    ['claude-sonnet-5-5[1m]', 'sonnet', 'Sonnet 5.5 1m'],
+    ['CLAUDE-SONNET-5-5[1M]', 'sonnet', 'Sonnet 5.5 1m'],
+    ['claude-opus-4-1-20250805', 'opus', 'Opus 4.1'],
+    ['claude-sonnet-4-20250514', 'sonnet', 'Sonnet 4'],
+    ['claude-3-5-sonnet-20241022', 'sonnet', 'Sonnet 3.5'],
+    ['claude-3-haiku-20240307', 'haiku', 'Haiku 3'],
+    ['us.anthropic.claude-opus-4-1-20250805-v1:0', 'opus', 'Opus 4.1'],
+    ['anthropic.claude-3-5-sonnet-20241022-v2:0', 'sonnet', 'Sonnet 3.5'],
+    ['global.anthropic.claude-sonnet-4-5-20250929-v1:0', 'sonnet', 'Sonnet 4.5'],
+    ['claude-opus-4-1@20250805', 'opus', 'Opus 4.1'],
+    ['claude-3-5-sonnet-v2@20241022', 'sonnet', 'Sonnet 3.5'],
+    ['opus', 'opus', 'Opus'],
+    ['sonnet', 'sonnet', 'Sonnet'],
+    ['haiku', 'haiku', 'Haiku'],
+    ['fable', 'fable', 'Fable'],
+    ['sonnet[1m]', 'sonnet', 'Sonnet 1m'],
+    ['  Claude-Opus-5-5  ', 'opus', 'Opus 5.5'],
   ]
   for (const [id, family, label] of cases) {
     test(`${id.trim()} → ${label}`, () => {
@@ -56,7 +57,7 @@ describe('parseModel', () => {
   test('the longest known label fits in 18 columns', () => {
     assert.deepEqual(parseModel('claude-sonnet-12-34[123k]'), {
       family: 'sonnet',
-      label: 'sonnet 12.34 123k',
+      label: 'Sonnet 12.34 123k',
     })
   })
 
@@ -67,6 +68,7 @@ describe('parseModel', () => {
   })
 
   test('property: never throws, always a known family and a safe, short label (1 000 cases)', () => {
+    // Known names start with a capital and the rest is lowercase; unknown ids are all lowercase.
     const ids = fc.oneof(
       fc.string({ unit: 'binary' }),
       fc
@@ -91,8 +93,14 @@ describe('parseModel', () => {
       fc.property(ids, (id) => {
         const { family, label } = parseModel(id)
         assert.ok((FAMILIES as readonly string[]).includes(family) || family === 'unknown')
-        assert.match(label, /^(?:[a-z0-9.\-[\] @/_]{1,18}|\?)$/)
-        if (family === 'unknown') assert.ok(label.length <= 16)
+        assert.match(label, /^(?:[A-Za-z0-9.\-[\] @/_]{1,18}|\?)$/)
+        if (family === 'unknown') {
+          assert.ok(label.length <= 16)
+          assert.equal(label, label.toLowerCase())
+        } else {
+          assert.match(label, /^[A-Z]/)
+          assert.equal(label.slice(1), label.slice(1).toLowerCase())
+        }
       }),
       { numRuns: 1000 },
     )

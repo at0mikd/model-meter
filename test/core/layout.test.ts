@@ -11,8 +11,8 @@ import type { Variant } from '../../plugins/model-meter/hooks/core/layout.ts'
 
 describe('widthOf', () => {
   test('one column per sanitized character and per glyph of ours', () => {
-    assert.equal(widthOf('opus 5.5'), 8)
-    assert.equal(widthOf('◆ opus 5.5 ▮▮▯▯▯ med'), 20)
+    assert.equal(widthOf('Opus 5.5'), 8)
+    assert.equal(widthOf('◆ Opus 5.5 ▮▮▯▯▯ med'), 20)
     assert.equal(widthOf('⏵⏵ auto mode on'), 15)
     assert.equal(widthOf('1 shell · ↓ to manage'), 21)
     assert.equal(widthOf('…'), 1)
@@ -40,9 +40,9 @@ describe('widthOf', () => {
 describe('fitBadge', () => {
   // The badge in its three sizes (docs/PLAN.md §3.1): 20, 14 and 8 columns.
   const variants: Record<Variant, string> = {
-    full: '◆ opus 5.5 ▮▮▯▯▯ med',
-    noMeter: '◆ opus 5.5 med',
-    modelOnly: 'opus 5.5',
+    full: '◆ Opus 5.5 ▮▮▯▯▯ med',
+    noMeter: '◆ Opus 5.5 med',
+    modelOnly: 'Opus 5.5',
   }
   const MARGINS = 4
   const MODE = '⏵⏵ auto mode on'

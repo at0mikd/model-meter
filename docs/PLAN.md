@@ -107,11 +107,11 @@ El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt
 ### 3.1 Modo compacto (pie, por defecto)
 
 ```
-◆ opus 5.5 ▮▮▯▯▯ med · ⏵⏵ auto mode on
+◆ Opus 5.5 ▮▮▯▯▯ med · ⏵⏵ auto mode on
 ```
 
-- Nombre del modelo normalizado: `claude-opus-5-5` → `opus 5.5`; sufijo `[1m]` → `1m`.
-- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max` (decisión del Maintainer en CA7 de T-003, 2026-11-19).
+- Nombre del modelo normalizado: `claude-opus-5-5` → `Opus 5.5`; sufijo `[1m]` → `1m`.
+- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max`. Solo el nombre del modelo empieza por mayúscula, como lo escribe Claude Code: `Opus`, `Sonnet`, `Haiku`, `Fable` (decisiones del Maintainer en CA7 de T-003, 2026-11-19).
 - Medidor de esfuerzo de 5 "píxeles": `low=1 … max=5`; numérico → escalado.
 - Paleta retro por familia (tokens del tema: `claude`, `warning`, `success`…; nunca ANSI crudo).
 - Degradación por ancho: completo → sin medidor → solo modelo → nada (como `sub-meter`).
@@ -127,9 +127,9 @@ Cuando falta información, la insignia no desaparece ni inventa datos: se ve **a
 
 | Modelo | Esfuerzo | Aspecto (`full`) | Estado |
 | --- | --- | --- | --- |
-| conocido | de `turn.step` o pendiente | `◆ opus 5.5 ▮▮▯▯▯ med` | `active` |
-| conocido | previo (`$.store`) | `◆ opus 5.5` + `▮▮▯▯▯ med` atenuado | `partial` |
-| conocido | desconocido | `◆ opus 5.5` + `░░░░░ ---` apagado | `partial` |
+| conocido | de `turn.step` o pendiente | `◆ Opus 5.5 ▮▮▯▯▯ med` | `active` |
+| conocido | previo (`$.store`) | `◆ Opus 5.5` + `▮▮▯▯▯ med` atenuado | `partial` |
+| conocido | desconocido | `◆ Opus 5.5` + `░░░░░ ---` apagado | `partial` |
 | desconocido o aún sin leer | conocido | `◇ ?` + `▮▮▯▯▯ med` | `partial` |
 | desconocido | desconocido | `◇ ----- ░░░░░ ---` todo apagado | `disabled` |
 

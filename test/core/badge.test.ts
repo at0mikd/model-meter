@@ -18,7 +18,7 @@ import { effortState } from '../../plugins/model-meter/hooks/core/state.ts'
 import type { EffortView } from '../../plugins/model-meter/hooks/core/state.ts'
 
 const MODELS = new Map<string, ModelView | null>([
-  ['known', parseModel('claude-opus-5-5')], // opus 5.5
+  ['known', parseModel('claude-opus-5-5')], // Opus 5.5
   ['unknown', parseModel('gpt-x')], // family unknown, label gpt-x
   ['unread', null], // $.session.model() has not answered yet
 ])
@@ -40,27 +40,27 @@ const TABLE: [model: string, effort: string, expected: Expected][] = [
   [
     'known',
     'step',
-    { state: 'active', model: [true, '◆', 'opus 5.5'], effort: [true, '▮▮▮▯▯', 'high'] },
+    { state: 'active', model: [true, '◆', 'Opus 5.5'], effort: [true, '▮▮▮▯▯', 'high'] },
   ],
   [
     'known',
     'pending',
-    { state: 'active', model: [true, '◆', 'opus 5.5'], effort: [false, '▮▯▯▯▯', 'low…'] },
+    { state: 'active', model: [true, '◆', 'Opus 5.5'], effort: [false, '▮▯▯▯▯', 'low…'] },
   ],
   [
     'known',
     'stored',
-    { state: 'partial', model: [true, '◆', 'opus 5.5'], effort: [false, '▮▮▯▯▯', 'med'] },
+    { state: 'partial', model: [true, '◆', 'Opus 5.5'], effort: [false, '▮▮▯▯▯', 'med'] },
   ],
   [
     'known',
     'unknown',
-    { state: 'partial', model: [true, '◆', 'opus 5.5'], effort: [false, '░░░░░', '---'] },
+    { state: 'partial', model: [true, '◆', 'Opus 5.5'], effort: [false, '░░░░░', '---'] },
   ],
   [
     'known',
     'custom',
-    { state: 'active', model: [true, '◆', 'opus 5.5'], effort: [true, '', 'custom'] },
+    { state: 'active', model: [true, '◆', 'Opus 5.5'], effort: [true, '', 'custom'] },
   ],
   [
     'unknown',
@@ -183,9 +183,9 @@ describe('badgeState: every model × effort (docs/PLAN.md §3.1.1)', () => {
 describe('badgeVariants and badgeRuns', () => {
   test('active, the badge reads as in docs/PLAN.md §3.1, padded on the left to its slot', () => {
     const variants = badgeVariants(view('known', 'step'))
-    assert.equal(variants.full.trimStart(), '◆ opus 5.5 ▮▮▮▯▯ high')
-    assert.equal(variants.noMeter.trimStart(), '◆ opus 5.5 high')
-    assert.equal(variants.modelOnly.trimStart(), '◆ opus 5.5')
+    assert.equal(variants.full.trimStart(), '◆ Opus 5.5 ▮▮▮▯▯ high')
+    assert.equal(variants.noMeter.trimStart(), '◆ Opus 5.5 high')
+    assert.equal(variants.modelOnly.trimStart(), '◆ Opus 5.5')
   })
 
   test('all off, it is the empty cartridge slot', () => {
@@ -194,17 +194,23 @@ describe('badgeVariants and badgeRuns', () => {
     assert.equal(variants.modelOnly.trimStart(), '◇ -----')
   })
 
-  test('it is drawn in lowercase, like the rest of the footer', () => {
+  test('it is drawn in lowercase, like the rest of the footer, but for the model name', () => {
     for (const model of MODELS.keys()) {
       for (const effort of EFFORTS.keys()) {
         const { full } = badgeVariants(view(model, effort))
-        assert.equal(full, full.toLowerCase(), `${model} model, ${effort} effort`)
+        const name = model === 'known' ? 'Opus' : ''
+        assert.ok(full.includes(name), `${model} model, ${effort} effort`)
+        assert.equal(
+          full.replace(name, name.toLowerCase()),
+          full.toLowerCase(),
+          `${model} model, ${effort} effort`,
+        )
       }
     }
   })
 
   test('a custom effort has no meter', () => {
-    assert.equal(badgeVariants(view('known', 'custom')).full.trimStart(), '◆ opus 5.5 custom')
+    assert.equal(badgeVariants(view('known', 'custom')).full.trimStart(), '◆ Opus 5.5 custom')
   })
 
   test('CA1b: each variant measures its slot whatever is lit, so the badge never jumps', () => {
@@ -248,7 +254,7 @@ describe('badgeVariants and badgeRuns', () => {
         effort: effortState({ step: 'high' }),
       }),
     )
-    assert.equal(long.modelOnly, '◆ sonnet 12.34 123k')
+    assert.equal(long.modelOnly, '◆ Sonnet 12.34 123k')
     assert.ok(widthOf(long.full) > SLOT.full)
   })
 
@@ -258,7 +264,7 @@ describe('badgeVariants and badgeRuns', () => {
     assert.equal(runs.map((run) => run.text).join(''), badgeVariants(lit).full)
     const paints = runs.filter((run) => run.text.trim() !== '').map((run) => [run.text, run.paint])
     assert.deepEqual(paints, [
-      ['◆ opus 5.5', 'family'],
+      ['◆ Opus 5.5', 'family'],
       ['▮▮▮', 'family'],
       ['▯▯', 'dim'],
       ['high', 'lit'],

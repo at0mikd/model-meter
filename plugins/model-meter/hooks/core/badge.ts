@@ -65,7 +65,7 @@ const CELLS = 5
 const PENDING = '…'
 
 /** Columns each variant always takes, so lighting a part never moves the badge (§3.1.1). */
-const MODEL_FIELD = 10 // `sonnet 5.5`, the longest current label
+const MODEL_FIELD = 10 // `Sonnet 5.5`, the longest current label
 const EFFORT_FIELD = 5 // `high…`
 export const SLOT = Object.freeze({
   modelOnly: 2 + MODEL_FIELD,

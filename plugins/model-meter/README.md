@@ -3,22 +3,22 @@
 Mod para Claude Code que muestra, en el pie de la terminal y con estética 8-bit, qué modelo y qué nivel de esfuerzo está usando la sesión:
 
 ```text
-◆ opus 5.5 ▮▮▮▯▯ high · ⏵⏵ auto mode on
+◆ Opus 5.5 ▮▮▮▯▯ high · ⏵⏵ auto mode on
 ```
 
 ## Qué muestra
 
-- **Modelo:** `◆` y el nombre corto (`opus 5.5`, `sonnet 5.5 1m`…) en el color de su familia, con tokens del tema (nunca ANSI crudo). Un modelo que no reconoce sale como `?` y atenuado.
+- **Modelo:** `◆` y el nombre corto (`Opus 5.5`, `Sonnet 5.5 1m`…) en el color de su familia, con tokens del tema (nunca ANSI crudo). Un modelo que no reconoce sale como `?` y atenuado.
 - **Esfuerzo:** un medidor de 5 «píxeles» (`low` = 1 … `max` = 5) y su etiqueta (`low`, `med`, `high`, `xhi`, `max`). Un esfuerzo numérico (solo en builds internas) sale como `custom`, sin medidor.
-- **En minúscula,** como el resto del pie (la etiqueta de modo, las pistas y otros mods).
+- **En minúscula,** como el resto del pie (la etiqueta de modo, las pistas y otros mods), salvo la inicial del nombre del modelo, que va en mayúscula como la escribe Claude Code (`Opus`, `Sonnet`).
 - **En vivo:** se actualiza con cada turno, al momento con `/model` y como **pendiente** (`high…`, atenuado) tras `/effort`, hasta que el siguiente turno lo confirma.
 - **Lo que falta se ve «apagado»,** como una ranura de cartucho vacía, sin cambiar de ancho:
 
   | Situación | Aspecto |
   | --- | --- |
-  | Todo conocido | `◆ opus 5.5 ▮▮▮▯▯ high` |
-  | Esfuerzo de una sesión anterior | `◆ opus 5.5` + `▮▮▯▯▯ med` atenuado |
-  | Esfuerzo aún desconocido | `◆ opus 5.5 ░░░░░ ---` |
+  | Todo conocido | `◆ Opus 5.5 ▮▮▮▯▯ high` |
+  | Esfuerzo de una sesión anterior | `◆ Opus 5.5` + `▮▮▯▯▯ med` atenuado |
+  | Esfuerzo aún desconocido | `◆ Opus 5.5 ░░░░░ ---` |
   | Nada leído todavía | `◇ ----- ░░░░░ ---` |
 
 - **Se adapta al ancho:** comparte la fila con la etiqueta de modo, las pistas del motor (`esc to interrupt`, `1 shell · ↓ to manage`…) y otros mods como `sub-meter`. Si no cabe, pierde primero el medidor, después el esfuerzo y por último desaparece, sin tapar nunca lo que hay a su lado.

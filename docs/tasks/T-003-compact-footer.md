@@ -6,11 +6,13 @@
 
 ## Objetivo
 
-Primera versión usable del mod: `◆ opus 5.5 ▮▮▯▯▯ med` en el pie de la terminal, compartiendo fila con otros mods (`sub-meter`) y con las pistas del motor, y actualizada en vivo con `/model`, `/effort` y cada turno. Toda la lógica de decisión sale de `hooks/core/` (T-002); `register.tsx` solo cablea eventos y dibuja.
+Primera versión usable del mod: `◆ Opus 5.5 ▮▮▯▯▯ med` en el pie de la terminal, compartiendo fila con otros mods (`sub-meter`) y con las pistas del motor, y actualizada en vivo con `/model`, `/effort` y cada turno. Toda la lógica de decisión sale de `hooks/core/` (T-002); `register.tsx` solo cablea eventos y dibuja.
 
 > **Decisión del Maintainer (2026-11-18): `$.state` acotado a `model-meter`.** Los `atom`s del punto 7 son `$.state` y `claude plugin validate` los cuenta como `state.get`/`state.set`, fuera de la allowlist de CA6. Se acepta la opción B: la allowlist suma `state.get` y `state.set`, nada más, y `check-capabilities` falla si cualquier entrada de `uses.state` (lecturas y escrituras) no es `plugin: 'model-meter'`, si su clave no está declarada en `types/index.d.ts` bajo `PluginState['model-meter']`, o si `uses.state` tiene una forma inesperada. El contrato declara exactamente las claves que usa el mod. En `$.store` solo se guarda `effort` (un `Level`).
 
 > **Decisión del Maintainer (2026-11-19, en CA7): todo en minúscula.** En la terminal todas las letras ocupan una celda, pero las mayúsculas hacían que la insignia pareciera más grande que el resto del pie (`auto mode on`, `week`, `context`). El nombre del modelo y la etiqueta del esfuerzo van en minúscula: `◆ opus 5.5 ▮▮▮▮▯ xhi`, `sonnet 5.5 1m`, `custom`. Los anchos no cambian.
+>
+> **Ajuste del Maintainer (2026-11-19, tras CA7): el nombre del modelo empieza por mayúscula,** como lo escribe Claude Code (`Set model to Opus 5.5`): `◆ Opus 5.5 ▮▮▮▮▯ xhi`, `Sonnet 5.5 1m`. El resto sigue en minúscula, también el id de un modelo desconocido (`gpt-x`). Los anchos no cambian.
 
 ## Alcance
 

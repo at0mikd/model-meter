@@ -1,7 +1,8 @@
 // Turns the model id the engine reports into a family and a short label:
-// `claude-opus-5-5` → opus 5.5, in lowercase like the rest of the terminal
-// footer. Known shapes are rebuilt from constants and
-// digits; anything else is sanitized, so no engine text reaches the screen raw.
+// `claude-opus-5-5` → Opus 5.5: the name capitalized as the engine writes it,
+// the rest in lowercase like the terminal footer (Maintainer, CA7 of T-003).
+// Known shapes are rebuilt from constants and digits; anything else is
+// sanitized and lowercased, so no engine text reaches the screen raw.
 
 import { sanitize } from './sanitize.js'
 
@@ -16,6 +17,9 @@ export interface ModelView {
 }
 
 type Known = (typeof FAMILIES)[number]
+
+/** How a family is written on screen: `opus` → `Opus`. */
+const nameOf = (family: Known): string => family.charAt(0).toUpperCase() + family.slice(1)
 
 const isKnown = (value: string): value is Known => (FAMILIES as readonly string[]).includes(value)
 const isVersion = (value: string): boolean => /^\d{1,2}$/.test(value)
@@ -32,7 +36,7 @@ const DATE = /-\d{8}$/
 
 function label(family: Known, version: string[], context: string | undefined): string {
   const number = version.length === 0 ? '' : ` ${version.join('.')}`
-  return `${family}${number}${context === undefined ? '' : ` ${context}`}`
+  return `${nameOf(family)}${number}${context === undefined ? '' : ` ${context}`}`
 }
 
 /** `claude-opus-4-1` (current order) or `claude-3-5-sonnet` (older order) → family and version. */
@@ -55,7 +59,7 @@ function unknown(id: string): ModelView {
 
 /**
  * The family and label of a model id; never throws. A known label is at most
- * 18 columns (`sonnet 12.34 123k`); an unknown one, at most 16.
+ * 18 columns (`Sonnet 12.34 123k`); an unknown one, at most 16.
  */
 export function parseModel(id: string): ModelView {
   if (typeof id !== 'string') return unknown('')
