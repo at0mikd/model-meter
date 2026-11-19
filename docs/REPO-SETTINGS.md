@@ -48,6 +48,10 @@ Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Ac
 
 Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 
+> **Antes de exigir `check:core`: Dependabot.** Dependabot escribe siempre «Bump» con mayúscula (`chore(deps-dev): Bump @types/node`), y commitlint lo rechaza por `subject-case`. Le pasa al PR de Dependabot #8. Con el ruleset activo, ningún PR de Dependabot se podrá fusionar hasta que lo arregle la tarea **T-008**, que hará que commitlint acepte, de forma acotada y con tests, los commits de bump de Dependabot. Aplicar el ruleset antes sigue siendo lo correcto: lo único que se retrasa son las actualizaciones de dependencias, no la protección.
+
+> **«Require branches to be up to date».** Tras cada fusión en `main`, el resto de PRs abiertos necesita «Update branch», lo que les da un SHA nuevo. Para no tener que aprobarlo todo otra vez, `docs/WORKFLOW.md` §6 define cuándo una actualización conserva la aprobación.
+
 ## 2. Pull requests
 
 **Settings → General → Pull Requests**
