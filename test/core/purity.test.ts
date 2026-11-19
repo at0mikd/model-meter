@@ -9,7 +9,7 @@ import ts from 'typescript'
 
 const PLUGIN = new URL('../../plugins/model-meter/', import.meta.url)
 const CORE = new URL('hooks/core/', PLUGIN)
-const MODULES = ['effort', 'layout', 'model', 'sanitize', 'state']
+const MODULES = ['badge', 'effort', 'layout', 'model', 'sanitize', 'state']
 
 interface Import {
   specifier: string
@@ -60,7 +60,7 @@ function coreImportProblem({ specifier, typeOnly }: Import): string | undefined 
 }
 
 describe('the pure core (CA1)', () => {
-  test('has the five modules, and nothing else', () => {
+  test('has its six modules, and nothing else', () => {
     const names = readdirSync(CORE).map((name) => name.replace(/\.ts$/, ''))
     assert.deepEqual(names.sort(), MODULES)
   })

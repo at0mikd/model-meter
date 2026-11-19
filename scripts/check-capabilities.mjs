@@ -1,6 +1,7 @@
 // Fails when the model-meter mod reaches for anything outside its allowlist
 // (docs/PLAN.md §5–§6) or registers a gating hook that could swallow an event
-// (docs/PLAN.md §2.4, decision 6).
+// (docs/PLAN.md §2.4, decision 6). Its `$.state` may only be the mod's own,
+// under keys its contract (types/index.d.ts) declares (Maintainer, T-003).
 //
 // It reads the structured part of `claude plugin validate --json`
 // (`modules[].uses` and `gatingHooks`), which the engine documents as whole
@@ -9,6 +10,7 @@
 // report's absolute paths (`target`, `file`).
 
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 
@@ -27,14 +29,21 @@ export const ALLOWED_CALLS = Object.freeze([
   'ui.invalidate',
   'ui.resolve',
   'clock.now',
+  'state.get',
+  'state.set',
 ])
+
+/** The only plugin whose `$.state` the mod may read or write. */
+export const STATE_PLUGIN = 'model-meter'
 
 /** Environment variables the mod may read. None since T-000. */
 export const ALLOWED_ENV = Object.freeze(/** @type {string[]} */ ([]))
 
 /**
  * @typedef {{ module: string, hook: string, hasCatch: boolean }} GatingHook
- * @typedef {{ module: string, uses: { calls: string[], env?: { reads: string[], writes: string[] } } }} ModuleUses
+ * @typedef {{ plugin: string, key: string, id?: string }} StateEntry
+ * @typedef {{ reads: StateEntry[], writes: StateEntry[] }} StateUses
+ * @typedef {{ module: string, uses: { calls: string[], env?: { reads: string[], writes: string[] }, state?: StateUses } }} ModuleUses
  * @typedef {{ type?: string, gatingHooks: GatingHook[], modules: ModuleUses[] | null }} ReportFile
  */
 
@@ -81,8 +90,9 @@ function isModuleUses(entry) {
   if (!isObject(entry)) return false
   const { module, uses } = /** @type {Record<string, unknown>} */ (entry)
   if (typeof module !== 'string' || !isObject(uses)) return false
-  const { calls, env } = /** @type {Record<string, unknown>} */ (uses)
+  const { calls, env, state } = /** @type {Record<string, unknown>} */ (uses)
   if (!isStringList(calls)) return false
+  if (state !== undefined && !isStateUses(state)) return false
   if (env === undefined) return true
   if (!isObject(env)) return false
   const { reads, writes } = /** @type {Record<string, unknown>} */ (env)
@@ -90,11 +100,128 @@ function isModuleUses(entry) {
 }
 
 /**
+ * @param {unknown} state
+ * @returns {state is StateUses}
+ */
+function isStateUses(state) {
+  if (!isObject(state)) return false
+  const { reads, writes } = /** @type {Record<string, unknown>} */ (state)
+  if (!Array.isArray(reads) || !Array.isArray(writes)) return false
+  const entries = /** @type {unknown[]} */ (reads).concat(/** @type {unknown[]} */ (writes))
+  return entries.every(isStateEntry)
+}
+
+/**
+ * @param {unknown} entry
+ * @returns {entry is StateEntry}
+ */
+function isStateEntry(entry) {
+  if (!isObject(entry)) return false
+  const { plugin, key, id } = /** @type {Record<string, unknown>} */ (entry)
+  return (
+    typeof plugin === 'string' &&
+    typeof key === 'string' &&
+    (id === undefined || typeof id === 'string')
+  )
+}
+
+/** A member of an object type, `readonly` aside: `name:`, `'name'?:`, `"name":`. */
+const MEMBER = /^(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\s*\??\s*:/
+const READONLY = /^readonly\s+/
+
+/**
+ * The text inside the braces that open at `open`, or undefined when they never close.
+ *
+ * @param {string} text
+ * @param {number} open
+ */
+function blockAt(text, open) {
+  let depth = 0
+  for (let i = open; i < text.length; i += 1) {
+    const char = text.charAt(i)
+    if (char === '{') depth += 1
+    else if (char === '}') {
+      depth -= 1
+      if (depth === 0) return text.slice(open + 1, i)
+    }
+  }
+  return undefined
+}
+
+/**
+ * The top-level members of an object type's body, as `{ name, type }`, split on
+ * `;`, `,` or a line that starts a new member; undefined when brackets do not balance.
+ *
+ * @param {string} body
+ * @returns {{ name: string, type: string }[] | undefined}
+ */
+function membersOf(body) {
+  /** @type {string[]} */
+  const parts = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < body.length; i += 1) {
+    const char = body.charAt(i)
+    if (char === '{' || char === '(' || char === '[') depth += 1
+    else if (char === '}' || char === ')' || char === ']') depth -= 1
+    if (depth < 0) return undefined
+    const splits =
+      char === ';' ||
+      char === ',' ||
+      (char === '\n' &&
+        MEMBER.test(
+          body
+            .slice(i + 1)
+            .trimStart()
+            .replace(READONLY, ''),
+        ))
+    if (depth === 0 && splits) {
+      parts.push(body.slice(start, i))
+      start = i + 1
+    }
+  }
+  if (depth !== 0) return undefined
+  parts.push(body.slice(start))
+  return parts
+    .map((part) => part.trim().replace(READONLY, ''))
+    .filter((part) => part !== '')
+    .flatMap((part) => {
+      const match = MEMBER.exec(part)
+      const name = match?.[1] ?? match?.[2] ?? match?.[3]
+      return match === null || name === undefined
+        ? []
+        : [{ name, type: part.slice(match[0].length).trim() }]
+    })
+}
+
+/**
+ * The keys a contract declares under `PluginState['model-meter']`, sorted; undefined
+ * when there is no such entry or the text does not balance. A small reader for the
+ * mod's own types/index.d.ts, not a TypeScript parser: anything else fails closed.
+ *
+ * @param {string} text
+ * @returns {string[] | undefined}
+ */
+export function declaredStateKeys(text) {
+  const source = text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
+  const found = /\binterface\s+PluginState\s*\{/.exec(source)
+  if (found === null) return undefined
+  const body = blockAt(source, found.index + found[0].length - 1)
+  const entry =
+    body === undefined ? undefined : membersOf(body)?.find((m) => m.name === STATE_PLUGIN)
+  if (entry === undefined || !entry.type.startsWith('{') || !entry.type.endsWith('}'))
+    return undefined
+  const keys = membersOf(entry.type.slice(1, -1))
+  return keys === undefined ? undefined : [...new Set(keys.map((key) => key.name))].sort()
+}
+
+/**
  * Everything in a validate report that breaks the allowlist, one line each;
  * empty when the mod stays inside it. Anything unreadable fails closed.
  *
  * @param {unknown} report parsed `claude plugin validate --json`
- * @param {{ calls?: readonly string[], env?: readonly string[] }} [allow]
+ * @param {{ calls?: readonly string[], env?: readonly string[], state?: readonly string[] }} [allow]
+ *   `state`: the keys the contract declares; without it, any `$.state` use fails
  * @returns {string[]}
  */
 export function findViolations(report, allow = {}) {
@@ -133,6 +260,7 @@ export function findViolations(report, allow = {}) {
       for (const name of uses.env?.writes ?? []) {
         problems.push(`${module}: env write not allowed: ${name}`)
       }
+      problems.push(...stateProblems(module, uses.state, allow.state))
     }
   }
   if (scanned === 0 && !problems.some((p) => p.includes('modules: null'))) {
@@ -140,6 +268,37 @@ export function findViolations(report, allow = {}) {
   }
   return problems
 }
+
+/**
+ * What is wrong with a module's `$.state`: another plugin's, a key the contract
+ * does not declare, or any use without a readable contract. One line each.
+ *
+ * @param {string} module
+ * @param {StateUses | undefined} state
+ * @param {readonly string[] | undefined} declared
+ * @returns {string[]}
+ */
+function stateProblems(module, state, declared) {
+  if (state === undefined) return []
+  const entries = [...state.reads, ...state.writes]
+  if (entries.length === 0) return []
+  if (declared === undefined) {
+    return [`${module}: uses $.state, but types/index.d.ts declares no ${STATE_PLUGIN} state`]
+  }
+  /** @type {Set<string>} */
+  const problems = new Set()
+  for (const { plugin, key } of entries) {
+    if (plugin !== STATE_PLUGIN)
+      problems.add(`${module}: state of another plugin: ${plugin}.${key}`)
+    else if (!declared.includes(key)) {
+      problems.add(`${module}: state key not declared in types/index.d.ts: ${plugin}.${key}`)
+    }
+  }
+  return [...problems]
+}
+
+/** The mod's state contract, from the package root (where npm runs this script). */
+const readContractFile = () => readFileSync('plugins/model-meter/types/index.d.ts', 'utf8')
 
 /* c8 ignore start -- spawns the real CLI; exercised by `npm run capabilities` */
 /** Runs the CLI and returns its JSON report; validate exits 1 with a report on errors. */
@@ -158,10 +317,14 @@ function runValidate() {
 /* c8 ignore stop */
 
 /**
- * @param {{ run?: () => string, write?: (text: string) => void }} [io]
+ * @param {{ run?: () => string, readContract?: () => string, write?: (text: string) => void }} [io]
  * @returns {0 | 1}
  */
-export function main({ run = runValidate, write = (text) => process.stdout.write(text) } = {}) {
+export function main({
+  run = runValidate,
+  readContract = readContractFile,
+  write = (text) => process.stdout.write(text),
+} = {}) {
   let output
   try {
     output = run()
@@ -178,7 +341,14 @@ export function main({ run = runValidate, write = (text) => process.stdout.write
     write('capabilities: could not read the validate report (empty or not JSON)\n')
     return 1
   }
-  const problems = findViolations(report)
+  /** @type {string[] | undefined} */
+  let declared
+  try {
+    declared = declaredStateKeys(readContract())
+  } catch {
+    declared = undefined
+  }
+  const problems = findViolations(report, declared === undefined ? {} : { state: declared })
   if (problems.length === 0) {
     write(`capabilities: ok (${PLUGIN_DIR} stays inside the allowlist)\n`)
     return 0
