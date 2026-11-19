@@ -18,6 +18,6 @@ jobs:
       - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
         with:
           fail-on-severity: low
-          # Exactly the advisories in security/audit-exceptions.json, each approved by
-          # the Maintainer with an expiry date; `npm run audit` fails if they differ.
-          allow-ghsas: GHSA-fc5q-39xc-vjpf
+          # No advisory is excepted today. An exception goes in security/audit-exceptions.json,
+          # approved by the Maintainer with an expiry date, and its id in an allow-ghsas
+          # input here; `npm run audit` fails if the two differ.

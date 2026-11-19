@@ -1,12 +1,1 @@
-[
-  {
-    "id": "GHSA-fc5q-39xc-vjpf",
-    "package": "picomatch",
-    "severity": "high",
-    "scope": "dev",
-    "reason": "ReDoS in extglob matching with no fixed release (<= 4.0.7 is the latest). Dev-only, through typescript-eslint -> typescript-estree -> tinyglobby, and it only matches the fixed globs of our own configuration.",
-    "approvedBy": "maintainer",
-    "approvedOn": "2026-11-18",
-    "expires": "2026-12-18"
-  }
-]
+[]
