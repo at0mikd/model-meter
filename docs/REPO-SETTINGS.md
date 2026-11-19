@@ -2,7 +2,12 @@
 
 > Lo que el Maintainer configura a mano en GitHub. Ningún agente cambia la configuración del repositorio (`docs/WORKFLOW.md` §7). Es el **control real** que respalda el flujo: sin él, GitHub permite fusionar con checks en rojo, hacer push directo a `main` o reescribir su historia.
 
-**Estado a 2026-11-19:** `main` **no tiene protección**. La API responde «Branch not protected», no hay rulesets, y Scorecard lo confirma (Branch-Protection 0).
+**Estado a 2026-11-19:**
+- **Paso 1 aplicado y verificado** por la API: ruleset `Ruleset 1` (id `27628705`), activo, con objetivo `~DEFAULT_BRANCH` y sin bypass. Reglas efectivas en `main`:
+  - `deletion`, `non_fast_forward`, `required_linear_history` y `required_signatures`;
+  - `pull_request` con 0 aprobaciones y solo `squash`.
+- **Paso 2 pendiente de T-008:** todavía sin `required_status_checks`.
+- **El nombre `Ruleset 1` es cosmético.** Se puede renombrar a `main`.
 
 ## 0. Orden de aplicación
 
@@ -31,6 +36,8 @@ Reglas que hay que marcar:
 | **Require a pull request before merging** | ✓ · *Required approvals*: **0** · *Allowed merge methods*: **Squash** | Una sola cuenta humana: GitHub no deja aprobar un PR propio. La aprobación queda en la conversación con el Reviewer (`docs/WORKFLOW.md` §6) |
 | **Require status checks to pass** | ✓ · **Require branches to be up to date before merging** ✓ · los 12 checks de la tabla siguiente | Evita fusionar en rojo, y que la CI pruebe una mezcla con un `main` antiguo |
 | **Require code scanning results** (opcional) | Tool **CodeQL** · *Security alerts*: **High or higher** · *Alerts*: **Errors** | Bloquea alertas nuevas graves de CodeQL |
+
+> **`require_extra_approval_for_unattributed_changes: true`.** GitHub lo activa por defecto en todos los rulesets (regla «additional approval for unattributed Copilot pull requests», en *public preview*). Solo exige una aprobación extra cuando el agente de Copilot abre un PR no atribuido a una persona. Nuestros PRs salen atribuidos al Maintainer y Dependabot no es Copilot, así que no nos afecta. Se deja activo, porque protege si algún día se usa Copilot, y se revisará cuando salga de *preview*.
 
 Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Actions* como origen:
 
@@ -63,7 +70,7 @@ Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 
 - **Allow squash merging** ✓. *Allow merge commits* y *Allow rebase merging* ✗.
 - **Always suggest updating pull request branches** ✓.
-- **Automatically delete head branches** ✓. Encaja con una rama por PR (`docs/WORKFLOW.md` §7).
+- **Automatically delete head branches** ✓ (activado el 2026-11-19). Encaja con una rama por PR (`docs/WORKFLOW.md` §7).
 
 ## 3. Seguridad del código
 
