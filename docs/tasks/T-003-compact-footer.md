@@ -1,6 +1,6 @@
 # T-003 · Modo compacto en el pie (`SessionMode`)
 
-- **Estado:** In review
+- **Estado:** Done ([#12](https://github.com/at0mikd/model-meter/pull/12); el espacio a media pantalla sigue en T-003b)
 - **Rama:** `feat/T-003-compact-footer`
 - **Plan:** `docs/PLAN.md` §2.4 (decisiones 1–6), §3.1, §5, §6
 

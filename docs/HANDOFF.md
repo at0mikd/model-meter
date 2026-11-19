@@ -17,28 +17,18 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 | #9 | T-007: aviso de caducidad a 14 días y auditoría semanal (`f7bd95c`; ejecución manual en verde) |
 | #10 | T-002: núcleo puro con 100 % de cobertura (`503db20`) |
 | #11 | T-003 Ready con el estado «desactivado» 8-bit (`1094cf6`) |
+| #12 | T-003: insignia compacta en el pie de la terminal (`46fa489`); minúsculas con el nombre del modelo en mayúscula inicial (decisiones del Maintainer en CA7) |
 | #13 | Excepción de picomatch retirada: GitHub retiró GHSA-fc5q-39xc-vjpf el 2026-11-18 (`a3f0723`) |
 
 ## En curso
 
-**PR #12 — T-003 (modo compacto en el pie)**, cabeza `6b15fc8` (antes de integrar `main`).
-- Rondas de revisión resueltas. Desviaciones aceptadas: `hintColumns` en el closure, `stored` en el contrato, huecos de ancho fijo, `unknown` frente a «sin leer». `$.state` acotado a `model-meter` (decisión del Maintainer).
-- `6b15fc8`: todo en minúscula (`◆ opus 5.5 ▮▮▮▮▯ xhi`), decisión del Maintainer en CA7.
-- **CA7 hecho por el Maintainer:** maximizada, todo correcto; a media pantalla con `sub-meter` la insignia no sale en reposo ni con shell, y sí sale (`modelOnly`) mientras se escribe.
-- **Falta para el LGTM:** que el Builder integre `main` (para recoger el #13; un re-run no basta porque reutiliza el merge ref antiguo), la CI en verde con el SHA nuevo y las capturas en el #12 (incluida una maximizada en minúscula).
-
-**T-003b (por redactar, Reviewer):** el espacio a media pantalla. Causas medidas en CA7:
-1. el mod mide la pista original de `PromptHint` y no la que se dibuja (`sub-meter` oculta `(shift+tab to cycle)`): unas 23 columnas de más;
-2. reserva 26 columnas para la etiqueta de modo más larga, cuando la de `auto mode on` mide unas 17.
-
-Con las dos corregidas, en reposo cabe la insignia completa (hay unas 41 columnas libres y necesita 27).
-
-**Revisión de alertas (Security / Scorecard 6,2):** análisis entregado al Maintainer. Pendiente de su decisión:
-- **Ruleset de `main`:** Branch-Protection 0 → 3 con Tier 1.
-- **Code-Review:** A) aceptar y documentar, o B) identidad propia para el Builder con aprobación humana en GitHub.
-- **Exportar las alertas:** CodeQL, Dependabot y secretos, con `gh` (solo lectura).
-- **Picomatch:** Vulnerabilities debería pasar a 10 en la próxima ejecución.
-- **Fuzzing:** probablemente pase a 10 al detectar `fast-check`; está por verificar.
+- **T-003b** (Ready): el espacio a media pantalla junto a `sub-meter`. Primero se mide (P1–P4: qué pista ve el hook, orden de los hooks entre plugins, `permission_mode` y qué pasa al desbordar) y después se implementa. CA3 requiere capturas del Maintainer.
+- **Revisión de alertas (Security / Scorecard 6,2):** análisis entregado al Maintainer. Pendiente de su decisión:
+  - **Ruleset de `main`:** Branch-Protection 0 → 3 con Tier 1.
+  - **Code-Review:** A) aceptar y documentar, o B) identidad propia para el Builder con aprobación humana en GitHub.
+  - **Exportar las alertas** con `gh` (solo lectura).
+  - **Picomatch:** Vulnerabilities debería pasar a 10 en la próxima ejecución.
+  - **Fuzzing:** probablemente pase a 10 al detectar `fast-check`; está por verificar.
 
 ## Pendiente del Maintainer
 
@@ -50,9 +40,9 @@ Con las dos corregidas, en reposo cabe la insignia completa (hay unas 41 columna
 
 ## Siguientes pasos del Reviewer
 
-1. Con la CI en verde y las capturas de CA7, dar el LGTM de #12 (o pedir cambios) y fusionar con «apruebo #12». Según lo que muestren las capturas, proponer al Maintainer una de las tres opciones de espacio como tarea nueva (T-003b) antes de T-004.
-2. ✅ T-002 y T-007 fusionadas; T-003 en `Ready` con la especificación completa.
-3. Redactar T-004 (banda 8-bit y modo `auto`) mientras el Builder hace T-003. Nota pendiente para `SECURITY.md`: GitHub desactiva los workflows programados tras 60 días sin actividad.
+1. Revisar el PR de T-003b: primero los datos de la fase 1, después la implementación.
+2. ✅ T-000, T-001, T-002, T-003 y T-007 fusionadas.
+3. Redactar T-004 (banda 8-bit y modo `auto`) mientras el Builder hace T-003b. En la banda, el texto sigue la decisión de CA7: minúscula, con el nombre del modelo en mayúscula inicial (`Opus 5.5`). Nota pendiente para `SECURITY.md`: GitHub desactiva los workflows programados tras 60 días sin actividad.
 4. Después: T-004 (banda 8-bit y modo `auto`), T-005 (config y persistencia), T-006 (hardening y release).
 
 ## Notas operativas
