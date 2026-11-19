@@ -4,6 +4,11 @@
 
 **Estado a 2026-11-19:** `main` **no tiene protección**. La API responde «Branch not protected», no hay rulesets, y Scorecard lo confirma (Branch-Protection 0).
 
+## 0. Orden de aplicación
+
+1. **Ahora**, el ruleset de la sección 1 **sin** la regla *Require status checks to pass*. Protege ya contra borrado, force-push, push directo y fusiones que no sean squash. Mientras tanto, que los checks estén en verde lo garantiza el Reviewer (`docs/WORKFLOW.md` §6).
+2. **Cuando T-008 esté en `main`**, añadir *Require status checks to pass* con la lista de checks. T-008 deja estable el nombre del job del mod y hace que los PRs de Dependabot pasen commitlint. Exigirlos antes bloquearía a Dependabot y dejaría el check del mod esperando un nombre que cambia.
+
 ## 1. Ruleset de `main`
 
 **Settings → Rules → Rulesets → New ruleset → New branch ruleset**
