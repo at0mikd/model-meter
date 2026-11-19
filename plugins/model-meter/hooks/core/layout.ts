@@ -58,6 +58,35 @@ export function widthOf(text: string): number {
   return width
 }
 
+/** Deeper than any footer drawing; past it a tree stops counting rather than recursing on. */
+const MAX_DEPTH = 64
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+/**
+ * How many columns a drawing takes on one row, read structurally (no engine
+ * types): a string as widthOf measures it, an element as the sum of its
+ * children, a Button as `[ label ]`, and the engine's own node as
+ * `engineWidth`, since it draws the mode labels the caller measures apart.
+ * Anything that is not a drawing measures 0.
+ */
+export function widthOfTree(node: unknown, engineWidth = 0, depth = 0): number {
+  if (typeof node === 'string') return widthOf(node)
+  if (!isRecord(node) || typeof node.type !== 'string' || depth > MAX_DEPTH) return 0
+  if (node.type === 'engine') return engineWidth
+  if (node.type === 'Button') {
+    const label = isRecord(node.props) ? node.props.label : undefined
+    return typeof label === 'string' ? widthOf(label) + 4 : 0
+  }
+  const { children } = node
+  if (!Array.isArray(children)) return 0
+  return children.reduce<number>(
+    (sum, child) => sum + widthOfTree(child, engineWidth, depth + 1),
+    0,
+  )
+}
+
 export interface FitInput {
   /** `viewport.columns` of the footer row. */
   columns: number

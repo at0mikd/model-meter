@@ -107,10 +107,11 @@ El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt
 ### 3.1 Modo compacto (pie, por defecto)
 
 ```
-◆ OPUS 5.5 ▮▮▯▯▯ MED · ⏵⏵ auto mode on
+◆ Opus 5.5 ▮▮▯▯▯ med · ⏵⏵ auto mode on
 ```
 
-- Nombre del modelo normalizado: `claude-opus-5-5` → `OPUS 5.5`; sufijo `[1m]` → `1M`.
+- Nombre del modelo normalizado: `claude-opus-5-5` → `Opus 5.5`; sufijo `[1m]` → `1m`.
+- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max`. Solo el nombre del modelo empieza por mayúscula, como lo escribe Claude Code: `Opus`, `Sonnet`, `Haiku`, `Fable` (decisiones del Maintainer en CA7 de T-003, 2026-11-19).
 - Medidor de esfuerzo de 5 "píxeles": `low=1 … max=5`; numérico → escalado.
 - Paleta retro por familia (tokens del tema: `claude`, `warning`, `success`…; nunca ANSI crudo).
 - Degradación por ancho: completo → sin medidor → solo modelo → nada (como `sub-meter`).
@@ -126,10 +127,10 @@ Cuando falta información, la insignia no desaparece ni inventa datos: se ve **a
 
 | Modelo | Esfuerzo | Aspecto (`full`) | Estado |
 | --- | --- | --- | --- |
-| conocido | de `turn.step` o pendiente | `◆ OPUS 5.5 ▮▮▯▯▯ MED` | `active` |
-| conocido | previo (`$.store`) | `◆ OPUS 5.5` + `▮▮▯▯▯ MED` atenuado | `partial` |
-| conocido | desconocido | `◆ OPUS 5.5` + `░░░░░ ---` apagado | `partial` |
-| desconocido o aún sin leer | conocido | `◇ ?` + `▮▮▯▯▯ MED` | `partial` |
+| conocido | de `turn.step` o pendiente | `◆ Opus 5.5 ▮▮▯▯▯ med` | `active` |
+| conocido | previo (`$.store`) | `◆ Opus 5.5` + `▮▮▯▯▯ med` atenuado | `partial` |
+| conocido | desconocido | `◆ Opus 5.5` + `░░░░░ ---` apagado | `partial` |
+| desconocido o aún sin leer | conocido | `◇ ?` + `▮▮▯▯▯ med` | `partial` |
 | desconocido | desconocido | `◇ ----- ░░░░░ ---` todo apagado | `disabled` |
 
 - **Glifos «apagados»:** rombo hueco `◇` en vez de `◆`, celdas `░` en vez de `▮▯` y guiones `---`, todo con el token de color atenuado del tema (nunca ANSI crudo).
@@ -219,7 +220,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Gate | Herramienta | Umbral |
 | --- | --- | --- |
 | Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.*`, `$.ui.*`, `$.clock.now`; **ninguna** variable de entorno |
+| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.get`/`set`, `$.ui.invalidate`/`resolve`, `$.clock.now` y `$.state.get`/`set` **acotado** al estado propio de `model-meter` con las claves que declara su contrato (`types/index.d.ts`) (decisión del Maintainer, 2026-11-18, T-003); **ninguna** variable de entorno; todo hook que pueda bloquear un evento, con `.catch` |
 | Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
 | Formato | Prettier (o Biome) | `--check` |

@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { VARIANTS, fitBadge, widthOf } from '../../plugins/model-meter/hooks/core/layout.ts'
+import {
+  VARIANTS,
+  fitBadge,
+  widthOf,
+  widthOfTree,
+} from '../../plugins/model-meter/hooks/core/layout.ts'
 import type { Variant } from '../../plugins/model-meter/hooks/core/layout.ts'
 
 describe('widthOf', () => {
   test('one column per sanitized character and per glyph of ours', () => {
-    assert.equal(widthOf('OPUS 5.5'), 8)
-    assert.equal(widthOf('◆ OPUS 5.5 ▮▮▯▯▯ MED'), 20)
+    assert.equal(widthOf('Opus 5.5'), 8)
+    assert.equal(widthOf('◆ Opus 5.5 ▮▮▯▯▯ med'), 20)
     assert.equal(widthOf('⏵⏵ auto mode on'), 15)
     assert.equal(widthOf('1 shell · ↓ to manage'), 21)
     assert.equal(widthOf('…'), 1)
@@ -35,9 +40,9 @@ describe('widthOf', () => {
 describe('fitBadge', () => {
   // The badge in its three sizes (docs/PLAN.md §3.1): 20, 14 and 8 columns.
   const variants: Record<Variant, string> = {
-    full: '◆ OPUS 5.5 ▮▮▯▯▯ MED',
-    noMeter: '◆ OPUS 5.5 MED',
-    modelOnly: 'OPUS 5.5',
+    full: '◆ Opus 5.5 ▮▮▯▯▯ med',
+    noMeter: '◆ Opus 5.5 med',
+    modelOnly: 'Opus 5.5',
   }
   const MARGINS = 4
   const MODE = '⏵⏵ auto mode on'
@@ -98,5 +103,64 @@ describe('fitBadge', () => {
         `${String(columns)}/${String(reserved)}`,
       )
     }
+  })
+})
+
+describe('widthOfTree', () => {
+  test('a string measures as widthOf does', () => {
+    assert.equal(widthOfTree('5h ━━━━ 58%'), 11)
+  })
+
+  test('an element adds up its children, nested', () => {
+    const tree = {
+      type: 'Box',
+      props: { flexDirection: 'row' },
+      children: [
+        { type: 'Text', props: { dimColor: true }, children: ['5h'] },
+        { type: 'Text', children: [' ━━━━━━', { type: 'Text', children: ['────'] }] },
+        ' 58%',
+      ],
+    }
+    assert.equal(widthOfTree(tree), 2 + 7 + 4 + 4)
+  })
+
+  test("the engine's own node counts as the width the caller gives (it draws the mode labels)", () => {
+    const beneath = {
+      type: 'Box',
+      children: [{ type: 'Text', children: ['meter'] }, ' · ', { type: 'engine', ref: 1 }],
+    }
+    assert.equal(widthOfTree(beneath), 5 + 3)
+    assert.equal(widthOfTree(beneath, 15), 5 + 3 + 15)
+  })
+
+  test('a button draws its label between "[ " and " ]"', () => {
+    assert.equal(widthOfTree({ type: 'Button', props: { key: 'go', label: 'go' } }), 6)
+
+    assert.equal(widthOfTree({ type: 'Button' }), 0)
+    assert.equal(widthOfTree({ type: 'Button', props: { label: 5 } }), 0)
+  })
+
+  test('nothing, or anything that is not a drawing, measures 0', () => {
+    for (const node of [
+      undefined,
+      null,
+      false,
+      42,
+      {},
+      { type: 'Box', children: 'x' },
+      { children: [] },
+    ]) {
+      assert.equal(widthOfTree(node), 0, JSON.stringify(node))
+    }
+    assert.equal(
+      widthOfTree({ type: 'Box', children: [null, undefined, { type: 'Text', children: ['ab'] }] }),
+      2,
+    )
+  })
+
+  test('a tree nested deeper than any drawing stops counting instead of recursing forever', () => {
+    let node: unknown = 'x'
+    for (let i = 0; i < 200; i += 1) node = { type: 'Box', children: [node] }
+    assert.equal(widthOfTree(node), 0)
   })
 })
