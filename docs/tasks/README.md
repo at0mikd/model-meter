@@ -11,7 +11,7 @@ Backlog del flujo Reviewer–Builder (`docs/WORKFLOW.md`). El Reviewer las escri
 | [T-003b](T-003b-footer-room.md) | Espacio real en el pie: la insignia a media pantalla junto a `sub-meter` | 3 | Done |
 | [T-007](T-007-audit-expiry-warning.md) | Aviso anticipado de caducidad de excepciones y auditoría semanal | 1 | Done |
 | [T-008](T-008-ci-dependabot-names.md) | CI: commits de Dependabot y nombre estable del job del mod | 1 | Done |
-| [T-009](T-009-review-debts.md) | Deudas de revisión: medir lo que se dibuja en toda la fila y probar la guarda de commitlint | 3 | In progress |
+| [T-009](T-009-review-debts.md) | Deudas de revisión: medir lo que se dibuja en toda la fila y probar la guarda de commitlint | 3 | In review |
 
 ## Formato de una tarea
 

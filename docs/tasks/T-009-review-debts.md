@@ -1,6 +1,6 @@
 # T-009 · Deudas de revisión: medir lo que se dibuja en toda la fila y probar la guarda de commitlint
 
-- **Estado:** In progress
+- **Estado:** In review
 - **Rama:** `fix/T-009-review-debts`
 - **Plan:** `docs/PLAN.md` §3.1; revisiones de [#19](https://github.com/at0mikd/model-meter/pull/19) (hallazgo 2) y [#20](https://github.com/at0mikd/model-meter/pull/20) (nit 2)
 
