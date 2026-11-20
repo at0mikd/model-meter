@@ -140,11 +140,17 @@ export interface Run {
   paint: Paint
 }
 
+/** Which side of the badge its padding goes: toward the blank room of the row. */
+export type Pad = 'left' | 'right'
+
 /**
- * The badge in one size as painted runs, padded on the left to its SLOT: on
- * the right-aligned footer the padding is blank room before the badge.
+ * The badge in one size as painted runs, padded to its SLOT, so lighting a
+ * part never moves what is around it. On the left by default: on the
+ * right-aligned footer that is blank room before the badge. On the right when
+ * nothing is drawn beneath it: the badge then ends the row, after whatever a
+ * mod above draws, and the padding falls where the row ends (T-003b).
  */
-export function badgeRuns(view: BadgeView, variant: Variant): Run[] {
+export function badgeRuns(view: BadgeView, variant: Variant, pad: Pad = 'left'): Run[] {
   const { model, effort } = view
   const runs: Run[] = [
     { text: `${model.glyph} ${model.text}`, paint: model.enabled ? 'family' : 'dim' },
@@ -164,7 +170,9 @@ export function badgeRuns(view: BadgeView, variant: Variant): Run[] {
   }
   const kept = runs.filter((run) => run.text !== '')
   const room = slotWidth(variant) - widthOf(kept.map((run) => run.text).join(''))
-  return room > 0 ? [{ text: ' '.repeat(room), paint: 'dim' }, ...kept] : kept
+  if (room <= 0) return kept
+  const padding: Run = { text: ' '.repeat(room), paint: 'dim' }
+  return pad === 'right' ? [...kept, padding] : [padding, ...kept]
 }
 
 /** Every size of the badge as plain text, for fitBadge to measure. */

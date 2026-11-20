@@ -273,6 +273,26 @@ describe('badgeVariants and badgeRuns', () => {
     assert.ok(off.every((run) => run.paint === 'dim'))
   })
 
+  test('padded on the right, the badge starts at once and keeps its slot (nothing beneath it)', () => {
+    for (const [model, effort] of TABLE) {
+      const badge = view(model, effort)
+      for (const variant of VARIANTS) {
+        const text = badgeRuns(badge, variant, 'right')
+          .map((run) => run.text)
+          .join('')
+        const left = badgeRuns(badge, variant)
+          .map((run) => run.text)
+          .join('')
+        assert.equal(widthOf(text), slotWidth(variant), `${model} × ${effort}, ${variant}`)
+        assert.equal(text.trimEnd(), left.trimStart(), `${model} × ${effort}, ${variant}`)
+        assert.ok(!text.startsWith(' '), `${model} × ${effort}, ${variant}`)
+      }
+    }
+    // Left, as before, unless told otherwise.
+    const lit = view('known', 'step')
+    assert.deepEqual(badgeRuns(lit, 'noMeter', 'left'), badgeRuns(lit, 'noMeter'))
+  })
+
   test('runs: a stored or pending effort is dim, meter and text', () => {
     for (const effort of ['stored', 'pending']) {
       const runs = badgeRuns(view('known', effort), 'full').filter((run) => run.text.trim() !== '')

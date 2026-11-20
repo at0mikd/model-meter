@@ -32,12 +32,56 @@ async function snapshot ($: EngineInterface, kind: string) {
   push(kind, { model, effortSetting, envEffort, envEffort2 })
 }
 
+// T-003b: what a drawing is, read structurally and cut short, so the report
+// says whether next(e) is the engine's own node or a tree with text.
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const short = (value: unknown): unknown =>
+  typeof value === 'string' ? value.slice(0, 120)
+    : Array.isArray(value) ? `array(${value.length})`
+      : isRecord(value) ? `object(${Object.keys(value).slice(0, 8).join(',')})`
+        : value
+
+function shape (node: unknown, depth = 0): unknown {
+  if (typeof node === 'string') return node.slice(0, 120)
+  if (!isRecord(node)) return node === undefined ? null : short(node)
+  if (depth > 5) return '…'
+  const props = isRecord(node.props) ? node.props : {}
+  return {
+    type: typeof node.type === 'string' ? node.type : typeof node.type,
+    keys: Object.keys(node).slice(0, 12),
+    props: Object.fromEntries(Object.entries(props).slice(0, 12).map(([key, value]) => [key, short(value)])),
+    children: Array.isArray(node.children) ? node.children.slice(0, 12).map(child => shape(child, depth + 1)) : undefined
+  }
+}
+
+const propsOf = (received: unknown): Record<string, unknown> =>
+  isRecord(received) && isRecord(received.props) ? received.props : {}
+
+interface Link { index: number, plugin: string, tier: string, outcome: string, received: unknown, returned: unknown }
+
+// The links beneath this hook, nearest first and the engine last: who they
+// are, in which tier, and the props each one received (P1, P2).
+const chain = (trace: readonly Link[], pick: (props: Record<string, unknown>) => unknown) =>
+  trace.map(link => ({
+    index: link.index,
+    plugin: link.plugin,
+    tier: link.tier,
+    outcome: link.outcome,
+    received: pick(propsOf(link.received)),
+    returned: link.plugin === 'engine' ? undefined : shape(link.returned)
+  }))
+
+const hintProps = (props: Record<string, unknown>) =>
+  ({ hint: props.hint, tail: props.tail, isDraft: props.isDraft, isWorking: props.isWorking })
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await snapshot($, 'session.start')
     await $.tool.register({
       name: 'report',
-      description: 'Spike: returns what the wic-spike mod observed (model, effort, viewport).',
+      description: 'Spike: returns what the wic-spike mod observed (model, effort, viewport, footer hooks, permission mode).',
       isDeferred: false
     })
     return next(e)
@@ -59,13 +103,41 @@ export const register: Register = on => {
   })
 
   on('command.run', ($, e, next) => {
-    push('command.run', { keys: Object.keys(e), name: (e as { name?: unknown }).name })
+    push('command.run', { keys: Object.keys(e), command: (e as { command?: unknown }).command })
     return next(e)
   })
 
-  on('ui.render', { component: 'SessionMode' }, ($, e, next) => {
-    pushRender('render.SessionMode', { surface: e.surface, viewport: e.viewport, modes: e.props.modes })
+  // T-003b P3: which classic events carry permission_mode, and when. Observe
+  // only: each one goes on as it came, also when this hook fails.
+  on('classic.*', async ($, e, next) => {
+    push(String(next.event), { permission_mode: (e as { permission_mode?: unknown }).permission_mode })
     return next(e)
+  }).catch(($, e, next) => next(e))
+
+  // T-003b P1, P2: the hint as this hook receives it and as each link beneath
+  // received it (the engine's entry is what it draws), and what next(e) is.
+  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    const result = await next(e)
+    pushRender('render.PromptHint', {
+      surface: e.surface,
+      columns: e.viewport?.columns,
+      own: hintProps(e.props),
+      beneath: chain(next.trace as readonly Link[], hintProps),
+      result: shape(result)
+    })
+    return result
+  })
+
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    const result = await next(e)
+    pushRender('render.SessionMode', {
+      surface: e.surface,
+      viewport: e.viewport,
+      modes: e.props.modes,
+      beneath: chain(next.trace as readonly Link[], props => ({ modes: props.modes })),
+      result: shape(result)
+    })
+    return result
   })
 
   on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => {

@@ -13,7 +13,7 @@ import type { EngineInterface, Register, RenderNode } from 'claude-code'
 import { badgeRuns, badgeState, badgeVariants, familyColor } from './core/badge.js'
 import type { BadgeView, Run } from './core/badge.ts'
 import { parseLevel } from './core/effort.js'
-import { fitBadge, widthOf, widthOfTree } from './core/layout.js'
+import { drawnHintWidth, fitBadge, widthOf, widthOfTree } from './core/layout.js'
 import { parseModel } from './core/model.js'
 import { sanitize } from './core/sanitize.js'
 import { effortState } from './core/state.js'
@@ -31,6 +31,9 @@ const FOOTER_PADDING = 4
 const HINT_GAP = 2
 const SEPARATOR = ' · '
 // No site exposes the permission mode's label: room for the longest one.
+// Classic events carry permission_mode, but shift+tab changes it with no event
+// at all and its cycle may hold bypassPermissions (T-003b, P3), so a narrower
+// label could be wrong until the next prompt and split the row (P4).
 const MODE_LABEL = widthOf('⏵⏵ bypass permissions on ·')
 // The engine's own node in SessionMode draws its mode labels (`focus`,
 // `memory paused`), joined so.
@@ -145,11 +148,15 @@ export const register: Register = (on) => {
     return result
   }).catch(($, e, next) => next(e))
 
-  // The hint line only to measure it (PLAN §3.1): it is drawn as it came.
-  on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
+  // The hint line only to measure it (PLAN §3.1): it is drawn as it came. It
+  // is measured as drawn, from what the engine's own link received, so a mod
+  // that trims it on its way down (sub-meter) leaves that room to the badge,
+  // above this mod or beneath it (T-003b).
+  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    const result = await next(e)
     if (e.surface === 'terminal') {
       try {
-        const width = widthOf(e.props.hint)
+        const width = drawnHintWidth(e.props.hint, next.trace)
         if (width !== hintColumns) {
           hintColumns = width
           $.ui.invalidate('ui.render')
@@ -158,7 +165,7 @@ export const register: Register = (on) => {
         // Measuring never touches the line.
       }
     }
-    return next(e)
+    return result
   })
 
   // The badge, then what is beneath it (the engine's mode labels, other mods),
@@ -195,7 +202,7 @@ export const register: Register = (on) => {
       }
       return (
         <Box flexDirection="row">
-          {badgeRuns(view, variant).map(paint)}
+          {badgeRuns(view, variant, below > 0 ? 'left' : 'right').map(paint)}
           {below > 0 ? <Text dimColor>{SEPARATOR}</Text> : null}
           {beneath}
         </Box>

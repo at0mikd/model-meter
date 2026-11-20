@@ -3,6 +3,7 @@ import { describe, test } from 'node:test'
 
 import {
   VARIANTS,
+  drawnHintWidth,
   fitBadge,
   widthOf,
   widthOfTree,
@@ -162,5 +163,88 @@ describe('widthOfTree', () => {
     let node: unknown = 'x'
     for (let i = 0; i < 200; i += 1) node = { type: 'Box', children: [node] }
     assert.equal(widthOfTree(node), 0)
+  })
+})
+
+// T-003b: the hint as the engine draws it, read from next.trace (docs/spikes/T-003b-results.md, P1).
+describe('drawnHintWidth', () => {
+  const RAW = '(shift+tab to cycle) · ← for agents'
+  const engine = (props: unknown) => ({
+    index: 6,
+    plugin: 'engine',
+    tier: 'core',
+    outcome: 'returned',
+    received: { props },
+  })
+  const link = (plugin: string, hint: string) => ({
+    index: 4,
+    plugin,
+    tier: 'user',
+    outcome: 'returned',
+    received: { props: { hint } },
+  })
+
+  test("the engine's own link, the last one, received what is drawn", () => {
+    const trace = [
+      link('sub-meter', RAW),
+      link('context-meter', '← for agents'),
+      engine({ hint: '← for agents' }),
+    ]
+    assert.equal(drawnHintWidth(RAW, trace), widthOf('← for agents'))
+  })
+
+  test('an empty line drawn measures 0, however long the hint received', () => {
+    assert.equal(drawnHintWidth('(shift+tab to cycle)', [engine({ hint: '' })]), 0)
+  })
+
+  test('a tail some hook added is drawn after the line, with a space before it assumed (not measured)', () => {
+    assert.equal(drawnHintWidth('', [engine({ hint: '1 shell', tail: 'synced' })]), 7 + 1 + 6)
+    assert.equal(drawnHintWidth('', [engine({ hint: '1 shell', tail: '' })]), 7)
+  })
+
+  test('a plugin named "engine" is not the engine: only the pair (engine, core) is', () => {
+    const impostor = {
+      index: 3,
+      plugin: 'engine',
+      tier: 'user',
+      outcome: 'returned',
+      received: { props: { hint: '' } },
+      returned: { type: 'Text', children: ['abcd'] },
+    }
+    assert.equal(drawnHintWidth(RAW, [impostor]), 4)
+  })
+
+  test('a link beneath that drew the line itself: what it returned', () => {
+    const own = {
+      index: 2,
+      plugin: 'other',
+      tier: 'user',
+      outcome: 'returned',
+      returned: { type: 'Text', children: ['abc'] },
+    }
+    assert.equal(drawnHintWidth(RAW, [own]), 3)
+  })
+
+  test('when the trace does not say what is drawn, the hint as received: as much as today', () => {
+    const cases: unknown[][] = [
+      [],
+      [null],
+      ['engine'],
+      [engine(undefined)],
+      [engine({ hint: 5 })],
+      [{ ...engine({ hint: '' }), received: 'x' }],
+      [{ index: 2, plugin: 'other', tier: 'user', outcome: 'skipped', returned: undefined }],
+      [
+        {
+          index: 2,
+          plugin: 'other',
+          tier: 'user',
+          outcome: 'caught',
+          returned: { type: 'Text', children: ['abc'] },
+        },
+      ],
+    ]
+    for (const trace of cases)
+      assert.equal(drawnHintWidth(RAW, trace), widthOf(RAW), JSON.stringify(trace))
   })
 })

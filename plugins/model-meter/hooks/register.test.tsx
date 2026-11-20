@@ -1,6 +1,6 @@
 // Mod tests, run against the engine itself: `claude plugin test plugins/model-meter`
 import { describe, expect, test } from 'claude-code/testing'
-import type { Engine } from 'claude-code/testing'
+import type { Engine, Plugin } from 'claude-code/testing'
 import type { CommandRunInput, ConfigSetInput, On } from 'claude-code'
 
 const OPUS = 'claude-opus-5-5'
@@ -104,12 +104,17 @@ async function turn(
   return stream.result
 }
 
-const footer = ($: Engine, columns = 191, surface: 'terminal' | 'desktop' = 'terminal') =>
+const footer = (
+  $: Engine,
+  columns = 191,
+  surface: 'terminal' | 'desktop' = 'terminal',
+  modes: readonly string[] = MODES,
+) =>
   $.ui.mount({
     plugin: 'model-meter',
     surface,
     component: 'SessionMode',
-    props: { modes: MODES },
+    props: { modes },
     viewport: { columns, rows: 47 },
   })
 
@@ -358,6 +363,161 @@ describe('the badge fits the row (CA4)', () => {
       'none',
       'none',
     ])
+  })
+})
+
+// T-003b: the hint is measured as it is drawn, not as it reaches this mod.
+describe('the hint as drawn, wherever another mod trims it (T-003b CA2)', () => {
+  // At rest in auto mode the engine hands down `(shift+tab to cycle)` and
+  // sub-meter hides it, so nothing of it is drawn (docs/spikes/T-003b-results.md).
+  const REST = '(shift+tab to cycle)'
+  /** A mod that hides that part of the hint on its way down, as sub-meter does. */
+  const trimmer = (tier: 'prepend' | 'append'): Plugin => ({
+    name: `trimmer-${tier}`,
+    tier,
+    register(on) {
+      on('ui.render', { component: 'PromptHint' }, ($, e, next) =>
+        next({
+          ...e,
+          props: { ...e.props, hint: e.props.hint.replace('(shift+tab to cycle)', '').trim() },
+        }),
+      )
+    },
+  })
+  const has = (text: string, size: 'full' | 'none') =>
+    size === 'full' ? /◆ Opus 5\.5 ▮▮▮▯▯ high/.test(text) : !text.includes('◆')
+
+  // Padding 4 + label 26 + gap 2 + ' · focus' 8 (+ 30 beneath): drawn, the
+  // hint takes nothing; received, 21 more. Only 95 columns with 30 beneath
+  // tells them apart: 25 left for the badge, or 4.
+  const cases: [
+    columns: number,
+    beneath: string | undefined,
+    tier: 'prepend' | 'append' | undefined,
+    expected: 'full' | 'none',
+  ][] = [
+    [95, undefined, 'append', 'full'],
+    [95, undefined, 'prepend', 'full'],
+    [95, undefined, undefined, 'full'],
+    [95, BENEATH, 'append', 'full'],
+    [95, BENEATH, 'prepend', 'full'],
+    [95, BENEATH, undefined, 'none'],
+    [191, undefined, 'append', 'full'],
+    [191, undefined, 'prepend', 'full'],
+    [191, undefined, undefined, 'full'],
+    [191, BENEATH, 'append', 'full'],
+    [191, BENEATH, 'prepend', 'full'],
+    [191, BENEATH, undefined, 'full'],
+  ]
+  for (const [columns, beneath, tier, expected] of cases) {
+    const where =
+      tier === undefined
+        ? 'nobody trims the hint'
+        : `a mod ${tier === 'append' ? 'beneath' : 'above'} trims it`
+    test(
+      `${String(columns)} columns, ${beneath === undefined ? 'nothing' : '30 columns'} beneath, ${where} → ${expected}`,
+      { plugins: tier === undefined ? [] : [trimmer(tier)] },
+      async ($, on) => {
+        world(on, { beneath })
+        await start($)
+        await turn($, 'high')
+        const hint = await hintLine($, REST)
+        // The line is drawn as the mods beneath and the engine leave it.
+        expect(await shown(hint)).toBe(tier === undefined ? REST : '')
+        const text = await shown(await footer($, columns))
+        expect(has(text, expected)).toBe(true)
+        expect(text).toContain(MODES[0])
+        if (beneath !== undefined) expect(text).toContain(beneath)
+      },
+    )
+  }
+})
+
+// The footer is laid out again as soon as the drawn hint changes width, and
+// only then (PLAN §3.1). The engine has one hint line, redrawn with new props;
+// $.ui.invalidate is a call on $, hookable by name.
+describe('the footer redraws when the hint changes width, and only then', () => {
+  const props = (hint: string) => ({ isDraft: false, isWorking: hint === WORKING, hint })
+
+  test('a mounted footer follows the hint line at once, with no new mount', async ($, on) => {
+    world(on, { beneath: BENEATH })
+    await start($)
+    await turn($, 'high')
+    const row = await footer($, 95)
+    expect(await shown(row)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high') // nothing measured yet
+    const line = await hintLine($, SHELL) // 21 columns: 3 left for the badge
+    expect(await shown(row)).not.toContain('◆')
+    await line.redraw(props('')) // an empty line: 25 left
+    expect(await shown(row)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high')
+  })
+
+  test('a new width invalidates ui.render once; the same width, none', async ($, on) => {
+    world(on)
+    const redraws: string[] = []
+    on('ui.invalidate', ($, e, next) => {
+      redraws.push(e.event)
+      return next(e)
+    })
+    await start($)
+    const line = await hintLine($, SHELL) // nothing measured yet → 21 columns
+    expect(redraws).toEqual(['ui.render'])
+    await line.redraw(props(SHELL))
+    await line.redraw(props('2 shell · ↓ to manage')) // another text, the same 21 columns
+    expect(redraws).toEqual(['ui.render'])
+    await line.redraw(props(WORKING))
+    expect(redraws).toEqual(['ui.render', 'ui.render'])
+  })
+
+  test(
+    'what a mod beneath trims away is no change: no redraw for it',
+    {
+      plugins: [
+        {
+          name: 'trimmer-append',
+          tier: 'append',
+          register(on) {
+            on('ui.render', { component: 'PromptHint' }, ($, e, next) =>
+              next({
+                ...e,
+                props: {
+                  ...e.props,
+                  hint: e.props.hint.replace('(shift+tab to cycle)', '').trim(),
+                },
+              }),
+            )
+          },
+        },
+      ],
+    },
+    async ($, on) => {
+      world(on)
+      const redraws: string[] = []
+      on('ui.invalidate', ($, e, next) => {
+        redraws.push(e.event)
+        return next(e)
+      })
+      await start($)
+      const line = await hintLine($, '(shift+tab to cycle)') // drawn empty: 0 columns, as before
+      expect(redraws).toEqual([])
+      await line.redraw(props('(shift+tab to cycle) · 1 shell')) // drawn '· 1 shell'
+      expect(redraws).toEqual(['ui.render'])
+    },
+  )
+})
+
+// T-003b: installed from a marketplace, the mod can sit beneath another one
+// (sub-meter) and end the row; its padding must not show as a gap there.
+describe('the padding falls where the row is blank (T-003b)', () => {
+  test('with nothing beneath, the badge ends the row and its padding goes after it', async ($, on) => {
+    world(on)
+    await start($)
+    await turn($, 'high')
+    const alone = await shown(await footer($, 191, 'terminal', []))
+    expect(alone.startsWith('◆ Opus 5.5 ▮▮▮▯▯ high')).toBe(true)
+    expect(alone).toBe('◆ Opus 5.5 ▮▮▮▯▯ high   ')
+    // With something beneath, the padding stays before the badge, as before.
+    const beside = await shown(await footer($, 191))
+    expect(beside).toBe('   ◆ Opus 5.5 ▮▮▮▯▯ high · focus')
   })
 })
 
