@@ -1,6 +1,6 @@
 # T-008 · CI: commits de Dependabot y nombre estable del job del mod
 
-- **Estado:** Ready (cuando #16 esté en `main`, porque edita `docs/REPO-SETTINGS.md`)
+- **Estado:** In review
 - **Rama:** `chore/T-008-ci-dependabot-names`
 - **Plan:** `docs/PLAN.md` §6; `docs/REPO-SETTINGS.md` §0 (paso 2 del ruleset)
 
