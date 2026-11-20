@@ -1,4 +1,4 @@
-# Traspaso de sesión — 2026-11-20
+# Traspaso de sesión — 2026-11-20 (tarde)
 
 Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en la nube, Builder local).
 
@@ -24,32 +24,36 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 | #18 | Paso 1 del ruleset aplicado, revisión de alertas y paso de limpieza de ramas (`a583959`) |
 | #19 | T-003b: la pista se mide como se dibuja (`next.trace`) y la insignia sale completa a media pantalla junto a `sub-meter` (`872bfc8`; capturas del Maintainer en CA3) |
 | #20 | T-008: commitlint deja fuera solo los bumps de Dependabot, y el job del mod pasa a llamarse `mod (validate, test:mod, capabilities)` (`826fd97`) |
+| #21 | T-003b y T-008 cerradas, ruleset completo registrado y T-009 especificada (`bf238d9`) |
+| #22 | T-009: el pie mide lo que dibujan los mods de debajo (envolturas de la pista y etiquetas de modo) y test de la guarda de commitlint (`5abaade`); primer PR con los commits del Builder firmados |
 
 ## En curso
 
-- **T-009** (Ready, Builder): deudas de las revisiones de #19 y #20.
-  - Medir también las envolturas de la línea de pistas y las etiquetas de modo tal como se dibujan.
-  - Un test para la guarda de tipo de commitlint.
-- **T-004** (la redacta el Reviewer): banda 8-bit y modo `auto`.
-- **Ruleset de `main` completo** desde el 2026-11-20 (pasos 1 y 2, `REPO-SETTINGS.md`). Cada PR necesita sus 12 checks en verde y estar al día con `main`.
+- **T-004** (Ready, Builder): banda 8-bit sobre el prompt (`AbovePrompt`) y opción `placement` (`footer` | `auto` | `band`). El modo `auto` tiene histéresis 140/120. El pie no cambia.
+- **Ruleset de `main` completo** desde el 2026-11-20 (pasos 1 y 2, `REPO-SETTINGS.md`): 12 checks obligatorios, rama al día con `main` y CodeQL.
+- **Commits del Builder firmados** desde el 2026-11-20 (firma SSH; la clave la creó y registró el Maintainer). Los PRs ya no salen «BLOCKED».
 - **Alertas de Scorecard:** quedan 6 de la revisión del 2026-11-19, y ninguna se descarta a mano.
-  - Branch-Protection (alta) debería subir en la próxima ejecución, con el ruleset completo.
+  - Branch-Protection (alta) debería subir con el ruleset completo.
   - Code-Review (alta) depende de la decisión A/B.
   - Maintained (alta) se resuelve con el tiempo.
-  - SAST (media) y CI-Tests (baja) se resuelven solas cuando salen de la ventana los commits anteriores a la CI.
+  - SAST (media) y CI-Tests (baja) se resuelven solas.
   - CII-Best-Practices (baja) queda para la release.
+
+## Backlog (sin tarea todavía)
+
+- **Paletas** (`palette`: `classic` | `gameboy` | `mono`) y `showEffortMeter` (PLAN §3.3). Irán en la tarea siguiente a T-004.
+- **[nit de #22]** Un elemento con `type` que `widthOfTree` no conoce y sin `children` mide 0, así que se reservaría de menos. Hoy no hay ningún caso conocido: los tipos de la CLI son una unión cerrada. Revisarlo si la unión crece.
 
 ## Pendientes, en orden
 
 | # | Qué | Quién | Depende de |
 | --- | --- | --- | --- |
-| 1 | **T-009** | Builder | — |
+| 1 | **T-004** | Builder | — |
 | 2 | `@dependabot rebase` en #8; después, revisión y aprobación | Maintainer → Reviewer → Maintainer | — |
-| 3 | **Firmar los commits del Builder** (firma SSH en el git local), para que «BLOCKED» no llegue a impedir un squash (`REPO-SETTINGS.md`) | Maintainer (decisión y clave) | — |
-| 4 | Activar Dependabot security updates, Secret Protection con push protection y Private vulnerability reporting (`REPO-SETTINGS.md` §3) | Maintainer | — |
-| 5 | Decisión A/B sobre Code-Review (Scorecard) | Maintainer | — |
-| 6 | Redactar T-004 (banda 8-bit y modo `auto`, con el texto en minúscula y el nombre del modelo en mayúscula inicial) | Reviewer | — |
-| 7 | **Limpieza de ramas antiguas** (ver abajo) | Maintainer | — |
+| 3 | Activar Dependabot security updates, Secret Protection con push protection y Private vulnerability reporting (`REPO-SETTINGS.md` §3) | Maintainer | — |
+| 4 | Decisión A/B sobre Code-Review (Scorecard) | Maintainer | — |
+| 5 | **Limpieza de ramas antiguas** (ver abajo) | Maintainer | — |
+| 6 | Especificar la tarea de paletas y `showEffortMeter` | Reviewer | T-004 |
 
 **Limpieza de ramas.** Son 10 ramas ya fusionadas o sustituidas. En cada una, la cabeza coincide con la del PR, así que no se pierde nada:
 - `spike/T-000-terminal` (#2), `chore/T-001-scaffold` (#6), `chore/T-007-audit-expiry-warning` (#9), `feat/T-002-pure-core` (#10), `feat/T-003-compact-footer` (#12), `chore/remove-picomatch-exception` (#13), `claude/docs-t003b` (#15), `claude/docs-repo-settings` (#16) y `claude/docs-t008` (#17);

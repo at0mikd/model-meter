@@ -65,8 +65,8 @@ Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 > **«BLOCKED» y commits sin firmar.** GitHub muestra los PRs como bloqueados (`mergeable_state: blocked`) aunque cumplan todo lo demás. La causa es `required_signatures`: al evaluar un PR, GitHub comprueba también los commits de la rama, y *«unsigned commits on the head branch can block a squash merge, even though GitHub would sign the final squash commit. This restriction can also apply to the author of the pull request»* ([documentación oficial](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), verificado el 2026-11-20).
 >
 > - Hasta ahora el squash por API ha funcionado (#18, #19 y #20), pero GitHub no lo garantiza.
-> - Los commits de la sesión en la nube llevan firma SSH; los del Builder no llevan ninguna.
-> - Mitigación pendiente de decisión del Maintainer: firmar los commits del Builder con firma SSH en el git local, con la clave registrada en GitHub como *signing key*.
+> - Los commits de la sesión en la nube llevan firma SSH.
+> - **Mitigación aplicada (2026-11-20):** el Maintainer creó y registró una clave SSH de firma, y el git local del Builder firma los commits de este repositorio. El primer PR con todos los commits firmados, #22, salió `clean` en vez de `blocked`, lo que confirma la causa.
 
 > **«Require branches to be up to date».** Tras cada fusión en `main`, el resto de PRs abiertos necesita «Update branch», lo que les da un SHA nuevo. Para no tener que aprobarlo todo otra vez, `docs/WORKFLOW.md` §6 define cuándo una actualización conserva la aprobación.
 
