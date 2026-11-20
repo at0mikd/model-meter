@@ -9,7 +9,7 @@ import ts from 'typescript'
 
 const PLUGIN = new URL('../../plugins/model-meter/', import.meta.url)
 const CORE = new URL('hooks/core/', PLUGIN)
-const MODULES = ['badge', 'effort', 'layout', 'model', 'options', 'sanitize', 'state']
+const MODULES = ['badge', 'band', 'effort', 'layout', 'model', 'options', 'sanitize', 'state']
 
 interface Import {
   specifier: string
