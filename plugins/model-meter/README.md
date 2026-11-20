@@ -30,9 +30,38 @@ Mod para Claude Code que muestra, en el pie de la terminal y con estética 8-bit
   - En los dos casos cada mod cuenta con lo que tiene a su derecha, y el relleno de la insignia cae en el lado en blanco de la fila, para que nada se mueva al encenderse.
 - **Solo en la terminal.** En la app de escritorio, VS Code o el móvil no dibuja nada: ya muestran el modelo y el esfuerzo.
 
+## Banda 8-bit (opcional)
+
+Además del pie, puede mostrar encima del prompt una banda con un sprite de la familia del modelo y un rótulo:
+
+```text
+█  ██  █
+██▄██▄██  player Opus 5.5
+█▀█▀▀█▀█  power  ▮▮▮▯▯ high
+▀▀▀▀▀▀▀▀
+```
+
+- **Un sprite original por familia**, de 4 filas por 8 columnas en medios bloques y en el color de la familia: una corona (Opus), una pluma (Sonnet), una montaña bajo el sol (Haiku) y un libro (Fable). Un modelo desconocido, o lo que aún no se ha leído, muestra un cartucho vacío atenuado.
+- **El rótulo,** en minúscula salvo el nombre del modelo, con las mismas piezas que la insignia del pie, también «apagadas» cuando falta algo.
+- **Se ajusta al ancho de la banda:** pierde primero el medidor, después el esfuerzo y el rótulo, y al final la banda entera.
+- **Cede el sitio** a las encuestas del motor y no aparece con menos de 6 filas libres. Se puede plegar con `[-]` como cualquier fila de la banda.
+- **Solo en la terminal.**
+
+### Opciones
+
+Se cambian en `/config` (o en `pluginConfigs` de `settings.json`):
+
+| Opción | Valores | Por defecto | Qué hace |
+| --- | --- | --- | --- |
+| `placement` | `footer`, `auto`, `band` | `footer` | `footer`: solo el pie. `auto`: el pie, y la banda mientras la terminal es ancha. `band`: el pie, y la banda siempre que quepa. |
+| `autoMinColumns` | de 80 a 400 | `140` | Con `auto`, la banda aparece desde ese ancho de terminal y se va cuando la terminal queda 20 columnas más estrecha, para que no parpadee al redimensionar. |
+
+Un valor que no es de la lista o está fuera de rango se trata como el valor por defecto. Con `footer` el mod ni siquiera pide una fila de la banda.
+
 ## Qué hace y qué no
 
 - **Solo observa:** no cambia el modelo ni el esfuerzo, y deja pasar intactos `/model`, `/effort` y cada turno, aunque algo suyo falle.
+- **Opciones:** solo lee `placement` y `autoMinColumns`, y nunca las dibuja tal cual.
 - **Datos que guarda:** solo el **último nivel de esfuerzo** (`low` … `max`), en el almacén del mod (`$.store`), para mostrarlo atenuado al abrir la siguiente sesión. Nada más: ni prompts, ni rutas, ni el id del modelo.
 - **Sin acceso** a ficheros, procesos, red ni variables de entorno: lo comprueba la CI con `claude plugin validate` y una lista cerrada de capacidades.
 
