@@ -34,7 +34,9 @@ jobs:
       - run: npm run check:core
 
   mod:
-    name: validate, test:mod, capabilities (claude CLI 2.1.327)
+    # A stable name, so a required check survives a CLI update (T-008); the
+    # version shows in the log, from `claude --version` below.
+    name: mod (validate, test:mod, capabilities)
     runs-on: ubuntu-latest
     env:
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'

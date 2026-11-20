@@ -3,7 +3,8 @@
 
 export type Level = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 export type Cells = 1 | 2 | 3 | 4 | 5
-export type EffortLabel = 'LOW' | 'MED' | 'HIGH' | 'XHI' | 'MAX'
+// Lowercase, like the rest of the terminal footer (Maintainer, CA7 of T-003).
+export type EffortLabel = 'low' | 'med' | 'high' | 'xhi' | 'max'
 
 export const LEVELS: readonly Level[] = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max'])
 
@@ -35,35 +36,35 @@ export function effortCells(level: Level): Cells {
   }
 }
 
-/** The short label of a level: LOW, MED, HIGH, XHI or MAX. */
+/** The short label of a level: low, med, high, xhi or max. */
 export function effortLabel(level: Level): EffortLabel {
   switch (level) {
     case 'low':
-      return 'LOW'
+      return 'low'
     case 'medium':
-      return 'MED'
+      return 'med'
     case 'high':
-      return 'HIGH'
+      return 'high'
     case 'xhigh':
-      return 'XHI'
+      return 'xhi'
     case 'max':
-      return 'MAX'
+      return 'max'
   }
 }
 
 export interface EffortDisplay {
-  label: EffortLabel | 'CUSTOM'
+  label: EffortLabel | 'custom'
   cells: Cells | null
 }
 
 /**
  * What to draw for the effort `turn.step` reports: a level, or a number
- * (internal builds only), shown as CUSTOM with no meter, since there is no
+ * (internal builds only), shown as custom with no meter, since there is no
  * scale to put it on. Anything else: undefined.
  */
 export function effortDisplay(effort: unknown): EffortDisplay | undefined {
   if (typeof effort === 'number') {
-    return Number.isFinite(effort) ? { label: 'CUSTOM', cells: null } : undefined
+    return Number.isFinite(effort) ? { label: 'custom', cells: null } : undefined
   }
   const level = parseLevel(effort)
   return level === undefined ? undefined : { label: effortLabel(level), cells: effortCells(level) }

@@ -107,18 +107,35 @@ El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt
 ### 3.1 Modo compacto (pie, por defecto)
 
 ```
-◆ OPUS 5.5 ▮▮▯▯▯ MED · ⏵⏵ auto mode on
+◆ Opus 5.5 ▮▮▯▯▯ med · ⏵⏵ auto mode on
 ```
 
-- Nombre del modelo normalizado: `claude-opus-5-5` → `OPUS 5.5`; sufijo `[1m]` → `1M`.
+- Nombre del modelo normalizado: `claude-opus-5-5` → `Opus 5.5`; sufijo `[1m]` → `1m`.
+- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max`. Solo el nombre del modelo empieza por mayúscula, como lo escribe Claude Code: `Opus`, `Sonnet`, `Haiku`, `Fable` (decisiones del Maintainer en CA7 de T-003, 2026-11-19).
 - Medidor de esfuerzo de 5 "píxeles": `low=1 … max=5`; numérico → escalado.
 - Paleta retro por familia (tokens del tema: `claude`, `warning`, `success`…; nunca ANSI crudo).
 - Degradación por ancho: completo → sin medidor → solo modelo → nada (como `sub-meter`).
 - **El espacio disponible no es fijo.** El pie comparte fila con la etiqueta del modo de permisos (`⏵⏵ auto mode on`) y con la línea de pistas (`PromptHint`). Esa línea crece con indicadores temporales: `1 shell · ↓ to manage` cuando hay una shell en segundo plano, `esc to interrupt` mientras Claude trabaja, `(shift+tab to cycle)`, etc. (observado por el Maintainer, 2026-11-18). Por tanto:
-  - el mod observa `ui.render { component: 'PromptHint' }` **solo para medir** `e.props.hint` (devuelve `next(e)` intacto: no oculta ni reescribe pistas del motor) y guarda su ancho;
+  - el mod observa `ui.render { component: 'PromptHint' }` **solo para medir** la pista (devuelve `next(e)` intacto: no oculta ni reescribe pistas del motor) y guarda su ancho. Mide la pista **tal como se dibuja**: la que recibe el eslabón del motor según `next.trace`, no `e.props.hint`, porque otro mod puede recortarla de camino (`sub-meter` oculta `(shift+tab to cycle)`), esté por encima o por debajo (T-003b, `docs/spikes/T-003b-results.md`);
   - si el ancho cambia, pide redibujar (`$.ui.invalidate('ui.render')`) para que el pie se recalcule en el momento, sin esperar a otro evento;
   - el espacio se calcula como `columns − márgenes − etiqueta de modo − ancho de las pistas − lo que devuelve next(e)` (p. ej. `sub-meter`), y la insignia se degrada en ese orden;
   - tests de degradación con pistas de distintos anchos (vacía, `1 shell · ↓ to manage`, `esc to interrupt`) a 95 y 191 columnas, con y sin un nodo debajo.
+
+### 3.1.1 Estado «desactivado» 8-bit (petición del Maintainer, 2026-11-18)
+
+Cuando falta información, la insignia no desaparece ni inventa datos: se ve **apagada**, como una ranura de cartucho vacía. Se aplica por partes, sin cambiar el ancho de la insignia, para que no salte al activarse:
+
+| Modelo | Esfuerzo | Aspecto (`full`) | Estado |
+| --- | --- | --- | --- |
+| conocido | de `turn.step` o pendiente | `◆ Opus 5.5 ▮▮▯▯▯ med` | `active` |
+| conocido | previo (`$.store`) | `◆ Opus 5.5` + `▮▮▯▯▯ med` atenuado | `partial` |
+| conocido | desconocido | `◆ Opus 5.5` + `░░░░░ ---` apagado | `partial` |
+| desconocido o aún sin leer | conocido | `◇ ?` + `▮▮▯▯▯ med` | `partial` |
+| desconocido | desconocido | `◇ ----- ░░░░░ ---` todo apagado | `disabled` |
+
+- **Glifos «apagados»:** rombo hueco `◇` en vez de `◆`, celdas `░` en vez de `▮▯` y guiones `---`, todo con el token de color atenuado del tema (nunca ANSI crudo).
+- **Cuándo es habitual:** al abrir una sesión antes del primer turno (sin esfuerzo previo guardado) y en el instante anterior a que `$.session.model()` responda.
+- **Dónde se decide:** en la lógica pura (`badgeState` en `hooks/core/`), así se prueba con tests de todas las combinaciones, desde la primera tarea que dibuja la insignia.
 
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 
@@ -203,7 +220,7 @@ Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es o
 | Gate | Herramienta | Umbral |
 | --- | --- | --- |
 | Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.*`, `$.ui.*`, `$.clock.now`; **ninguna** variable de entorno |
+| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.get`/`set`, `$.ui.invalidate`/`resolve`, `$.clock.now` y `$.state.get`/`set` **acotado** al estado propio de `model-meter` con las claves que declara su contrato (`types/index.d.ts`) (decisión del Maintainer, 2026-11-18, T-003); **ninguna** variable de entorno; todo hook que pueda bloquear un evento, con `.catch` |
 | Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
 | Formato | Prettier (o Biome) | `--check` |

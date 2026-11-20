@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { VARIANTS, fitBadge, widthOf } from '../../plugins/model-meter/hooks/core/layout.ts'
+import {
+  VARIANTS,
+  drawnHintWidth,
+  fitBadge,
+  widthOf,
+  widthOfTree,
+} from '../../plugins/model-meter/hooks/core/layout.ts'
 import type { Variant } from '../../plugins/model-meter/hooks/core/layout.ts'
 
 describe('widthOf', () => {
   test('one column per sanitized character and per glyph of ours', () => {
-    assert.equal(widthOf('OPUS 5.5'), 8)
-    assert.equal(widthOf('◆ OPUS 5.5 ▮▮▯▯▯ MED'), 20)
+    assert.equal(widthOf('Opus 5.5'), 8)
+    assert.equal(widthOf('◆ Opus 5.5 ▮▮▯▯▯ med'), 20)
     assert.equal(widthOf('⏵⏵ auto mode on'), 15)
     assert.equal(widthOf('1 shell · ↓ to manage'), 21)
     assert.equal(widthOf('…'), 1)
@@ -35,9 +41,9 @@ describe('widthOf', () => {
 describe('fitBadge', () => {
   // The badge in its three sizes (docs/PLAN.md §3.1): 20, 14 and 8 columns.
   const variants: Record<Variant, string> = {
-    full: '◆ OPUS 5.5 ▮▮▯▯▯ MED',
-    noMeter: '◆ OPUS 5.5 MED',
-    modelOnly: 'OPUS 5.5',
+    full: '◆ Opus 5.5 ▮▮▯▯▯ med',
+    noMeter: '◆ Opus 5.5 med',
+    modelOnly: 'Opus 5.5',
   }
   const MARGINS = 4
   const MODE = '⏵⏵ auto mode on'
@@ -98,5 +104,147 @@ describe('fitBadge', () => {
         `${String(columns)}/${String(reserved)}`,
       )
     }
+  })
+})
+
+describe('widthOfTree', () => {
+  test('a string measures as widthOf does', () => {
+    assert.equal(widthOfTree('5h ━━━━ 58%'), 11)
+  })
+
+  test('an element adds up its children, nested', () => {
+    const tree = {
+      type: 'Box',
+      props: { flexDirection: 'row' },
+      children: [
+        { type: 'Text', props: { dimColor: true }, children: ['5h'] },
+        { type: 'Text', children: [' ━━━━━━', { type: 'Text', children: ['────'] }] },
+        ' 58%',
+      ],
+    }
+    assert.equal(widthOfTree(tree), 2 + 7 + 4 + 4)
+  })
+
+  test("the engine's own node counts as the width the caller gives (it draws the mode labels)", () => {
+    const beneath = {
+      type: 'Box',
+      children: [{ type: 'Text', children: ['meter'] }, ' · ', { type: 'engine', ref: 1 }],
+    }
+    assert.equal(widthOfTree(beneath), 5 + 3)
+    assert.equal(widthOfTree(beneath, 15), 5 + 3 + 15)
+  })
+
+  test('a button draws its label between "[ " and " ]"', () => {
+    assert.equal(widthOfTree({ type: 'Button', props: { key: 'go', label: 'go' } }), 6)
+
+    assert.equal(widthOfTree({ type: 'Button' }), 0)
+    assert.equal(widthOfTree({ type: 'Button', props: { label: 5 } }), 0)
+  })
+
+  test('nothing, or anything that is not a drawing, measures 0', () => {
+    for (const node of [
+      undefined,
+      null,
+      false,
+      42,
+      {},
+      { type: 'Box', children: 'x' },
+      { children: [] },
+    ]) {
+      assert.equal(widthOfTree(node), 0, JSON.stringify(node))
+    }
+    assert.equal(
+      widthOfTree({ type: 'Box', children: [null, undefined, { type: 'Text', children: ['ab'] }] }),
+      2,
+    )
+  })
+
+  test('a tree nested deeper than any drawing stops counting instead of recursing forever', () => {
+    let node: unknown = 'x'
+    for (let i = 0; i < 200; i += 1) node = { type: 'Box', children: [node] }
+    assert.equal(widthOfTree(node), 0)
+  })
+})
+
+// T-003b: the hint as the engine draws it, read from next.trace (docs/spikes/T-003b-results.md, P1).
+describe('drawnHintWidth', () => {
+  const RAW = '(shift+tab to cycle) · ← for agents'
+  const engine = (props: unknown) => ({
+    index: 6,
+    plugin: 'engine',
+    tier: 'core',
+    outcome: 'returned',
+    received: { props },
+  })
+  const link = (plugin: string, hint: string) => ({
+    index: 4,
+    plugin,
+    tier: 'user',
+    outcome: 'returned',
+    received: { props: { hint } },
+  })
+
+  test("the engine's own link, the last one, received what is drawn", () => {
+    const trace = [
+      link('sub-meter', RAW),
+      link('context-meter', '← for agents'),
+      engine({ hint: '← for agents' }),
+    ]
+    assert.equal(drawnHintWidth(RAW, trace), widthOf('← for agents'))
+  })
+
+  test('an empty line drawn measures 0, however long the hint received', () => {
+    assert.equal(drawnHintWidth('(shift+tab to cycle)', [engine({ hint: '' })]), 0)
+  })
+
+  test('a tail some hook added is drawn after the line, with a space before it assumed (not measured)', () => {
+    assert.equal(drawnHintWidth('', [engine({ hint: '1 shell', tail: 'synced' })]), 7 + 1 + 6)
+    assert.equal(drawnHintWidth('', [engine({ hint: '1 shell', tail: '' })]), 7)
+  })
+
+  test('a plugin named "engine" is not the engine: only the pair (engine, core) is', () => {
+    const impostor = {
+      index: 3,
+      plugin: 'engine',
+      tier: 'user',
+      outcome: 'returned',
+      received: { props: { hint: '' } },
+      returned: { type: 'Text', children: ['abcd'] },
+    }
+    assert.equal(drawnHintWidth(RAW, [impostor]), 4)
+  })
+
+  test('a link beneath that drew the line itself: what it returned', () => {
+    const own = {
+      index: 2,
+      plugin: 'other',
+      tier: 'user',
+      outcome: 'returned',
+      returned: { type: 'Text', children: ['abc'] },
+    }
+    assert.equal(drawnHintWidth(RAW, [own]), 3)
+  })
+
+  test('when the trace does not say what is drawn, the hint as received: as much as today', () => {
+    const cases: unknown[][] = [
+      [],
+      [null],
+      ['engine'],
+      [engine(undefined)],
+      [engine({ hint: 5 })],
+      [{ ...engine({ hint: '' }), received: 'x' }],
+      [{ index: 2, plugin: 'other', tier: 'user', outcome: 'skipped', returned: undefined }],
+      [
+        {
+          index: 2,
+          plugin: 'other',
+          tier: 'user',
+          outcome: 'caught',
+          returned: { type: 'Text', children: ['abc'] },
+        },
+      ],
+    ]
+    for (const trace of cases)
+      assert.equal(drawnHintWidth(RAW, trace), widthOf(RAW), JSON.stringify(trace))
   })
 })

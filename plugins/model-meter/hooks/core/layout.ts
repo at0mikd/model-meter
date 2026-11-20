@@ -58,6 +58,62 @@ export function widthOf(text: string): number {
   return width
 }
 
+/** Deeper than any footer drawing; past it a tree stops counting rather than recursing on. */
+const MAX_DEPTH = 64
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+/**
+ * How many columns a drawing takes on one row, read structurally (no engine
+ * types): a string as widthOf measures it, an element as the sum of its
+ * children, a Button as `[ label ]`, and the engine's own node as
+ * `engineWidth`, since it draws the mode labels the caller measures apart.
+ * Anything that is not a drawing measures 0.
+ */
+export function widthOfTree(node: unknown, engineWidth = 0, depth = 0): number {
+  if (typeof node === 'string') return widthOf(node)
+  if (!isRecord(node) || typeof node.type !== 'string' || depth > MAX_DEPTH) return 0
+  if (node.type === 'engine') return engineWidth
+  if (node.type === 'Button') {
+    const label = isRecord(node.props) ? node.props.label : undefined
+    return typeof label === 'string' ? widthOf(label) + 4 : 0
+  }
+  const { children } = node
+  if (!Array.isArray(children)) return 0
+  return children.reduce<number>(
+    (sum, child) => sum + widthOfTree(child, engineWidth, depth + 1),
+    0,
+  )
+}
+
+/**
+ * How many columns the hint line takes as drawn, read from `next.trace` (the
+ * links beneath the hook, the engine's last): the hint and tail the engine's
+ * own link received, or what a link beneath returned when it drew the line
+ * itself. Another mod may have trimmed the hint on its way down (`sub-meter`
+ * hides `(shift+tab to cycle)`), whether it sits above or beneath this one.
+ * When the trace does not say, the hint as `received`, as much as before
+ * (docs/spikes/T-003b-results.md, P1).
+ */
+export function drawnHintWidth(received: string, trace: readonly unknown[]): number {
+  const last = trace.at(-1)
+  // The engine's link is the pair (plugin "engine", tier "core"): a plugin
+  // that happens to be named "engine" sits in another tier.
+  if (isRecord(last) && last.plugin === 'engine' && last.tier === 'core') {
+    const props = isRecord(last.received) ? last.received.props : undefined
+    if (isRecord(props) && typeof props.hint === 'string') {
+      const { hint, tail } = props
+      // One column before the tail is an assumption, not measured (no tail
+      // was seen in T-003b): it can only reserve one column too many.
+      return widthOf(hint) + (typeof tail === 'string' && tail !== '' ? 1 + widthOf(tail) : 0)
+    }
+  } else if (isRecord(last) && last.outcome === 'returned') {
+    return widthOfTree(last.returned)
+  }
+  return widthOf(received)
+}
+
 export interface FitInput {
   /** `viewport.columns` of the footer row. */
   columns: number

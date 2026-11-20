@@ -73,11 +73,11 @@ describe('effortCells and effortLabel', () => {
     assert.deepEqual(
       LEVELS.map((level) => [effortCells(level), effortLabel(level)]),
       [
-        [1, 'LOW'],
-        [2, 'MED'],
-        [3, 'HIGH'],
-        [4, 'XHI'],
-        [5, 'MAX'],
+        [1, 'low'],
+        [2, 'med'],
+        [3, 'high'],
+        [4, 'xhi'],
+        [5, 'max'],
       ],
     )
   })
@@ -85,12 +85,12 @@ describe('effortCells and effortLabel', () => {
 
 describe('effortDisplay', () => {
   test('a level shows its label and cells', () => {
-    assert.deepEqual(effortDisplay('medium'), { label: 'MED', cells: 2 })
+    assert.deepEqual(effortDisplay('medium'), { label: 'med', cells: 2 })
   })
 
-  test('a numeric effort (internal builds) is CUSTOM, with no invented scale', () => {
-    assert.deepEqual(effortDisplay(42), { label: 'CUSTOM', cells: null })
-    assert.deepEqual(effortDisplay(0), { label: 'CUSTOM', cells: null })
+  test('a numeric effort (internal builds) is custom, with no invented scale', () => {
+    assert.deepEqual(effortDisplay(42), { label: 'custom', cells: null })
+    assert.deepEqual(effortDisplay(0), { label: 'custom', cells: null })
   })
 
   test('anything else has nothing to show', () => {
