@@ -114,6 +114,21 @@ export function drawnHintWidth(received: string, trace: readonly unknown[]): num
   return widthOf(received)
 }
 
+/** A string, or an element with a type: what widthOfTree reads. */
+const isDrawing = (node: unknown): boolean =>
+  typeof node === 'string' || (isRecord(node) && typeof node.type === 'string')
+
+/**
+ * How many columns the whole hint line takes as drawn: the tree `next(e)`
+ * resolved to, with the engine's node in it as wide as drawnHintWidth says,
+ * so a mod beneath that wraps the line in more text counts as well. A result
+ * that is no drawing measures as drawnHintWidth alone, as before T-009.
+ */
+export function hintLineWidth(drawn: unknown, received: string, trace: readonly unknown[]): number {
+  const engineWidth = drawnHintWidth(received, trace)
+  return isDrawing(drawn) ? widthOfTree(drawn, engineWidth) : engineWidth
+}
+
 export interface FitInput {
   /** `viewport.columns` of the footer row. */
   columns: number

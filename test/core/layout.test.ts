@@ -5,6 +5,7 @@ import {
   VARIANTS,
   drawnHintWidth,
   fitBadge,
+  hintLineWidth,
   widthOf,
   widthOfTree,
 } from '../../plugins/model-meter/hooks/core/layout.ts'
@@ -246,5 +247,61 @@ describe('drawnHintWidth', () => {
     ]
     for (const trace of cases)
       assert.equal(drawnHintWidth(RAW, trace), widthOf(RAW), JSON.stringify(trace))
+  })
+})
+
+// T-009: the whole line next(e) resolved to, with the engine's node in it as
+// wide as the hint the engine's own link received.
+describe('hintLineWidth', () => {
+  const RAW = '(shift+tab to cycle) · ← for agents'
+  const DRAWN = '← for agents'
+  const NODE = { type: 'engine', ref: 1 }
+  const trace = [
+    {
+      index: 4,
+      plugin: 'wrapper',
+      tier: 'append',
+      outcome: 'returned',
+      received: { props: { hint: RAW } },
+    },
+    {
+      index: 5,
+      plugin: 'engine',
+      tier: 'core',
+      outcome: 'returned',
+      received: { props: { hint: DRAWN } },
+      returned: NODE,
+    },
+  ]
+
+  test("the engine's node alone: the hint its own link received", () => {
+    assert.equal(hintLineWidth(NODE, RAW, trace), widthOf(DRAWN))
+  })
+
+  test("the engine's node wrapped in text before and after it: all of it counts", () => {
+    const wrapped = {
+      type: 'Box',
+      props: { flexDirection: 'row' },
+      children: [
+        { type: 'Text', children: ['[wrap] '] },
+        NODE,
+        { type: 'Text', children: [' ok'] },
+      ],
+    }
+    assert.equal(hintLineWidth(wrapped, RAW, trace), 7 + widthOf(DRAWN) + 3)
+  })
+
+  test("a tree of a mod's own, with no engine node: only what it draws", () => {
+    const own = { type: 'Text', children: ['abc'] }
+    assert.equal(hintLineWidth(own, RAW, trace), 3)
+    assert.equal(hintLineWidth('abcd', RAW, trace), 4)
+    assert.equal(hintLineWidth({ type: 'Box', children: [] }, RAW, trace), 0)
+  })
+
+  test('a result that is not a drawing measures as today (drawnHintWidth)', () => {
+    for (const result of [undefined, null, 42, false, {}, [NODE], { type: 7 }]) {
+      assert.equal(hintLineWidth(result, RAW, trace), widthOf(DRAWN), JSON.stringify(result))
+      assert.equal(hintLineWidth(result, RAW, []), widthOf(RAW), JSON.stringify(result))
+    }
   })
 })
