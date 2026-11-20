@@ -13,7 +13,7 @@ import type { EngineInterface, Register, RenderNode } from 'claude-code'
 import { badgeRuns, badgeState, badgeVariants, familyColor } from './core/badge.js'
 import type { BadgeView, Run } from './core/badge.ts'
 import { parseLevel } from './core/effort.js'
-import { drawnHintWidth, fitBadge, widthOf, widthOfTree } from './core/layout.js'
+import { drawnModesWidth, fitBadge, hintLineWidth, widthOf, widthOfTree } from './core/layout.js'
 import { parseModel } from './core/model.js'
 import { sanitize } from './core/sanitize.js'
 import { effortState } from './core/state.js'
@@ -35,9 +35,6 @@ const SEPARATOR = ' · '
 // at all and its cycle may hold bypassPermissions (T-003b, P3), so a narrower
 // label could be wrong until the next prompt and split the row (P4).
 const MODE_LABEL = widthOf('⏵⏵ bypass permissions on ·')
-// The engine's own node in SessionMode draws its mode labels (`focus`,
-// `memory paused`), joined so.
-const MODES_JOIN = ' & '
 // What was typed after /effort is kept only for parseEffortArg: a level at most.
 const ARGS_MAX = 16
 
@@ -149,14 +146,16 @@ export const register: Register = (on) => {
   }).catch(($, e, next) => next(e))
 
   // The hint line only to measure it (PLAN §3.1): it is drawn as it came. It
-  // is measured as drawn, from what the engine's own link received, so a mod
-  // that trims it on its way down (sub-meter) leaves that room to the badge,
-  // above this mod or beneath it (T-003b).
+  // is measured as drawn: the tree the links beneath resolved to, the engine's
+  // node in it with the hint the engine's own link received. A mod that trims
+  // the hint on its way down (sub-meter) leaves that room to the badge, above
+  // this mod or beneath it (T-003b); one beneath that wraps the line takes
+  // what it adds (T-009).
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
     const result = await next(e)
     if (e.surface === 'terminal') {
       try {
-        const width = drawnHintWidth(e.props.hint, next.trace)
+        const width = hintLineWidth(result, e.props.hint, next.trace)
         if (width !== hintColumns) {
           hintColumns = width
           $.ui.invalidate('ui.render')
@@ -175,7 +174,9 @@ export const register: Register = (on) => {
     const [beneath, view] = await Promise.all([next(e), currentView($).catch(() => undefined)])
     if (view === undefined) return beneath
     try {
-      const below = widthOfTree(beneath, widthOf(e.props.modes.join(MODES_JOIN)))
+      // The engine's node draws the mode labels its own link received, which
+      // a mod beneath may have changed (T-009).
+      const below = widthOfTree(beneath, drawnModesWidth(e.props.modes, next.trace))
       const reserved =
         FOOTER_PADDING +
         MODE_LABEL +

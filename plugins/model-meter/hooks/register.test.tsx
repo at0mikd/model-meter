@@ -25,7 +25,14 @@ interface World {
 /** Everything beneath the mod: the session's model, a store, the engine's footer and commands. */
 function world(
   on: On,
-  options: { stored?: unknown; beneath?: string; model?: string; modelFails?: boolean } = {},
+  options: {
+    stored?: unknown
+    beneath?: string
+    model?: string
+    modelFails?: boolean
+    /** The engine draws the footer and the hint itself, its own node as in the CLI. */
+    engineDraws?: boolean
+  } = {},
 ): World {
   const w: World = {
     model: options.model ?? OPUS,
@@ -67,6 +74,7 @@ function world(
       usage: null,
     }
   })
+  if (options.engineDraws === true) return w
   // The engine's own drawing of each site; with `beneath`, another mod's before the modes.
   on('ui.render', ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
@@ -137,6 +145,20 @@ function textOf(node: unknown): string {
 
 /** The text of a mounted drawing, as the surface draws it now. */
 const shown = async (ui: { drawn: () => Promise<unknown> }) => textOf(await ui.drawn())
+
+/** Which size of the badge a drawing shows. */
+function variantOf(text: string): string {
+  if (!text.includes('◆ Opus 5.5')) return 'none'
+  if (/[▮▯░]/.test(text)) return 'full'
+  return /high|---/.test(text) ? 'noMeter' : 'modelOnly'
+}
+
+/** Whether a drawing holds the engine's own node, `{ type: 'engine', ref }`. */
+function holdsEngine(node: unknown): boolean {
+  if (typeof node !== 'object' || node === null) return false
+  const { type, children } = node as { type?: unknown; children?: unknown }
+  return type === 'engine' || (Array.isArray(children) && children.some(holdsEngine))
+}
 
 describe('the badge on the terminal (CA1)', () => {
   test('at session start: the model, and the stored effort dimmed as previous', async ($, on) => {
@@ -297,13 +319,6 @@ describe('/model and /effort reach the engine untouched (CA3)', () => {
 })
 
 describe('the badge fits the row (CA4)', () => {
-  /** Which size of the badge a drawing shows. */
-  function variantOf(text: string): string {
-    if (!text.includes('◆ Opus 5.5')) return 'none'
-    if (/[▮▯░]/.test(text)) return 'full'
-    return /high|---/.test(text) ? 'noMeter' : 'modelOnly'
-  }
-
   // The row: 4 of padding, 26 for the permission mode's label, the hint (and a
   // space), 2 of gap, ' · ' and what is beneath ('focus', plus 30 of another mod).
   const cases: [columns: number, hint: string, beneath: string | undefined, expected: string][] = [
@@ -430,6 +445,114 @@ describe('the hint as drawn, wherever another mod trims it (T-003b CA2)', () => 
         if (beneath !== undefined) expect(text).toContain(beneath)
       },
     )
+  }
+})
+
+// T-009: the row is measured as the mods beneath leave it drawn, beyond a
+// trimmed hint: a mod that wraps the hint line in more text, and one that
+// takes a mode label away or adds one. Here the engine draws both sites
+// itself, its own node in the tree, as the CLI does. A test plugin runs in an
+// environment of its own: its hooks hold literals only.
+describe('the row as the mods beneath draw it (T-009 CA2)', () => {
+  const COLUMNS = 95
+  const BOTH = `${WORKING} · ${SHELL}` // 40 columns
+  /** The badge for Opus 5.5 at high in each size, padded to its slot. */
+  const SIZES = [
+    ['full', 24],
+    ['noMeter', 18],
+    ['modelOnly', 12],
+  ] as const
+  /**
+   * The size the row has room for (PLAN §3.1): padding 4, the mode label 26,
+   * the hint and a space, gap 2, ' · ' and the mode labels. Every text here is
+   * one column a character.
+   */
+  const sizeFor = (hint: string, modes: readonly string[]): string => {
+    const labels = modes.join(' & ')
+    const left =
+      COLUMNS -
+      (4 + 26 + (hint === '' ? 0 : 1 + hint.length) + 2 + (labels === '' ? 0 : 3 + labels.length))
+    return SIZES.find(([, width]) => width <= left)?.[0] ?? 'none'
+  }
+
+  const wrapper: Plugin = {
+    name: 'wrapper',
+    tier: 'append',
+    register(on) {
+      on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+        const { Box, Text } = $.ui.resolve(e)
+        const line = await next(e)
+        return (
+          <Box flexDirection="row">
+            <Text>{'[wrap] '}</Text>
+            {line}
+            <Text>{' ok'}</Text>
+          </Box>
+        )
+      })
+    },
+  }
+  const unfocus: Plugin = {
+    name: 'unfocus',
+    tier: 'append',
+    register(on) {
+      on('ui.render', { component: 'SessionMode' }, ($, e, next) =>
+        next({ ...e, props: { ...e.props, modes: e.props.modes.filter((m) => m !== 'focus') } }),
+      )
+    },
+  }
+  const relabel: Plugin = {
+    name: 'relabel',
+    tier: 'append',
+    register(on) {
+      on('ui.render', { component: 'SessionMode' }, ($, e, next) =>
+        next({ ...e, props: { ...e.props, modes: [...e.props.modes, 'memory paused'] } }),
+      )
+    },
+  }
+
+  const cases: [
+    title: string,
+    plugins: Plugin[],
+    hint: string,
+    drawn: { hint: string; modes: readonly string[] },
+  ][] = [
+    [
+      'a mod beneath wraps the hint line in 10 more columns: the badge counts them and gives way',
+      [wrapper],
+      SHELL,
+      { hint: `[wrap] ${SHELL} ok`, modes: MODES },
+    ],
+    [
+      'a mod beneath takes focus away: the badge takes that room',
+      [unfocus],
+      BOTH,
+      { hint: BOTH, modes: [] },
+    ],
+    [
+      'a mod beneath adds a mode label: the badge gives way',
+      [relabel],
+      SHELL,
+      { hint: SHELL, modes: [...MODES, 'memory paused'] },
+    ],
+    ['with no mod beneath, all as before', [], SHELL, { hint: SHELL, modes: MODES }],
+  ]
+  for (const [title, plugins, hint, drawn] of cases) {
+    test(title, { plugins }, async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      const expected = sizeFor(drawn.hint, drawn.modes)
+      // Each case tells what is drawn from what reaches this mod, or says there is no difference.
+      expect(expected === sizeFor(hint, MODES)).toBe(plugins.length === 0)
+      const line = await hintLine($, hint)
+      const row = await footer($, COLUMNS)
+      expect(variantOf(await shown(row))).toBe(expected)
+      // What the mods beneath and the engine draw is handed on whole.
+      expect(holdsEngine(await row.drawn())).toBe(true)
+      expect(holdsEngine(await line.drawn())).toBe(true)
+      if (plugins.includes(wrapper)) expect(await shown(line)).toBe('[wrap]  ok')
+    })
   }
 })
 
