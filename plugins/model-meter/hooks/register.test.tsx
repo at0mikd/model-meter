@@ -675,3 +675,202 @@ describe('$.store holds a level and nothing else (CA5)', () => {
     expect(await shown(ui)).toContain('◆ Opus 5.5 ░░░░░ ---')
   })
 })
+
+// T-004 CA4: the 8-bit band above the prompt, model-meter's own row, on the
+// terminal alone. The engine draws the rest of the band here (its own node).
+describe('the band above the prompt (T-004 CA4)', () => {
+  const props = (
+    bodyColumns: number,
+    over: { hasSurvey?: boolean; isCollapsed?: boolean; maxRows?: number } = {},
+  ) => ({
+    hasSurvey: false,
+    isCollapsed: false,
+    isWorking: false,
+    maxRows: 18,
+    bodyColumns,
+    scroll: { offset: 0, bodyRows: 17 },
+    view: {},
+    ...over,
+  })
+  /** The band as the engine asks for it: `bodyColumns` is the terminal's width less the five of `[-]`. */
+  const band = ($: Engine, columns: number, where: { surface?: 'terminal' | 'desktop' } = {}) =>
+    $.ui.mount({
+      plugin: 'model-meter',
+      surface: where.surface ?? 'terminal',
+      component: 'AbovePrompt',
+      props: props(columns - 5),
+      viewport: { columns, rows: 47 },
+    })
+
+  /** The band's rows of text: each row of the column it draws, what is beneath left out. */
+  function rowsOf(node: unknown): string[] {
+    const { children } = (node ?? {}) as { children?: unknown }
+    if (!Array.isArray(children)) return []
+    return children
+      .filter((child) => (child as { type?: unknown }).type === 'Box')
+      .map((row) => textOf(row))
+  }
+
+  /** Which size of the band a drawing shows. */
+  function sizeOf(text: string): string {
+    if (text.includes('▮')) return 'full'
+    if (text.includes('power')) return 'noMeter'
+    if (text.includes('player')) return 'modelOnly'
+    return text.includes('█') ? 'sprite' : 'none'
+  }
+  const sizeShown = async (ui: { drawn: () => Promise<unknown> }) => sizeOf(await shown(ui))
+
+  const OPUS_HIGH = [
+    '█  ██  █',
+    '██▄██▄██  player Opus 5.5',
+    '█▀█▀▀█▀█  power  ▮▮▮▯▯ high',
+    '▀▀▀▀▀▀▀▀',
+  ]
+
+  test(
+    "on the terminal, model-meter's row: the sprite in its family's color and the label, what is beneath kept",
+    { options: { placement: 'band' } },
+    async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      for (const columns of [191, 95]) {
+        const ui = await band($, columns)
+        expect(rowsOf(await ui.drawn())).toEqual(OPUS_HIGH)
+        expect(await ui.keepsBeneath()).toBe(true)
+        expect((await ui.find({ type: 'Text', text: '█  ██  █' }))?.props).toMatchObject({
+          color: 'claude',
+        })
+      }
+    },
+  )
+
+  // The engine asks the band once for each plugin that hooks it, `e.plugin`
+  // naming whose row it is; a mount draws them all.
+  const otherRow: Plugin = {
+    name: 'other',
+    tier: 'user',
+    register(on) {
+      on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+        const { Box, Text } = $.ui.resolve(e)
+        const beneath = await next(e)
+        return (
+          <Box flexDirection="column">
+            <Text>{'other row'}</Text>
+            {beneath}
+          </Box>
+        )
+      })
+    },
+  }
+
+  test(
+    "another plugin's row stays its own, and another surface gets no band",
+    { options: { placement: 'band' }, plugins: [otherRow] },
+    async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      const text = await shown(await band($, 191))
+      expect(text.split('player').length - 1).toBe(1)
+      expect(text.split('other row').length - 1).toBe(1)
+      const desktop = await shown(await band($, 191, { surface: 'desktop' }))
+      expect(sizeOf(desktop)).toBe('none')
+      expect(desktop).toContain('other row')
+    },
+  )
+
+  test(
+    'a survey takes the band, and the band yields; folded away, it is drawn all the same',
+    { options: { placement: 'band' } },
+    async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      const ui = await band($, 191)
+      await ui.redraw(props(186, { hasSurvey: true }))
+      expect(await sizeShown(ui)).toBe('none')
+      await ui.redraw(props(186, { isCollapsed: true }))
+      expect(await sizeShown(ui)).toBe('full')
+      await ui.redraw(props(186, { maxRows: 5 }))
+      expect(await sizeShown(ui)).toBe('none')
+    },
+  )
+
+  test(
+    'auto: 191 columns show it, 130 keep it, 110 take it away, 191 bring it back',
+    { options: { placement: 'auto' } },
+    async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      const seen: string[] = []
+      for (const columns of [130, 191, 130, 110, 130, 191])
+        seen.push(await sizeShown(await band($, columns)))
+      // 130 at first: not yet wide. Then in at 140 and up, out under 120.
+      expect(seen).toEqual(['none', 'full', 'full', 'none', 'none', 'full'])
+    },
+  )
+
+  test('footer, the default: never a band, however wide', async ($, on) => {
+    world(on, { engineDraws: true })
+    await start($)
+    await turn($, 'high')
+    for (const columns of [95, 191, 400]) {
+      const ui = await band($, columns)
+      expect(await sizeShown(ui)).toBe('none')
+      expect(await ui.keepsBeneath()).toBe(true)
+    }
+  })
+
+  test(
+    'autoMinColumns moves where auto shows the band',
+    { options: { placement: 'auto', autoMinColumns: 100 } },
+    async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      const seen: string[] = []
+      for (const columns of [99, 100, 80, 79]) seen.push(await sizeShown(await band($, columns)))
+      expect(seen).toEqual(['none', 'full', 'full', 'none'])
+    },
+  )
+
+  test(
+    'narrowing bodyColumns gives up the meter, then the effort and the label, then the band',
+    { options: { placement: 'band' } },
+    async ($, on) => {
+      world(on, { engineDraws: true })
+      await start($)
+      await turn($, 'high')
+      const ui = await band($, 191)
+      const seen: string[] = []
+      for (const bodyColumns of [186, 90, 27, 26, 25, 24, 8, 7]) {
+        await ui.redraw(props(bodyColumns))
+        seen.push(await sizeShown(ui))
+      }
+      // player Opus 5.5 is longer than power  high: the effort goes with the label.
+      expect(seen).toEqual([
+        'full',
+        'full',
+        'full',
+        'noMeter',
+        'noMeter',
+        'sprite',
+        'sprite',
+        'none',
+      ])
+    },
+  )
+
+  test(
+    'with the band shown, the footer draws its badge as before',
+    { options: { placement: 'band' } },
+    async ($, on) => {
+      world(on)
+      await start($)
+      await turn($, 'high')
+      expect(await shown(await footer($, 191))).toBe('   ◆ Opus 5.5 ▮▮▮▯▯ high · focus')
+    },
+  )
+})
