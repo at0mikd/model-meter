@@ -497,3 +497,9 @@ Hecha a 95 columnas con `sub-meter`, sin turnos de modelo, y con esfuerzo `xhigh
   ⏵⏵ auto mode on ·                         ◆ Opus 5.5 ▮▮▮▮▯ xhi · 5h ━━━─────── 29% ↻ 4h 42m
   ⏵⏵ auto mode on · ← for agents        5h ━───────── 13% ↻ 4h 43m ·     ◆ Opus 5.5 ▮▮▮▮▯ xhi
 ```
+
+Con el relleno al final de la fila cuando la insignia no tiene nada debajo (decisión del Reviewer), la segunda fila pasa a ser:
+
+```text
+  ⏵⏵ auto mode on ·                    week ━━──────── 24% ↻ 5d 9h · ◆ Opus 5.5 ▮▮▮▮▯ xhi
+```
