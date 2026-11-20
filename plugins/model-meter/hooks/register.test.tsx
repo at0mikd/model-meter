@@ -433,6 +433,78 @@ describe('the hint as drawn, wherever another mod trims it (T-003b CA2)', () => 
   }
 })
 
+// The footer is laid out again as soon as the drawn hint changes width, and
+// only then (PLAN §3.1). The engine has one hint line, redrawn with new props;
+// $.ui.invalidate is a call on $, hookable by name.
+describe('the footer redraws when the hint changes width, and only then', () => {
+  const props = (hint: string) => ({ isDraft: false, isWorking: hint === WORKING, hint })
+
+  test('a mounted footer follows the hint line at once, with no new mount', async ($, on) => {
+    world(on, { beneath: BENEATH })
+    await start($)
+    await turn($, 'high')
+    const row = await footer($, 95)
+    expect(await shown(row)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high') // nothing measured yet
+    const line = await hintLine($, SHELL) // 21 columns: 3 left for the badge
+    expect(await shown(row)).not.toContain('◆')
+    await line.redraw(props('')) // an empty line: 25 left
+    expect(await shown(row)).toContain('◆ Opus 5.5 ▮▮▮▯▯ high')
+  })
+
+  test('a new width invalidates ui.render once; the same width, none', async ($, on) => {
+    world(on)
+    const redraws: string[] = []
+    on('ui.invalidate', ($, e, next) => {
+      redraws.push(e.event)
+      return next(e)
+    })
+    await start($)
+    const line = await hintLine($, SHELL) // nothing measured yet → 21 columns
+    expect(redraws).toEqual(['ui.render'])
+    await line.redraw(props(SHELL))
+    await line.redraw(props('2 shell · ↓ to manage')) // another text, the same 21 columns
+    expect(redraws).toEqual(['ui.render'])
+    await line.redraw(props(WORKING))
+    expect(redraws).toEqual(['ui.render', 'ui.render'])
+  })
+
+  test(
+    'what a mod beneath trims away is no change: no redraw for it',
+    {
+      plugins: [
+        {
+          name: 'trimmer-append',
+          tier: 'append',
+          register(on) {
+            on('ui.render', { component: 'PromptHint' }, ($, e, next) =>
+              next({
+                ...e,
+                props: {
+                  ...e.props,
+                  hint: e.props.hint.replace('(shift+tab to cycle)', '').trim(),
+                },
+              }),
+            )
+          },
+        },
+      ],
+    },
+    async ($, on) => {
+      world(on)
+      const redraws: string[] = []
+      on('ui.invalidate', ($, e, next) => {
+        redraws.push(e.event)
+        return next(e)
+      })
+      await start($)
+      const line = await hintLine($, '(shift+tab to cycle)') // drawn empty: 0 columns, as before
+      expect(redraws).toEqual([])
+      await line.redraw(props('(shift+tab to cycle) · 1 shell')) // drawn '· 1 shell'
+      expect(redraws).toEqual(['ui.render'])
+    },
+  )
+})
+
 // T-003b: installed from a marketplace, the mod can sit beneath another one
 // (sub-meter) and end the row; its padding must not show as a gap there.
 describe('the padding falls where the row is blank (T-003b)', () => {
