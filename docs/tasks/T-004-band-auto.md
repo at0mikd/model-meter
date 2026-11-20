@@ -1,6 +1,6 @@
 # T-004 · Banda 8-bit sobre el prompt y modo `auto`
 
-- **Estado:** In progress
+- **Estado:** In review
 - **Rama:** `feat/T-004-band-auto`
 - **Plan:** `docs/PLAN.md` §3.2, §3.3 (`placement`, `autoMinColumns`), §3.4 y §5
 
