@@ -2,17 +2,19 @@
 
 > Lo que el Maintainer configura a mano en GitHub. Ningún agente cambia la configuración del repositorio (`docs/WORKFLOW.md` §7). Es el **control real** que respalda el flujo: sin él, GitHub permite fusionar con checks en rojo, hacer push directo a `main` o reescribir su historia.
 
-**Estado a 2026-11-19:**
-- **Paso 1 aplicado y verificado** por la API: ruleset `Ruleset 1` (id `27628705`), activo, con objetivo `~DEFAULT_BRANCH` y sin bypass. Reglas efectivas en `main`:
+**Estado a 2026-11-20: pasos 1 y 2 aplicados y verificados.**
+- La verificación se hizo por la API de solo lectura, con `gh api` desde la sesión del Builder. La sesión en la nube no puede leer esa API.
+- Ruleset `main` (id `27628705`), activo, con objetivo `~DEFAULT_BRANCH` y sin bypass. Reglas efectivas en `main`:
   - `deletion`, `non_fast_forward`, `required_linear_history` y `required_signatures`;
-  - `pull_request` con 0 aprobaciones y solo `squash`.
-- **Paso 2 pendiente de T-008:** todavía sin `required_status_checks`.
-- **El nombre `Ruleset 1` es cosmético.** Se puede renombrar a `main`.
+  - `pull_request` con 0 aprobaciones y solo `squash`;
+  - `required_status_checks`: los 12 checks de la tabla, todos de GitHub Actions, con `strict_required_status_checks_policy: true` (la rama tiene que estar al día con `main`);
+  - `code_scanning`: CodeQL, con alertas de seguridad `high_or_higher` y alertas `errors`.
+- El primer PR fusionado con el paso 2 fue #19.
 
 ## 0. Orden de aplicación
 
-1. **Ahora**, el ruleset de la sección 1 **sin** la regla *Require status checks to pass*. Protege ya contra borrado, force-push, push directo y fusiones que no sean squash. Mientras tanto, que los checks estén en verde lo garantiza el Reviewer (`docs/WORKFLOW.md` §6).
-2. **Cuando T-008 esté en `main`**, añadir *Require status checks to pass* con la lista de checks. T-008 deja estable el nombre del job del mod y hace que los PRs de Dependabot pasen commitlint. Exigirlos antes bloquearía a Dependabot y dejaría el check del mod esperando un nombre que cambia.
+1. ✅ (2026-11-19) El ruleset de la sección 1 **sin** la regla *Require status checks to pass*. Ya protegía contra borrado, force-push, push directo y fusiones que no fueran squash. Mientras tanto, que los checks estuvieran en verde lo garantizaba el Reviewer (`docs/WORKFLOW.md` §6).
+2. ✅ (2026-11-20, tras T-008) *Require status checks to pass* con la lista de checks. T-008 dejó estable el nombre del job del mod e hizo que los PRs de Dependabot pasen commitlint. Exigirlos antes habría bloqueado a Dependabot y dejado el check del mod esperando un nombre que cambia.
 
 ## 1. Ruleset de `main`
 
@@ -59,6 +61,12 @@ Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Ac
 Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 
 > **Dependabot y commitlint.** Dependabot escribe siempre «Bump» con mayúscula (`chore(deps-dev): Bump @types/node`), que `subject-case` rechaza. Desde T-008, commitlint deja fuera solo los commits con el asunto exacto de Dependabot (`chore(deps)`, `chore(deps-dev)` o `ci(deps)`, seguido de `: Bump …`) **y** su línea `Signed-off-by: dependabot[bot] <support@github.com>` (`scripts/commitlint-ignores.mjs`, con tests). Cualquier otro commit pasa por todas las reglas.
+
+> **«BLOCKED» y commits sin firmar.** GitHub muestra los PRs como bloqueados (`mergeable_state: blocked`) aunque cumplan todo lo demás. La causa es `required_signatures`: al evaluar un PR, GitHub comprueba también los commits de la rama, y *«unsigned commits on the head branch can block a squash merge, even though GitHub would sign the final squash commit. This restriction can also apply to the author of the pull request»* ([documentación oficial](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), verificado el 2026-11-20).
+>
+> - Hasta ahora el squash por API ha funcionado (#18, #19 y #20), pero GitHub no lo garantiza.
+> - Los commits de la sesión en la nube llevan firma SSH; los del Builder no llevan ninguna.
+> - Mitigación pendiente de decisión del Maintainer: firmar los commits del Builder con firma SSH en el git local, con la clave registrada en GitHub como *signing key*.
 
 > **«Require branches to be up to date».** Tras cada fusión en `main`, el resto de PRs abiertos necesita «Update branch», lo que les da un SHA nuevo. Para no tener que aprobarlo todo otra vez, `docs/WORKFLOW.md` §6 define cuándo una actualización conserva la aprobación.
 

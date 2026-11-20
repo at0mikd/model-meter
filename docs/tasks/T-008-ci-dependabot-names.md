@@ -1,6 +1,6 @@
 # T-008 · CI: commits de Dependabot y nombre estable del job del mod
 
-- **Estado:** In review
+- **Estado:** Done ([#20](https://github.com/at0mikd/model-meter/pull/20), `826fd97`)
 - **Rama:** `chore/T-008-ci-dependabot-names`
 - **Plan:** `docs/PLAN.md` §6; `docs/REPO-SETTINGS.md` §0 (paso 2 del ruleset)
 
@@ -48,10 +48,12 @@ Que los checks se puedan exigir en el ruleset de `main` (paso 2 de `docs/REPO-SE
 
 ## Después de fusionar (Reviewer y Maintainer)
 
-1. El Maintainer aplica el **paso 2** del ruleset (checks obligatorios con el nombre nuevo).
-2. El Reviewer pide `@dependabot rebase` en #8 para que su CI corra con la configuración nueva. Si pasa, se revisa y se fusiona como cualquier PR.
+1. ✅ El Maintainer aplica el **paso 2** del ruleset (checks obligatorios con el nombre nuevo). Aplicado y verificado el 2026-11-20 (`docs/REPO-SETTINGS.md`).
+2. El Maintainer escribe `@dependabot rebase` en #8 para que su CI corra con la configuración nueva. Si pasa, se revisa y se fusiona como cualquier PR.
+   - Al principio lo iba a pedir el Reviewer, pero su herramienta de GitHub metió separadores en el comentario (`·@·d·ependabot r·ebase`) y Dependabot no lo reconoció (#8, 2026-11-20). Los comandos a bots los escribe el Maintainer (`docs/WORKFLOW.md` §7).
 
 ## Restricciones de seguridad
 
-- commitlint es un control de estilo, no de seguridad: un humano podría copiar el trailer de Dependabot. Por eso la excepción exige **a la vez** el patrón exacto y el trailer, y se limita a `subject-case` de commits de bump.
+- commitlint es un control de estilo, no de seguridad: un humano podría copiar el trailer de Dependabot. Por eso la excepción exige **a la vez** el patrón exacto y el trailer.
+- **Aclaración del Reviewer en #20:** `ignores` deja fuera el commit entero, no solo `subject-case`. Se acepta así, porque un bump puede romper también otras reglas; por ejemplo, un asunto largo rompe `header-max-length`. La condición doble mantiene el alcance acotado.
 - Sin dependencias nuevas; regex anclada y sin cuantificadores anidados.
