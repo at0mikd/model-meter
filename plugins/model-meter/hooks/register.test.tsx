@@ -1,6 +1,6 @@
 // Mod tests, run against the engine itself: `claude plugin test plugins/model-meter`
 import { describe, expect, test } from 'claude-code/testing'
-import type { Engine } from 'claude-code/testing'
+import type { Engine, Plugin } from 'claude-code/testing'
 import type { CommandRunInput, ConfigSetInput, On } from 'claude-code'
 
 const OPUS = 'claude-opus-5-5'
@@ -359,6 +359,73 @@ describe('the badge fits the row (CA4)', () => {
       'none',
     ])
   })
+})
+
+// T-003b: the hint is measured as it is drawn, not as it reaches this mod.
+describe('the hint as drawn, wherever another mod trims it (T-003b CA2)', () => {
+  // At rest in auto mode the engine hands down `(shift+tab to cycle)` and
+  // sub-meter hides it, so nothing of it is drawn (docs/spikes/T-003b-results.md).
+  const REST = '(shift+tab to cycle)'
+  /** A mod that hides that part of the hint on its way down, as sub-meter does. */
+  const trimmer = (tier: 'prepend' | 'append'): Plugin => ({
+    name: `trimmer-${tier}`,
+    tier,
+    register(on) {
+      on('ui.render', { component: 'PromptHint' }, ($, e, next) =>
+        next({
+          ...e,
+          props: { ...e.props, hint: e.props.hint.replace('(shift+tab to cycle)', '').trim() },
+        }),
+      )
+    },
+  })
+  const has = (text: string, size: 'full' | 'none') =>
+    size === 'full' ? /◆ Opus 5\.5 ▮▮▮▯▯ high/.test(text) : !text.includes('◆')
+
+  // Padding 4 + label 26 + gap 2 + ' · focus' 8 (+ 30 beneath): drawn, the
+  // hint takes nothing; received, 21 more. Only 95 columns with 30 beneath
+  // tells them apart: 25 left for the badge, or 4.
+  const cases: [
+    columns: number,
+    beneath: string | undefined,
+    tier: 'prepend' | 'append' | undefined,
+    expected: 'full' | 'none',
+  ][] = [
+    [95, undefined, 'append', 'full'],
+    [95, undefined, 'prepend', 'full'],
+    [95, undefined, undefined, 'full'],
+    [95, BENEATH, 'append', 'full'],
+    [95, BENEATH, 'prepend', 'full'],
+    [95, BENEATH, undefined, 'none'],
+    [191, undefined, 'append', 'full'],
+    [191, undefined, 'prepend', 'full'],
+    [191, undefined, undefined, 'full'],
+    [191, BENEATH, 'append', 'full'],
+    [191, BENEATH, 'prepend', 'full'],
+    [191, BENEATH, undefined, 'full'],
+  ]
+  for (const [columns, beneath, tier, expected] of cases) {
+    const where =
+      tier === undefined
+        ? 'nobody trims the hint'
+        : `a mod ${tier === 'append' ? 'beneath' : 'above'} trims it`
+    test(
+      `${String(columns)} columns, ${beneath === undefined ? 'nothing' : '30 columns'} beneath, ${where} → ${expected}`,
+      { plugins: tier === undefined ? [] : [trimmer(tier)] },
+      async ($, on) => {
+        world(on, { beneath })
+        await start($)
+        await turn($, 'high')
+        const hint = await hintLine($, REST)
+        // The line is drawn as the mods beneath and the engine leave it.
+        expect(await shown(hint)).toBe(tier === undefined ? REST : '')
+        const text = await shown(await footer($, columns))
+        expect(has(text, expected)).toBe(true)
+        expect(text).toContain(MODES[0])
+        if (beneath !== undefined) expect(text).toContain(beneath)
+      },
+    )
+  }
 })
 
 describe('$.store holds a level and nothing else (CA5)', () => {
