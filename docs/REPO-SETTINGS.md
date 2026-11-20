@@ -2,7 +2,12 @@
 
 > Lo que el Maintainer configura a mano en GitHub. Ningún agente cambia la configuración del repositorio (`docs/WORKFLOW.md` §7). Es el **control real** que respalda el flujo: sin él, GitHub permite fusionar con checks en rojo, hacer push directo a `main` o reescribir su historia.
 
-**Estado a 2026-11-19:** `main` **no tiene protección**. La API responde «Branch not protected», no hay rulesets, y Scorecard lo confirma (Branch-Protection 0).
+**Estado a 2026-11-19:**
+- **Paso 1 aplicado y verificado** por la API: ruleset `Ruleset 1` (id `27628705`), activo, con objetivo `~DEFAULT_BRANCH` y sin bypass. Reglas efectivas en `main`:
+  - `deletion`, `non_fast_forward`, `required_linear_history` y `required_signatures`;
+  - `pull_request` con 0 aprobaciones y solo `squash`.
+- **Paso 2 pendiente de T-008:** todavía sin `required_status_checks`.
+- **El nombre `Ruleset 1` es cosmético.** Se puede renombrar a `main`.
 
 ## 0. Orden de aplicación
 
@@ -32,6 +37,8 @@ Reglas que hay que marcar:
 | **Require status checks to pass** | ✓ · **Require branches to be up to date before merging** ✓ · los 12 checks de la tabla siguiente | Evita fusionar en rojo, y que la CI pruebe una mezcla con un `main` antiguo |
 | **Require code scanning results** (opcional) | Tool **CodeQL** · *Security alerts*: **High or higher** · *Alerts*: **Errors** | Bloquea alertas nuevas graves de CodeQL |
 
+> **`require_extra_approval_for_unattributed_changes: true`.** GitHub lo activa por defecto en todos los rulesets, nuevos y existentes (regla [«Additional approval for unattributed Copilot pull requests»](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), en *public preview*; verificado en la documentación oficial el 2026-11-19). Solo exige una aprobación extra cuando el agente de Copilot abre un PR no atribuido a una persona. Nuestros PRs salen atribuidos al Maintainer y Dependabot no es Copilot, así que no nos afecta. Se deja activo, porque protege si algún día se usa Copilot, y se revisará cuando salga de *preview*.
+
 Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Actions* como origen:
 
 | Check | Workflow |
@@ -42,18 +49,16 @@ Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Ac
 | `check:core (Node 24, ubuntu-latest)` | CI |
 | `check:core (Node 24, macos-latest)` | CI |
 | `check:core (Node 24, windows-latest)` | CI |
-| `validate, test:mod, capabilities (claude CLI 2.1.327)` | CI |
+| `mod (validate, test:mod, capabilities)` | CI |
 | `Analyze (javascript-typescript)` | CodeQL |
 | `Review dependency changes` | Dependency review |
 | `Scan the full history` | Gitleaks |
 | `actionlint` | Workflow lint |
 | `zizmor` | Workflow lint |
 
-> **Ojo:** el nombre del job del mod lleva la versión de la CLI. Cuando Dependabot la actualice, el nombre cambiará y GitHub esperará un check que nunca llega. Hasta que una tarea le dé un nombre estable, al actualizar la CLI hay que actualizar también este check en el ruleset.
-
 Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 
-> **Antes de exigir `check:core`: Dependabot.** Dependabot escribe siempre «Bump» con mayúscula (`chore(deps-dev): Bump @types/node`), y commitlint lo rechaza por `subject-case`. Le pasa al PR de Dependabot #8. Con el ruleset activo, ningún PR de Dependabot se podrá fusionar hasta que lo arregle la tarea **T-008**, que hará que commitlint acepte, de forma acotada y con tests, los commits de bump de Dependabot. Aplicar el ruleset antes sigue siendo lo correcto: lo único que se retrasa son las actualizaciones de dependencias, no la protección.
+> **Dependabot y commitlint.** Dependabot escribe siempre «Bump» con mayúscula (`chore(deps-dev): Bump @types/node`), que `subject-case` rechaza. Desde T-008, commitlint deja fuera solo los commits con el asunto exacto de Dependabot (`chore(deps)`, `chore(deps-dev)` o `ci(deps)`, seguido de `: Bump …`) **y** su línea `Signed-off-by: dependabot[bot] <support@github.com>` (`scripts/commitlint-ignores.mjs`, con tests). Cualquier otro commit pasa por todas las reglas.
 
 > **«Require branches to be up to date».** Tras cada fusión en `main`, el resto de PRs abiertos necesita «Update branch», lo que les da un SHA nuevo. Para no tener que aprobarlo todo otra vez, `docs/WORKFLOW.md` §6 define cuándo una actualización conserva la aprobación.
 
@@ -63,7 +68,7 @@ Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 
 - **Allow squash merging** ✓. *Allow merge commits* y *Allow rebase merging* ✗.
 - **Always suggest updating pull request branches** ✓.
-- **Automatically delete head branches** ✓. Encaja con una rama por PR (`docs/WORKFLOW.md` §7).
+- **Automatically delete head branches** ✓ (activado el 2026-11-19). Encaja con una rama por PR (`docs/WORKFLOW.md` §7).
 
 ## 3. Seguridad del código
 

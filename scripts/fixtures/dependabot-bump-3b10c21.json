@@ -1,0 +1,5 @@
+{
+  "commit": "3b10c21",
+  "pr": 8,
+  "message": "chore(deps-dev): Bump @types/node\n\nBumps the dev-dependencies group with 1 update in the / directory: [@types/node](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/node).\n\n\nUpdates `@types/node` from 22.20.5 to 26.6.6\n- [Release notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)\n- [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/node)\n\n---\nupdated-dependencies:\n- dependency-name: \"@types/node\"\n  dependency-version: 26.6.6\n  dependency-type: direct:development\n  update-type: version-update:semver-major\n  dependency-group: dev-dependencies\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\n"
+}
