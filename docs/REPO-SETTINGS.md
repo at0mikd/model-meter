@@ -49,18 +49,16 @@ Checks obligatorios. Los nombres son exactos y al añadirlos se elige *GitHub Ac
 | `check:core (Node 24, ubuntu-latest)` | CI |
 | `check:core (Node 24, macos-latest)` | CI |
 | `check:core (Node 24, windows-latest)` | CI |
-| `validate, test:mod, capabilities (claude CLI 2.1.327)` | CI |
+| `mod (validate, test:mod, capabilities)` | CI |
 | `Analyze (javascript-typescript)` | CodeQL |
 | `Review dependency changes` | Dependency review |
 | `Scan the full history` | Gitleaks |
 | `actionlint` | Workflow lint |
 | `zizmor` | Workflow lint |
 
-> **Ojo:** el nombre del job del mod lleva la versión de la CLI. Cuando Dependabot la actualice, el nombre cambiará y GitHub esperará un check que nunca llega. Hasta que una tarea le dé un nombre estable, al actualizar la CLI hay que actualizar también este check en el ruleset.
-
 Scorecard no va en la lista: solo se ejecuta en `main`, no en los PRs.
 
-> **Antes de exigir `check:core`: Dependabot.** Dependabot escribe siempre «Bump» con mayúscula (`chore(deps-dev): Bump @types/node`), y commitlint lo rechaza por `subject-case`. Le pasa al PR de Dependabot #8. Con el ruleset activo, ningún PR de Dependabot se podrá fusionar hasta que lo arregle la tarea **T-008**, que hará que commitlint acepte, de forma acotada y con tests, los commits de bump de Dependabot. Aplicar el ruleset antes sigue siendo lo correcto: lo único que se retrasa son las actualizaciones de dependencias, no la protección.
+> **Dependabot y commitlint.** Dependabot escribe siempre «Bump» con mayúscula (`chore(deps-dev): Bump @types/node`), que `subject-case` rechaza. Desde T-008, commitlint deja fuera solo los commits con el asunto exacto de Dependabot (`chore(deps)`, `chore(deps-dev)` o `ci(deps)`, seguido de `: Bump …`) **y** su línea `Signed-off-by: dependabot[bot] <support@github.com>` (`scripts/commitlint-ignores.mjs`, con tests). Cualquier otro commit pasa por todas las reglas.
 
 > **«Require branches to be up to date».** Tras cada fusión en `main`, el resto de PRs abiertos necesita «Update branch», lo que les da un SHA nuevo. Para no tener que aprobarlo todo otra vez, `docs/WORKFLOW.md` §6 define cuándo una actualización conserva la aprobación.
 
