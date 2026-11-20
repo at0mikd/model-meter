@@ -4,6 +4,7 @@ import { describe, test } from 'node:test'
 import {
   VARIANTS,
   drawnHintWidth,
+  drawnModesWidth,
   fitBadge,
   hintLineWidth,
   widthOf,
@@ -303,5 +304,43 @@ describe('hintLineWidth', () => {
       assert.equal(hintLineWidth(result, RAW, trace), widthOf(DRAWN), JSON.stringify(result))
       assert.equal(hintLineWidth(result, RAW, []), widthOf(RAW), JSON.stringify(result))
     }
+  })
+})
+
+// T-009: SessionMode's labels as the engine draws them, read from next.trace.
+describe('drawnModesWidth', () => {
+  const engine = (props: unknown) => ({
+    index: 3,
+    plugin: 'engine',
+    tier: 'core',
+    outcome: 'returned',
+    received: { props },
+    returned: { type: 'engine', ref: 1 },
+  })
+
+  test("the labels the engine's own link received, joined as the engine joins them", () => {
+    const trace = [engine({ modes: ['focus', 'memory paused'] })]
+    assert.equal(drawnModesWidth(['focus'], trace), widthOf('focus & memory paused'))
+  })
+
+  test('a mod beneath that took every label away leaves nothing drawn', () => {
+    assert.equal(drawnModesWidth(['focus'], [engine({ modes: [] })]), 0)
+  })
+
+  test('when the trace does not say, the labels as received: as much as today', () => {
+    const received = ['focus', 'memory paused']
+    const cases: unknown[][] = [
+      [],
+      [null],
+      [engine(undefined)],
+      [engine({ modes: 'focus' })],
+      [engine({ modes: ['focus', 5] })],
+      [{ ...engine({ modes: [] }), tier: 'user' }],
+      [{ ...engine({ modes: [] }), received: 'x' }],
+    ]
+    for (const trace of cases) {
+      assert.equal(drawnModesWidth(received, trace), 21, JSON.stringify(trace))
+    }
+    assert.equal(drawnModesWidth([], []), 0)
   })
 })

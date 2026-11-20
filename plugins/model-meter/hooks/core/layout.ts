@@ -88,6 +88,18 @@ export function widthOfTree(node: unknown, engineWidth = 0, depth = 0): number {
 }
 
 /**
+ * Whether a `next.trace` entry is the engine's own link: the pair (plugin
+ * "engine", tier "core"). A plugin that happens to be named "engine" sits in
+ * another tier.
+ */
+const isEngineLink = (entry: unknown): entry is Record<string, unknown> =>
+  isRecord(entry) && entry.plugin === 'engine' && entry.tier === 'core'
+
+/** The props a trace entry's link received, if it says. */
+const propsOf = (entry: Record<string, unknown>): unknown =>
+  isRecord(entry.received) ? entry.received.props : undefined
+
+/**
  * How many columns the hint line takes as drawn, read from `next.trace` (the
  * links beneath the hook, the engine's last): the hint and tail the engine's
  * own link received, or what a link beneath returned when it drew the line
@@ -98,10 +110,8 @@ export function widthOfTree(node: unknown, engineWidth = 0, depth = 0): number {
  */
 export function drawnHintWidth(received: string, trace: readonly unknown[]): number {
   const last = trace.at(-1)
-  // The engine's link is the pair (plugin "engine", tier "core"): a plugin
-  // that happens to be named "engine" sits in another tier.
-  if (isRecord(last) && last.plugin === 'engine' && last.tier === 'core') {
-    const props = isRecord(last.received) ? last.received.props : undefined
+  if (isEngineLink(last)) {
+    const props = propsOf(last)
     if (isRecord(props) && typeof props.hint === 'string') {
       const { hint, tail } = props
       // One column before the tail is an assumption, not measured (no tail
@@ -127,6 +137,25 @@ const isDrawing = (node: unknown): boolean =>
 export function hintLineWidth(drawn: unknown, received: string, trace: readonly unknown[]): number {
   const engineWidth = drawnHintWidth(received, trace)
   return isDrawing(drawn) ? widthOfTree(drawn, engineWidth) : engineWidth
+}
+
+/** SessionMode's engine node draws its mode labels joined so. */
+const MODES_JOIN = ' & '
+
+const isStrings = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string')
+
+/**
+ * How many columns the engine's node takes in SessionMode: its mode labels
+ * (`focus`, `memory paused`) as the engine's own link received them in
+ * `next.trace`, so a mod beneath that takes one away or adds one counts.
+ * When the trace does not say, the labels as `received`, as before T-009.
+ */
+export function drawnModesWidth(received: readonly string[], trace: readonly unknown[]): number {
+  const last = trace.at(-1)
+  const props = isEngineLink(last) ? propsOf(last) : undefined
+  const modes = isRecord(props) ? props.modes : undefined
+  return widthOf((isStrings(modes) ? modes : received).join(MODES_JOIN))
 }
 
 export interface FitInput {
