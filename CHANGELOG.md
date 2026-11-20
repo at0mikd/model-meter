@@ -18,6 +18,7 @@ Todos los cambios relevantes de este proyecto se anotan aquí. Formato basado en
 ### Corregido
 
 - La insignia de `model-meter` vuelve a aparecer a media pantalla junto a `sub-meter`: mide la pista del pie tal como se dibuja, no como le llega, y deja de reservar el texto que otro mod oculta.
+- La insignia también cuenta con lo que un mod de debajo cambia en la fila: el texto con que envuelve la línea de pistas y las etiquetas de modo que quita o añade.
 
 ### Seguridad
 
