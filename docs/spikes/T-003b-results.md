@@ -477,3 +477,23 @@ Contiene solo plugins, tiers, pistas y tamaños, sin rutas, prompts ni datos per
  ]
 }
 ```
+
+## Comprobación tras la fase 2
+
+Hecha a 95 columnas con `sub-meter`, sin turnos de modelo, y con esfuerzo `xhigh` guardado. La insignia se ve en este estado:
+
+| Modo | Instalado desde el marketplace (model-meter por debajo) | Con `--plugin-dir` (por encima, el caso de CA7) |
+| --- | --- | --- |
+| auto, en reposo | `full` | `full` (antes, `modelOnly` o nada) |
+| manual | `full` (`sub-meter` se reduce a `5h 13%`) | `modelOnly` |
+| accept edits | `full` | `full` |
+| plan | `full` | `full` |
+
+- Las filas son del pie leído tal cual; nunca se parte ni se pisa.
+- En la variante `--plugin-dir`, model-meter instalado se desactivó solo para esa sesión con `--settings`.
+- En los primeros segundos de una sesión, mientras se ve la píldora `← for agents`, la insignia puede ser más pequeña o no salir, porque esa píldora también se mide.
+
+```text
+  ⏵⏵ auto mode on ·                         ◆ Opus 5.5 ▮▮▮▮▯ xhi · 5h ━━━─────── 29% ↻ 4h 42m
+  ⏵⏵ auto mode on · ← for agents        5h ━───────── 13% ↻ 4h 43m ·     ◆ Opus 5.5 ▮▮▮▮▯ xhi
+```
