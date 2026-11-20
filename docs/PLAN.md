@@ -139,7 +139,7 @@ Cuando falta información, la insignia no desaparece ni inventa datos: se ve **a
 
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 
-Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido) + rótulo `PLAYER: OPUS 5.5  POWER: ▮▮▮▯▯`. Diseño original (no se replica ningún personaje ni arte existente).
+Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido), de como mucho 4×8, más un rótulo en minúscula salvo el nombre del modelo: `player Opus 5.5` · `power ▮▮▮▯▯ high` (decisión del Maintainer en CA7 de T-003). Diseño original: no se replica ningún personaje ni arte existente. Especificado en T-004.
 
 ### 3.3 `userConfig`
 
