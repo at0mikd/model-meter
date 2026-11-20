@@ -89,6 +89,7 @@ El Reviewer termina cada ronda con un resumen: **`Cambios requeridos`** o **`LGT
 - **Una rama nueva por PR, creada desde `main`:** `claude/<tema>` para el Reviewer y `<tipo>/T-NNN-<slug>` para el Builder. No se reutiliza una rama tras un squash: sus commits nunca llegan a ser ancestros de `main`, y commitlint los volvería a revisar en el PR siguiente.
 - **Asuntos en minúscula tras el tipo** (Conventional Commits, regla `subject-case`), también en el título del squash: `docs(tasks): mark T-003 done`, no `docs(tasks): T-003 done`.
 - Ningún agente aprueba PRs, cambia la configuración del repositorio ni crea tokens. El Builder nunca fusiona; el Reviewer solo con la aprobación del Maintainer para ese PR.
+- **Los comandos a bots de GitHub los escribe el Maintainer**, por ejemplo `@dependabot rebase`. Motivo: la herramienta de GitHub de la sesión del Reviewer metió separadores en uno y el bot no lo reconoció (#8, 2026-11-20).
 - Los *spikes* (`spikes/`) son código desechable: nunca se publican en el marketplace ni se importan desde el producto.
 
 ## 8. Escalado
