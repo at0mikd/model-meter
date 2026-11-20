@@ -61,6 +61,19 @@ describe('isDependabotBump (T-008)', () => {
     }
   })
 
+  // T-009: without the typeof guard, RegExp.test would read the object as its
+  // text, and split would throw on something that is not a string.
+  test('an object whose text reads as a bump is not one, and does not throw', () => {
+    const impostor = { toString: () => commit('chore(deps): Bump x from 1 to 2') }
+    assert.equal(String(impostor).startsWith('chore(deps): Bump x'), true)
+    /** @type {boolean | undefined} */
+    let result
+    assert.doesNotThrow(() => {
+      result = isDependabotBump(impostor)
+    })
+    assert.equal(result, false)
+  })
+
   test('the real message of 3b10c21 (PR #8), which failed subject-case, is ignored', () => {
     const { message } = dependabotCommit
     assert.ok(message.startsWith('chore(deps-dev): Bump @types/node'))
