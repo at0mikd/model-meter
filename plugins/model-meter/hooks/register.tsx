@@ -202,7 +202,7 @@ export const register: Register = (on) => {
       }
       return (
         <Box flexDirection="row">
-          {badgeRuns(view, variant).map(paint)}
+          {badgeRuns(view, variant, below > 0 ? 'left' : 'right').map(paint)}
           {below > 0 ? <Text dimColor>{SEPARATOR}</Text> : null}
           {beneath}
         </Box>

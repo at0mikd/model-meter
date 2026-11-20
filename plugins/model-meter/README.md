@@ -21,7 +21,13 @@ Mod para Claude Code que muestra, en el pie de la terminal y con estética 8-bit
   | Esfuerzo aún desconocido | `◆ Opus 5.5 ░░░░░ ---` |
   | Nada leído todavía | `◇ ----- ░░░░░ ---` |
 
-- **Se adapta al ancho:** comparte la fila con la etiqueta de modo, las pistas del motor (`esc to interrupt`, `1 shell · ↓ to manage`…) y otros mods como `sub-meter`. Si no cabe, pierde primero el medidor, después el esfuerzo y por último desaparece, sin tapar nunca lo que hay a su lado.
+- **Se adapta al ancho:** comparte la fila con la etiqueta de modo, las pistas del motor (`esc to interrupt`, `1 shell · ↓ to manage`…) y otros mods como `sub-meter`. Si no cabe, pierde primero el medidor, después el esfuerzo y por último desaparece, sin tapar nunca lo que hay a su lado ni partir el pie en dos filas.
+  - Mide las pistas tal como se dibujan. El texto que otro mod oculta, como `(shift+tab to cycle)` con `sub-meter`, le deja sitio.
+  - Reserva siempre el sitio de la etiqueta de modo más larga (`⏵⏵ bypass permissions on`). Cambiar de modo con shift+tab no avisa a los mods.
+- **Junto a otros mods del pie**, el orden depende de cómo se cargan: Claude Code los encadena por el orden en que se instalaron.
+  - Instalado después de `sub-meter`, la insignia queda a su derecha, al final de la fila. Con poco ancho, `sub-meter` cede: oculta su barra.
+  - Cargado con `--plugin-dir`, queda a su izquierda.
+  - En los dos casos cada mod cuenta con lo que tiene a su derecha, y el relleno de la insignia cae en el lado en blanco de la fila, para que nada se mueva al encenderse.
 - **Solo en la terminal.** En la app de escritorio, VS Code o el móvil no dibuja nada: ya muestran el modelo y el esfuerzo.
 
 ## Qué hace y qué no

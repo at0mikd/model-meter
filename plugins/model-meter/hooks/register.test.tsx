@@ -104,12 +104,17 @@ async function turn(
   return stream.result
 }
 
-const footer = ($: Engine, columns = 191, surface: 'terminal' | 'desktop' = 'terminal') =>
+const footer = (
+  $: Engine,
+  columns = 191,
+  surface: 'terminal' | 'desktop' = 'terminal',
+  modes: readonly string[] = MODES,
+) =>
   $.ui.mount({
     plugin: 'model-meter',
     surface,
     component: 'SessionMode',
-    props: { modes: MODES },
+    props: { modes },
     viewport: { columns, rows: 47 },
   })
 
@@ -426,6 +431,22 @@ describe('the hint as drawn, wherever another mod trims it (T-003b CA2)', () => 
       },
     )
   }
+})
+
+// T-003b: installed from a marketplace, the mod can sit beneath another one
+// (sub-meter) and end the row; its padding must not show as a gap there.
+describe('the padding falls where the row is blank (T-003b)', () => {
+  test('with nothing beneath, the badge ends the row and its padding goes after it', async ($, on) => {
+    world(on)
+    await start($)
+    await turn($, 'high')
+    const alone = await shown(await footer($, 191, 'terminal', []))
+    expect(alone.startsWith('◆ Opus 5.5 ▮▮▮▯▯ high')).toBe(true)
+    expect(alone).toBe('◆ Opus 5.5 ▮▮▮▯▯ high   ')
+    // With something beneath, the padding stays before the badge, as before.
+    const beside = await shown(await footer($, 191))
+    expect(beside).toBe('   ◆ Opus 5.5 ▮▮▮▯▯ high · focus')
+  })
 })
 
 describe('$.store holds a level and nothing else (CA5)', () => {
