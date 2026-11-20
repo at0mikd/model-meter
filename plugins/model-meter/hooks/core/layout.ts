@@ -98,10 +98,14 @@ export function widthOfTree(node: unknown, engineWidth = 0, depth = 0): number {
  */
 export function drawnHintWidth(received: string, trace: readonly unknown[]): number {
   const last = trace.at(-1)
-  if (isRecord(last) && last.plugin === 'engine') {
+  // The engine's link is the pair (plugin "engine", tier "core"): a plugin
+  // that happens to be named "engine" sits in another tier.
+  if (isRecord(last) && last.plugin === 'engine' && last.tier === 'core') {
     const props = isRecord(last.received) ? last.received.props : undefined
     if (isRecord(props) && typeof props.hint === 'string') {
       const { hint, tail } = props
+      // One column before the tail is an assumption, not measured (no tail
+      // was seen in T-003b): it can only reserve one column too many.
       return widthOf(hint) + (typeof tail === 'string' && tail !== '' ? 1 + widthOf(tail) : 0)
     }
   } else if (isRecord(last) && last.outcome === 'returned') {

@@ -197,9 +197,21 @@ describe('drawnHintWidth', () => {
     assert.equal(drawnHintWidth('(shift+tab to cycle)', [engine({ hint: '' })]), 0)
   })
 
-  test('a tail some hook added is drawn after the line, a space before it', () => {
+  test('a tail some hook added is drawn after the line, with a space before it assumed (not measured)', () => {
     assert.equal(drawnHintWidth('', [engine({ hint: '1 shell', tail: 'synced' })]), 7 + 1 + 6)
     assert.equal(drawnHintWidth('', [engine({ hint: '1 shell', tail: '' })]), 7)
+  })
+
+  test('a plugin named "engine" is not the engine: only the pair (engine, core) is', () => {
+    const impostor = {
+      index: 3,
+      plugin: 'engine',
+      tier: 'user',
+      outcome: 'returned',
+      received: { props: { hint: '' } },
+      returned: { type: 'Text', children: ['abcd'] },
+    }
+    assert.equal(drawnHintWidth(RAW, [impostor]), 4)
   })
 
   test('a link beneath that drew the line itself: what it returned', () => {
