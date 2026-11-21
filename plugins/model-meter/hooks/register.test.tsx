@@ -715,20 +715,36 @@ describe('the band above the prompt (T-004 CA4)', () => {
   function sizeOf(text: string): string {
     if (text.includes('▮')) return 'full'
     if (text.includes('power')) return 'noMeter'
-    if (text.includes('player')) return 'modelOnly'
+    if (text.includes('model ')) return 'modelOnly'
     return text.includes('█') ? 'sprite' : 'none'
   }
   const sizeShown = async (ui: { drawn: () => Promise<unknown> }) => sizeOf(await shown(ui))
 
+  // T-010: the chalice, 6 rows of 12 cells, and the label beside its middle rows.
   const OPUS_HIGH = [
-    '█  ██  █',
-    '██▄██▄██  player Opus 5.5',
-    '█▀█▀▀█▀█  power  ▮▮▮▯▯ high',
-    '▀▀▀▀▀▀▀▀',
+    ' ▄▄▄▄▄▄▄▄▄▄ ',
+    ' ██████████ ',
+    '  ▀▀▀██▀▀▀    model Opus 5.5',
+    '     ██       power ▮▮▮▯▯ high',
+    '    ▀██▀    ',
+    '  ▄██████▄  ',
   ]
 
+  /** Every Text of a drawing with its props: what the band paints, run by run. */
+  function textsOf(node: unknown): { text: string; props: Record<string, unknown> }[] {
+    if (typeof node !== 'object' || node === null) return []
+    const { type, props, children } = node as {
+      type?: unknown
+      props?: unknown
+      children?: unknown
+    }
+    const inner = Array.isArray(children) ? children.flatMap(textsOf) : []
+    if (type !== 'Text') return inner
+    return [{ text: textOf(node), props: (props ?? {}) as Record<string, unknown> }]
+  }
+
   test(
-    "on the terminal, model-meter's row: the sprite in its family's color and the label, what is beneath kept",
+    "on the terminal, model-meter's row: the sprite in its palette and the label, what is beneath kept",
     { options: { placement: 'band' } },
     async ($, on) => {
       world(on, { engineDraws: true })
@@ -736,11 +752,17 @@ describe('the band above the prompt (T-004 CA4)', () => {
       await turn($, 'high')
       for (const columns of [191, 95]) {
         const ui = await band($, columns)
-        expect(rowsOf(await ui.drawn())).toEqual(OPUS_HIGH)
+        const drawn = await ui.drawn()
+        expect(rowsOf(drawn)).toEqual(OPUS_HIGH)
         expect(await ui.keepsBeneath()).toBe(true)
-        expect((await ui.find({ type: 'Text', text: '█  ██  █' }))?.props).toMatchObject({
-          color: 'claude',
-        })
+        const texts = textsOf(drawn)
+        // The ruby, gold around it, and two-color cells: gold over the cup.
+        expect(texts.some(({ text, props }) => text === '██' && props.color === 'error')).toBe(true)
+        expect(
+          texts.some(
+            ({ props }) => props.color === 'claude' && props.backgroundColor === 'warning',
+          ),
+        ).toBe(true)
       }
     },
   )
@@ -772,7 +794,7 @@ describe('the band above the prompt (T-004 CA4)', () => {
       await start($)
       await turn($, 'high')
       const text = await shown(await band($, 191))
-      expect(text.split('player').length - 1).toBe(1)
+      expect(text.split('model Opus').length - 1).toBe(1)
       expect(text.split('other row').length - 1).toBe(1)
       const desktop = await shown(await band($, 191, { surface: 'desktop' }))
       expect(sizeOf(desktop)).toBe('none')
@@ -794,6 +816,10 @@ describe('the band above the prompt (T-004 CA4)', () => {
       expect(await sizeShown(ui)).toBe('full')
       await ui.redraw(props(186, { maxRows: 5 }))
       expect(await sizeShown(ui)).toBe('none')
+      // T-010: 6 rows are the sprite's height, and enough.
+      await ui.redraw(props(186, { maxRows: 6 }))
+      expect(await sizeShown(ui)).toBe('full')
+      expect(rowsOf(await ui.drawn())).toHaveLength(6)
     },
   )
 
@@ -845,11 +871,11 @@ describe('the band above the prompt (T-004 CA4)', () => {
       await turn($, 'high')
       const ui = await band($, 191)
       const seen: string[] = []
-      for (const bodyColumns of [186, 90, 27, 26, 25, 24, 8, 7]) {
+      for (const bodyColumns of [186, 90, 30, 29, 28, 27, 12, 11]) {
         await ui.redraw(props(bodyColumns))
         seen.push(await sizeShown(ui))
       }
-      // player Opus 5.5 is longer than power  high: the effort goes with the label.
+      // model Opus 5.5 is longer than power high: the effort goes with the label.
       expect(seen).toEqual([
         'full',
         'full',
@@ -871,6 +897,52 @@ describe('the band above the prompt (T-004 CA4)', () => {
       await start($)
       await turn($, 'high')
       expect(await shown(await footer($, 191))).toBe('   ◆ Opus 5.5 ▮▮▮▯▯ high · focus')
+    },
+  )
+})
+
+// T-010 CA4: Mythos, in the footer and in the band.
+describe('Mythos (T-010 CA4)', () => {
+  const MYTHOS = 'claude-mythos-5-1'
+
+  test('the footer names Mythos 5.1 in planMode', async ($, on) => {
+    world(on, { model: MYTHOS })
+    await start($)
+    const ui = await footer($, 191)
+    expect(await shown(ui)).toContain('◆ Mythos 5.1 ░░░░░ ---')
+    expect((await ui.find({ type: 'Text', text: '◆ Mythos 5.1' }))?.props).toMatchObject({
+      color: 'planMode',
+    })
+  })
+
+  test(
+    'the band draws the winged helmet in its palette, and the label names Mythos',
+    { options: { placement: 'band' } },
+    async ($, on) => {
+      world(on, { model: MYTHOS, engineDraws: true })
+      await start($)
+      const ui = await $.ui.mount({
+        plugin: 'model-meter',
+        surface: 'terminal',
+        component: 'AbovePrompt',
+        props: {
+          hasSurvey: false,
+          isCollapsed: false,
+          isWorking: false,
+          maxRows: 18,
+          bodyColumns: 186,
+          scroll: { offset: 0, bodyRows: 17 },
+          view: {},
+        },
+        viewport: { columns: 191, rows: 47 },
+      })
+      const text = await shown(ui)
+      expect(text).toContain('model Mythos 5.1')
+      expect(text).toContain('power ░░░░░ ---')
+      expect((await ui.find({ type: 'Text', text: 'Mythos 5.1' }))?.props).toMatchObject({
+        color: 'planMode',
+      })
+      expect(await ui.find({ type: 'Text', text: '▄████▄' })).toBeDefined()
     },
   )
 })

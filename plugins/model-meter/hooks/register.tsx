@@ -250,8 +250,14 @@ export const register: Register = (on, options) => {
       const paint = painter(Text, familyColor(view.model.family))
       return (
         <Box flexDirection="column">
-          {bandRows(view, variant).map((row) => (
-            <Box flexDirection="row">{row.map(paint)}</Box>
+          {bandRows(view, variant).map(({ sprite, label }) => (
+            <Box flexDirection="row">
+              {/* Each run of the sprite in its theme keys, as the core gives them (T-010). */}
+              {sprite.map(({ text, ...look }) => (
+                <Text {...look}>{text}</Text>
+              ))}
+              {label.map(paint)}
+            </Box>
           ))}
           {beneath}
         </Box>
