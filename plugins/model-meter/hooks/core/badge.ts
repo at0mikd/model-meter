@@ -43,6 +43,7 @@ export const FAMILY_COLOR: Readonly<Record<Exclude<Family, 'unknown'>, string>> 
   sonnet: 'suggestion',
   haiku: 'success',
   fable: 'merged',
+  mythos: 'planMode',
 })
 
 /** The theme key to draw a family in; none for an unknown family or no model. */
@@ -56,6 +57,8 @@ export function familyColor(family: Family | null): string | undefined {
       return FAMILY_COLOR.haiku
     case 'fable':
       return FAMILY_COLOR.fable
+    case 'mythos':
+      return FAMILY_COLOR.mythos
     default:
       return undefined
   }

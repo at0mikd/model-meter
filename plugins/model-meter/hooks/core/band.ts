@@ -6,7 +6,8 @@ import type { BadgeView, Run } from './badge.ts'
 import { widthOf } from './layout.js'
 import type { Variant } from './layout.ts'
 import type { Placement } from './options.ts'
-import { spriteFor } from './sprite.js'
+import { spriteRunsFor } from './sprite.js'
+import type { SpriteRun } from './sprite.ts'
 
 /** Rows the band needs: below that it does not show (PLAN §3.4). */
 export const BAND_MIN_ROWS = 6
@@ -61,41 +62,48 @@ export const BAND_VARIANTS: readonly BandVariant[] = Object.freeze([
 
 /** Between the sprite and its label. */
 const GAP = '  '
-/** The label's names, in lowercase and as wide as each other, as on a game's screen. */
-const PLAYER = 'player '
-const POWER = 'power  '
+/** The label's names, in lowercase and as wide as each other (6), so the values line up. */
+const MODEL = 'model '
+const POWER = 'power '
+/** The sprite's rows above its label: the label sits beside the two middle rows of six. */
+const LABEL_TOP = 2
 
 /** The label's lines in one size: the model, then the effort; none for the sprite alone. */
 function labelLines({ model, effort }: BadgeView, variant: BandVariant): Run[][] {
   if (variant === 'sprite') return []
-  const player: Run[] = [
-    { text: PLAYER, paint: 'dim' },
+  const modelLine: Run[] = [
+    { text: MODEL, paint: 'dim' },
     { text: model.text, paint: model.enabled ? 'family' : 'dim' },
   ]
-  if (variant === 'modelOnly') return [player]
+  if (variant === 'modelOnly') return [modelLine]
   const power: Run[] = [{ text: POWER, paint: 'dim' }, ...effortRuns(effort, variant === 'full')]
-  return [player, power.filter((run) => run.text !== '')]
+  return [modelLine, power.filter((run) => run.text !== '')]
+}
+
+/** One row of the band: the sprite's cells, then the label's line beside them, if any. */
+export interface BandRow {
+  sprite: SpriteRun[]
+  label: Run[]
 }
 
 /**
- * The band in one size, row by row as painted runs: the sprite, and beside
- * its middle rows the label, from the same sanitized parts as the footer's
- * badge (badgeState). Nothing else is drawn.
+ * The band in one size, row by row: the sprite, and beside its two middle
+ * rows the label, from the same sanitized parts as the footer's badge
+ * (badgeState). Nothing else is drawn.
  */
-export function bandRows(view: BadgeView, variant: BandVariant): Run[][] {
-  const sprite = spriteFor(view)
-  // The sprite's first row has nothing beside it: the label sits on the next two.
-  const beside: Run[][] = [[], ...labelLines(view, variant)]
-  return sprite.rows.map((row, index) => {
-    const line = beside.at(index) ?? []
-    const head: Run = { text: row, paint: sprite.paint }
-    return line.length === 0 ? [head] : [head, { text: GAP, paint: 'dim' }, ...line]
+export function bandRows(view: BadgeView, variant: BandVariant): BandRow[] {
+  const lines = labelLines(view, variant)
+  return spriteRunsFor(view).map((sprite, index) => {
+    const line = index >= LABEL_TOP ? (lines.at(index - LABEL_TOP) ?? []) : []
+    return { sprite, label: line.length === 0 ? [] : [{ text: GAP, paint: 'dim' }, ...line] }
   })
 }
 
 /** The columns the band takes in one size: its widest row. */
 export function bandWidth(view: BadgeView, variant: BandVariant): number {
-  const widths = bandRows(view, variant).map((row) => widthOf(row.map((run) => run.text).join('')))
+  const widths = bandRows(view, variant).map(({ sprite, label }) =>
+    widthOf([...sprite, ...label].map((run) => run.text).join('')),
+  )
   return Math.max(0, ...widths)
 }
 

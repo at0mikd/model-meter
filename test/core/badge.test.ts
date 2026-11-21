@@ -162,8 +162,8 @@ describe('badgeState: every model × effort (docs/PLAN.md §3.1.1)', () => {
 
   test('familyColor: the theme key of a known family, none otherwise', () => {
     assert.deepEqual(
-      (['opus', 'sonnet', 'haiku', 'fable', 'unknown', null] as const).map(familyColor),
-      ['claude', 'suggestion', 'success', 'merged', undefined, undefined],
+      (['opus', 'sonnet', 'haiku', 'fable', 'mythos', 'unknown', null] as const).map(familyColor),
+      ['claude', 'suggestion', 'success', 'merged', 'planMode', undefined, undefined],
     )
   })
 
@@ -176,6 +176,7 @@ describe('badgeState: every model × effort (docs/PLAN.md §3.1.1)', () => {
       sonnet: 'suggestion',
       haiku: 'success',
       fable: 'merged',
+      mythos: 'planMode',
     })
   })
 })

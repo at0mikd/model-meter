@@ -111,7 +111,7 @@ El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt
 ```
 
 - Nombre del modelo normalizado: `claude-opus-5-5` → `Opus 5.5`; sufijo `[1m]` → `1m`.
-- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max`. Solo el nombre del modelo empieza por mayúscula, como lo escribe Claude Code: `Opus`, `Sonnet`, `Haiku`, `Fable` (decisiones del Maintainer en CA7 de T-003, 2026-11-19).
+- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max`. Solo el nombre del modelo empieza por mayúscula, como lo escribe Claude Code: `Opus`, `Sonnet`, `Haiku`, `Fable`, `Mythos` (decisiones del Maintainer en CA7 de T-003, 2026-11-19).
 - Medidor de esfuerzo de 5 "píxeles": `low=1 … max=5`; numérico → escalado.
 - Paleta retro por familia (tokens del tema: `claude`, `warning`, `success`…; nunca ANSI crudo).
 - Degradación por ancho: completo → sin medidor → solo modelo → nada (como `sub-meter`).
@@ -139,21 +139,34 @@ Cuando falta información, la insignia no desaparece ni inventa datos: se ve **a
 
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 
-Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido), de como mucho 4×8, más un rótulo en minúscula salvo el nombre del modelo: `player Opus 5.5` · `power ▮▮▮▯▯ high` (decisión del Maintainer en CA7 de T-003). Diseño original: no se replica ningún personaje ni arte existente. Implementado en T-004:
+Sprite 8-bit por familia (Opus / Sonnet / Haiku / Fable / Mythos / desconocido) más un rótulo en minúscula salvo el nombre del modelo: `model Opus 5.5` · `power ▮▮▮▯▯ high`. Diseño original: no se replica ningún personaje ni arte existente. La banda, sus opciones y el ajuste al ancho llegaron en T-004. Los sprites y el rótulo actuales, en T-010 (decisiones del Maintainer, 2026-11-21), que sustituyen a los de 4×8 en un color de T-004. Así se ve con Opus (en el terminal, cada celda lleva sus colores):
 
 ```text
-█  ██  █
-██▄██▄██  player Opus 5.5
-█▀█▀▀█▀█  power  ▮▮▮▯▯ high
-▀▀▀▀▀▀▀▀
+ ▄▄▄▄▄▄▄▄▄▄
+ ██████████
+  ▀▀▀██▀▀▀    model Opus 5.5
+     ██       power ▮▮▮▯▯ high
+    ▀██▀
+  ▄██████▄
 ```
 
-- **Sprites** (`hooks/core/sprite.ts`): cuadrículas de 8×8 píxeles dibujadas como 4 filas de medios bloques, todas del mismo tamaño. Son una corona (Opus), una pluma (Sonnet), una montaña bajo el sol (Haiku), un libro (Fable) y un cartucho vacío (desconocido). Se pintan con el token de la familia (`familyColor`). El del desconocido, atenuado, sirve también para el estado «desactivado» (§3.1.1).
-- **Rótulo** (`hooks/core/band.ts`): dos líneas a la derecha del sprite, en sus filas centrales, con las mismas piezas sanitizadas que la insignia del pie (`badgeState`, `effortRuns`).
-- **Ajuste a `bodyColumns`:** completo → sin medidor → solo el modelo → solo el sprite → nada. Se dibuja el mayor que cabe. Si quitar el esfuerzo no libera sitio, porque la línea del modelo es la más larga, el esfuerzo se va junto con el rótulo.
+- **Sprites** (`hooks/core/sprite.ts`): cuadrículas de 12×12 píxeles (`GRIDS`), copiadas tal cual de T-010, con 3 ranuras de color y transparencia, al estilo NES. Se dibujan como 6 filas de 12 celdas.
+  - Opus es un cáliz con un rubí, Sonnet una pluma, Haiku una montaña con sol, Fable un rollo de papiro griego, Mythos un casco alado y el desconocido un cartucho vacío.
+  - Cada familia tiene su paleta (`PALETTES`):
+    - **Colores de identidad fijos** (`#rrggbb`), para que el sprite se vea como en el diseño con cualquier tema. Con temas que siguen la paleta ANSI de la terminal, las claves colisionaban: `claude` y `error` salían iguales y `warning` salía lima. Lo decidió el Maintainer en la revisión del #27, el 2026-11-21.
+    - El detalle claro (ranura 3) sigue con la clave `text`, que es clara en el tema oscuro y oscura en el claro.
+    - Los valores: Opus `#d77757`, `#f2c94c` y `#e0115f` (el rubí); Sonnet `#b1b9f9`, `#f2c94c` y `text`; Haiku `#4eba65`, `#f2c94c` y `text`; Fable `#af87ff`, `#d77757` y `text`; Mythos `#48968c`, `#f2c94c` y `text`.
+    - El pie y el rótulo siguen con las claves del tema (`familyColor`).
+  - El desconocido va atenuado entero, y sirve también para el estado «desactivado» (§3.1.1).
+- **De píxeles a celdas** (`cellOf`, `spriteRuns`), una función pura: dos filas de píxeles dan una fila de celdas.
+  - Dos píxeles de colores distintos dan `▀`, con `color` arriba y `backgroundColor` abajo; dos del mismo color, `█`.
+  - Un píxel solo da `▀` o `▄`, sin fondo; ninguno, un espacio.
+  - El aspecto atenuado nunca necesita fondo.
+  - Las celdas contiguas del mismo aspecto se juntan en un solo `Text`.
+- **Rótulo** (`hooks/core/band.ts`): dos líneas junto a las dos filas centrales del sprite, `model ` y `power `, ambas de 6 columnas para que los valores queden alineados. Usa las mismas piezas sanitizadas que la insignia del pie (`badgeState`, `effortRuns`).
+- **Ajuste a `bodyColumns`:** completo → sin medidor → solo el modelo → solo el sprite → nada. Se dibuja el mayor que cabe. Si quitar el esfuerzo no libera sitio, porque la línea del modelo es la más larga, el esfuerzo se va junto con el rótulo. Con Opus a `high`: 30, 28, 28 y 12 celdas.
 - **Hook `AbovePrompt`:** solo dibuja la fila de model-meter (`e.plugin`) en la terminal, con lo que hay debajo (`next(e)`) a continuación. En cualquier otro caso pasa. No añade llamadas a `$`.
-
-**Sprites v2 (T-010), sustituyen a los de T-004:** 12×12 píxeles con 3 colores y transparencia (estilo NES), en 6 filas × 12 columnas de medias celdas de dos colores. Opus pasa a un cáliz con un rubí, Fable a un rollo de papiro griego, y Mythos (`claude-mythos-*`) tiene un casco alado. El rótulo dice `model` en vez de `player`. Decisiones del Maintainer, 2026-11-21.
+- **Mythos** (T-010): `claude-mythos-5` → `Mythos 5`, `claude-mythos-5-1` → `Mythos 5.1` y `claude-mythos-preview` (Bedrock) → `Mythos preview`, en el color `planMode`, en el pie y en la banda. Cualquier otro texto sigue siendo desconocido.
 
 ### 3.3 `userConfig`
 
