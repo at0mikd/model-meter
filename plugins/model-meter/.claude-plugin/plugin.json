@@ -10,5 +10,22 @@
   "repository": "https://github.com/at0mikd/model-meter",
   "license": "MIT",
   "keywords": ["model", "effort", "status", "mod", "8-bit"],
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "placement": {
+      "type": "string",
+      "title": "Where the badge shows",
+      "description": "footer: only the badge in the footer. auto: the footer, plus an 8-bit band above the prompt while the terminal is wide (see autoMinColumns). band: the footer, plus the band whenever it fits.",
+      "options": ["footer", "auto", "band"],
+      "default": "footer"
+    },
+    "autoMinColumns": {
+      "type": "number",
+      "title": "Columns for the band in auto",
+      "description": "With placement auto, the band shows from this terminal width on, and goes once the terminal is 20 columns narrower. From 80 to 400.",
+      "default": 140,
+      "min": 80,
+      "max": 400
+    }
+  }
 }
