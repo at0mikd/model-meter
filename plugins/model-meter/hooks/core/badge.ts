@@ -140,6 +140,25 @@ export interface Run {
   paint: Paint
 }
 
+/**
+ * The effort as painted runs: its meter, when asked for and it has one, then
+ * its label. The footer's badge and the band draw it alike.
+ */
+export function effortRuns(effort: EffortPart, meter: boolean): Run[] {
+  const runs: Run[] = []
+  if (meter && effort.cells !== '') {
+    if (effort.enabled) {
+      runs.push({ text: effort.cells.slice(0, effort.filled), paint: 'family' })
+      runs.push({ text: effort.cells.slice(effort.filled), paint: 'dim' })
+    } else {
+      runs.push({ text: effort.cells, paint: 'dim' })
+    }
+    runs.push({ text: ' ', paint: 'dim' })
+  }
+  runs.push({ text: effort.text, paint: effort.enabled ? 'lit' : 'dim' })
+  return runs
+}
+
 /** Which side of the badge its padding goes: toward the blank room of the row. */
 export type Pad = 'left' | 'right'
 
@@ -156,17 +175,7 @@ export function badgeRuns(view: BadgeView, variant: Variant, pad: Pad = 'left'):
     { text: `${model.glyph} ${model.text}`, paint: model.enabled ? 'family' : 'dim' },
   ]
   if (variant !== 'modelOnly') {
-    runs.push({ text: ' ', paint: 'dim' })
-    if (variant === 'full' && effort.cells !== '') {
-      if (effort.enabled) {
-        runs.push({ text: effort.cells.slice(0, effort.filled), paint: 'family' })
-        runs.push({ text: effort.cells.slice(effort.filled), paint: 'dim' })
-      } else {
-        runs.push({ text: effort.cells, paint: 'dim' })
-      }
-      runs.push({ text: ' ', paint: 'dim' })
-    }
-    runs.push({ text: effort.text, paint: effort.enabled ? 'lit' : 'dim' })
+    runs.push({ text: ' ', paint: 'dim' }, ...effortRuns(effort, variant === 'full'))
   }
   const kept = runs.filter((run) => run.text !== '')
   const room = slotWidth(variant) - widthOf(kept.map((run) => run.text).join(''))

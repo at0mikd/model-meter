@@ -139,7 +139,21 @@ Cuando falta información, la insignia no desaparece ni inventa datos: se ve **a
 
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 
-Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido), de como mucho 4×8, más un rótulo en minúscula salvo el nombre del modelo: `model Opus 5.5` · `power ▮▮▮▯▯ high` (decisión del Maintainer en CA7 de T-003). Diseño original: no se replica ningún personaje ni arte existente. Especificado en T-004. **Sprites v2 (T-010):** 12×12 píxeles con 3 colores y transparencia (estilo NES), en 6 filas × 12 columnas de medias celdas de dos colores; Opus pasa a un cáliz con un rubí, Fable a un rollo de papiro griego, y Mythos (`claude-mythos-*`) tiene un casco alado (decisiones del Maintainer, 2026-11-21).
+Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido), de como mucho 4×8, más un rótulo en minúscula salvo el nombre del modelo: `player Opus 5.5` · `power ▮▮▮▯▯ high` (decisión del Maintainer en CA7 de T-003). Diseño original: no se replica ningún personaje ni arte existente. Implementado en T-004:
+
+```text
+█  ██  █
+██▄██▄██  player Opus 5.5
+█▀█▀▀█▀█  power  ▮▮▮▯▯ high
+▀▀▀▀▀▀▀▀
+```
+
+- **Sprites** (`hooks/core/sprite.ts`): cuadrículas de 8×8 píxeles dibujadas como 4 filas de medios bloques, todas del mismo tamaño. Son una corona (Opus), una pluma (Sonnet), una montaña bajo el sol (Haiku), un libro (Fable) y un cartucho vacío (desconocido). Se pintan con el token de la familia (`familyColor`). El del desconocido, atenuado, sirve también para el estado «desactivado» (§3.1.1).
+- **Rótulo** (`hooks/core/band.ts`): dos líneas a la derecha del sprite, en sus filas centrales, con las mismas piezas sanitizadas que la insignia del pie (`badgeState`, `effortRuns`).
+- **Ajuste a `bodyColumns`:** completo → sin medidor → solo el modelo → solo el sprite → nada. Se dibuja el mayor que cabe. Si quitar el esfuerzo no libera sitio, porque la línea del modelo es la más larga, el esfuerzo se va junto con el rótulo.
+- **Hook `AbovePrompt`:** solo dibuja la fila de model-meter (`e.plugin`) en la terminal, con lo que hay debajo (`next(e)`) a continuación. En cualquier otro caso pasa. No añade llamadas a `$`.
+
+**Sprites v2 (T-010), sustituyen a los de T-004:** 12×12 píxeles con 3 colores y transparencia (estilo NES), en 6 filas × 12 columnas de medias celdas de dos colores. Opus pasa a un cáliz con un rubí, Fable a un rollo de papiro griego, y Mythos (`claude-mythos-*`) tiene un casco alado. El rótulo dice `model` en vez de `player`. Decisiones del Maintainer, 2026-11-21.
 
 ### 3.3 `userConfig`
 
@@ -147,8 +161,10 @@ Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Hai
 | --- | --- | --- |
 | `placement` | `footer` \| `auto` \| `band` | `footer` |
 | `autoMinColumns` | number | `140` |
-| `showEffortMeter` | boolean | `true` |
-| `palette` | `classic` \| `gameboy` \| `mono` | `classic` |
+| `showEffortMeter` | boolean | `true` (pendiente: otra tarea) |
+| `palette` | `classic` \| `gameboy` \| `mono` | `classic` (pendiente: otra tarea) |
+
+`placement` y `autoMinColumns` están en `plugin.json` desde T-004. `autoMinColumns` admite de 80 a 400. Son entrada no confiable: `parseOptions` (`hooks/core/options.ts`) cambia por el valor por defecto lo que no es de la lista o se sale del rango, sin lanzar errores.
 
 ### 3.4 Evaluación: modo `auto` (compacto a media pantalla, grande a pantalla completa)
 
@@ -165,8 +181,16 @@ Regla propuesta para `placement: auto`:
 
 - Pie compacto **siempre** (es la información esencial).
 - Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas). Confirmado en T-000: 95 columnas a media pantalla y 191 maximizada; `maxRows` = 18 en uso.
-- **Histéresis** para evitar parpadeo al redimensionar: entra con ≥ 140 y sale con < 120.
-- `mobile` → siempre compacto; `desktop` → según el viewport que informe el cliente.
+- **Histéresis** para evitar parpadeo al redimensionar: entra con ≥ `autoMinColumns` y sale con < `autoMinColumns − 20` (140 y 120 por defecto).
+- Solo en la terminal: en `desktop` y `mobile` el mod no dibuja la banda, igual que el pie.
+
+Implementado en T-004 (`bandVisibility`, en `hooks/core/band.ts`):
+
+- `footer` nunca muestra la banda. `band` la muestra siempre que quepa. `auto` la muestra mientras la terminal se considera ancha.
+- En los tres casos, solo con `maxRows ≥ 6` y sin encuesta (`hasSurvey`).
+- El estado que se arrastra de un dibujo al siguiente es solo el del ancho (`wide`). Una encuesta o una banda corta la ocultan un rato sin reiniciarlo.
+- Ese estado vive en el cierre del módulo, como el ancho de la pista, porque el motor no deja escribir `$.state` mientras dibuja.
+- Con `placement: footer`, el hook de `AbovePrompt` ni se registra: el mod no pide fila en la banda y todo queda como antes de T-004.
 
 Referencia orientativa: un monitor de 1920 px con fuente de 14 px da ~200 columnas a pantalla completa y ~95–110 a media pantalla, por lo que 140 separa bien ambos casos. Se ajustará con los datos del spike.
 
