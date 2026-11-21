@@ -153,6 +153,8 @@ Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Hai
 - **Ajuste a `bodyColumns`:** completo → sin medidor → solo el modelo → solo el sprite → nada. Se dibuja el mayor que cabe. Si quitar el esfuerzo no libera sitio, porque la línea del modelo es la más larga, el esfuerzo se va junto con el rótulo.
 - **Hook `AbovePrompt`:** solo dibuja la fila de model-meter (`e.plugin`) en la terminal, con lo que hay debajo (`next(e)`) a continuación. En cualquier otro caso pasa. No añade llamadas a `$`.
 
+**Sprites v2 (T-010), sustituyen a los de T-004:** 12×12 píxeles con 3 colores y transparencia (estilo NES), en 6 filas × 12 columnas de medias celdas de dos colores. Opus pasa a un cáliz con un rubí, Fable a un rollo de papiro griego, y Mythos (`claude-mythos-*`) tiene un casco alado. El rótulo dice `model` en vez de `player`. Decisiones del Maintainer, 2026-11-21.
+
 ### 3.3 `userConfig`
 
 | Campo | Tipo | Default |
