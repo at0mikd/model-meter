@@ -12,6 +12,13 @@ describe('parseModel', () => {
     ['claude-fable-5-2', 'fable', 'Fable 5.2'],
     ['claude-sonnet-5-5', 'sonnet', 'Sonnet 5.5'],
     ['claude-haiku-5-5', 'haiku', 'Haiku 5.5'],
+    // T-010: Mythos, with the ids of Anthropic's docs and Bedrock's preview.
+    ['claude-mythos-5', 'mythos', 'Mythos 5'],
+    ['claude-mythos-5-1', 'mythos', 'Mythos 5.1'],
+    ['claude-mythos-preview', 'mythos', 'Mythos preview'],
+    ['us.anthropic.claude-mythos-preview-v1:0', 'mythos', 'Mythos preview'],
+    ['claude-mythos-5-1[1m]', 'mythos', 'Mythos 5.1 1m'],
+    ['mythos', 'mythos', 'Mythos'],
     ['claude-sonnet-5-5[1m]', 'sonnet', 'Sonnet 5.5 1m'],
     ['CLAUDE-SONNET-5-5[1M]', 'sonnet', 'Sonnet 5.5 1m'],
     ['claude-opus-4-1-20250805', 'opus', 'Opus 4.1'],
@@ -48,6 +55,15 @@ describe('parseModel', () => {
       label: 'evil',
     })
     assert.deepEqual(parseModel('claude-opus'), { family: 'unknown', label: 'claude-opus' })
+    // A Mythos look-alike stays unknown: the same strict reading as every family.
+    for (const id of [
+      'claude-mythos-x',
+      'claude-mythos',
+      'claude-mythos-preview-2',
+      'claude-opus-preview',
+    ]) {
+      assert.equal(parseModel(id).family, 'unknown', id)
+    }
     assert.deepEqual(parseModel('claude-opus-123-4'), {
       family: 'unknown',
       label: 'claude-opus-123-',

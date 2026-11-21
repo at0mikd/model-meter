@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
 import { badgeState } from '../../plugins/model-meter/hooks/core/badge.ts'
-import type { Run } from '../../plugins/model-meter/hooks/core/badge.ts'
 import {
   BAND_VARIANTS,
   bandRows,
@@ -10,9 +9,9 @@ import {
   bandWidth,
   fitBand,
 } from '../../plugins/model-meter/hooks/core/band.ts'
-import type { BandRoom } from '../../plugins/model-meter/hooks/core/band.ts'
+import type { BandRoom, BandRow } from '../../plugins/model-meter/hooks/core/band.ts'
 import type { Placement } from '../../plugins/model-meter/hooks/core/options.ts'
-import { SPRITES } from '../../plugins/model-meter/hooks/core/sprite.ts'
+import { spriteRunsFor } from '../../plugins/model-meter/hooks/core/sprite.ts'
 
 // T-004 CA2: when the band shows. In auto it comes in at autoMinColumns (140)
 // and goes at under autoMinColumns − 20 (120); in between it keeps what it had.
@@ -96,44 +95,53 @@ describe('bandVisibility', () => {
   })
 })
 
-// T-004 CA4 (core): the band beside its sprite, and the largest size that fits
-// `bodyColumns`: the meter goes first, then the effort, then the label; with
-// no room even for the sprite, no band.
+// T-004 CA4 (core), with T-010's sprites and label: the band beside its
+// sprite, and the largest size that fits `bodyColumns`: the meter goes first,
+// then the effort, then the label; with no room even for the sprite, no band.
 describe('the band in each size', () => {
   const effort = { source: 'step', level: 'high' } as const
   const opus = badgeState({ model: { family: 'opus', label: 'Opus 5.5' }, effort })
-  const text = (rows: readonly (readonly Run[])[]) =>
-    rows.map((row) => row.map((run) => run.text).join(''))
+  const join = (runs: readonly { text: string }[]) => runs.map((run) => run.text).join('')
+  const sprite = (view: typeof opus) => spriteRunsFor(view).map(join)
+  const text = (rows: readonly BandRow[]) =>
+    rows.map(({ sprite, label }) => join([...sprite, ...label]))
 
-  test('the label beside the sprite, in lowercase but the model, centred on its rows', () => {
+  test('six rows: the sprite, and the label beside its two middle rows, in lowercase but the model', () => {
+    const [s0, s1, s2, s3, s4, s5] = sprite(opus)
     assert.deepEqual(text(bandRows(opus, 'full')), [
-      '█  ██  █',
-      '██▄██▄██  player Opus 5.5',
-      '█▀█▀▀█▀█  power  ▮▮▮▯▯ high',
-      '▀▀▀▀▀▀▀▀',
+      s0,
+      s1,
+      `${String(s2)}  model Opus 5.5`,
+      `${String(s3)}  power ▮▮▮▯▯ high`,
+      s4,
+      s5,
     ])
-    assert.deepEqual(text(bandRows(opus, 'noMeter')).slice(1, 3), [
-      '██▄██▄██  player Opus 5.5',
-      '█▀█▀▀█▀█  power  high',
+    assert.deepEqual(text(bandRows(opus, 'noMeter')).slice(2, 4), [
+      `${String(s2)}  model Opus 5.5`,
+      `${String(s3)}  power high`,
     ])
-    assert.deepEqual(text(bandRows(opus, 'modelOnly')).slice(1, 3), [
-      '██▄██▄██  player Opus 5.5',
-      '█▀█▀▀█▀█',
+    assert.deepEqual(text(bandRows(opus, 'modelOnly')).slice(2, 4), [
+      `${String(s2)}  model Opus 5.5`,
+      s3,
     ])
-    assert.deepEqual(text(bandRows(opus, 'sprite')), SPRITES.opus)
+    assert.deepEqual(text(bandRows(opus, 'sprite')), sprite(opus))
   })
 
-  test("painted as the footer's badge: the family's color, what is lit, the rest dim", () => {
-    const [, player, power] = bandRows(opus, 'full')
-    assert.deepEqual(player, [
-      { text: '██▄██▄██', paint: 'family' },
+  test("the sprite in its palette; the label painted as the footer's badge", () => {
+    const rows = bandRows(opus, 'full')
+    assert.deepEqual(
+      rows.map((row) => row.sprite),
+      spriteRunsFor(opus),
+    )
+    const [, , model, power] = rows
+    assert.deepEqual(model?.label, [
       { text: '  ', paint: 'dim' },
-      { text: 'player ', paint: 'dim' },
+      { text: 'model ', paint: 'dim' },
       { text: 'Opus 5.5', paint: 'family' },
     ])
-    assert.deepEqual(power?.slice(1), [
+    assert.deepEqual(power?.label, [
       { text: '  ', paint: 'dim' },
-      { text: 'power  ', paint: 'dim' },
+      { text: 'power ', paint: 'dim' },
       { text: '▮▮▮', paint: 'family' },
       { text: '▯▯', paint: 'dim' },
       { text: ' ', paint: 'dim' },
@@ -141,16 +149,17 @@ describe('the band in each size', () => {
     ])
   })
 
-  test('the off state: the unknown sprite and every part dimmed, nothing invented', () => {
+  test('the off state: the unknown sprite, dimmed, and every part of the label dimmed', () => {
     const off = badgeState({ model: null, effort: { source: 'unknown' } })
     const rows = bandRows(off, 'full')
-    assert.deepEqual(text(rows), [
-      ' █▀▀▀▀█ ',
-      ' █    █   player -----',
-      ' █▀██▀█   power  ░░░░░ ---',
-      ' ▀▀▀▀▀▀ ',
+    assert.deepEqual(text(rows).slice(2, 4), [
+      `${String(sprite(off)[2])}  model -----`,
+      `${String(sprite(off)[3])}  power ░░░░░ ---`,
     ])
-    assert.ok(rows.flat().every((run) => run.paint === 'dim'))
+    assert.ok(rows.flatMap((row) => row.label).every((run) => run.paint === 'dim'))
+    assert.ok(
+      rows.flatMap((row) => row.sprite).every((run) => run.text.trim() === '' || run.dimColor),
+    )
   })
 
   test('a custom effort has no meter: its full size is its size without one', () => {
@@ -161,16 +170,16 @@ describe('the band in each size', () => {
     assert.deepEqual(text(bandRows(custom, 'full')), text(bandRows(custom, 'noMeter')))
   })
 
-  test('each size is the sprite, two columns and its longest line', () => {
+  test('each size is the sprite (12), two columns and its longest line', () => {
     assert.deepEqual(BAND_VARIANTS, ['full', 'noMeter', 'modelOnly', 'sprite'])
-    assert.equal(bandWidth(opus, 'full'), 8 + 2 + 17) // power  ▮▮▮▯▯ high
-    assert.equal(bandWidth(opus, 'noMeter'), 8 + 2 + 15) // player Opus 5.5
-    assert.equal(bandWidth(opus, 'modelOnly'), 8 + 2 + 15)
-    assert.equal(bandWidth(opus, 'sprite'), 8)
+    assert.equal(bandWidth(opus, 'full'), 12 + 2 + 16) // power ▮▮▮▯▯ high
+    assert.equal(bandWidth(opus, 'noMeter'), 12 + 2 + 14) // model Opus 5.5
+    assert.equal(bandWidth(opus, 'modelOnly'), 12 + 2 + 14)
+    assert.equal(bandWidth(opus, 'sprite'), 12)
   })
 
   test('narrowing bodyColumns gives up the meter, then the effort and the label, then the band', () => {
-    const seen = [186, 90, 27, 26, 25, 24, 8, 7, 0].map((columns) => fitBand(opus, columns))
+    const seen = [186, 90, 30, 29, 28, 27, 12, 11, 0].map((columns) => fitBand(opus, columns))
     assert.deepEqual(seen, [
       'full',
       'full',
@@ -186,9 +195,9 @@ describe('the band in each size', () => {
 
   test('where the effort line is the longer one, dropping it shows the model alone', () => {
     const short = badgeState({ model: { family: 'unknown', label: 'x' }, effort })
-    // player x (8) under power  high (11): 21 without the meter, 18 with the model alone.
+    // model x (7) under power high (10): 24 without the meter, 21 with the model alone.
     assert.deepEqual(
-      [27, 22, 21, 20, 18, 17].map((columns) => fitBand(short, columns)),
+      [30, 25, 24, 23, 21, 20].map((columns) => fitBand(short, columns)),
       ['full', 'noMeter', 'noMeter', 'modelOnly', 'modelOnly', 'sprite'],
     )
   })

@@ -13,9 +13,9 @@ The backlog of the Reviewer–Builder workflow (`docs/WORKFLOW.md`). The Reviewe
 | [T-007](T-007-audit-expiry-warning.md) | Early warning on expiring exceptions, and a weekly audit | 1 | Done |
 | [T-008](T-008-ci-dependabot-names.md) | CI: Dependabot commits and a stable name for the mod job | 1 | Done |
 | [T-009](T-009-review-debts.md) | Review debts: measure what is drawn across the row, test the commitlint guard | 3 | Done |
-| [T-010](T-010-sprites-mythos.md) | High-quality 8-bit sprites (12×12, three colors) and the Mythos family | 4 | In review (#27) |
+| [T-010](T-010-sprites-mythos.md) | High-quality 8-bit sprites (12×12, three colors) and the Mythos family | 4 | Done |
 | T-011 | Palettes (`classic`, `gameboy`, `mono`) and `showEffortMeter` | 5 | Optional, later (not specified yet) |
-| [T-012](T-012-hardening-release.md) | Hardening and the v0.1.0 release | 6 | Ready (after T-010) |
+| [T-012](T-012-hardening-release.md) | Hardening and the v0.1.0 release | 6 | Ready |
 
 Task files up to T-010 were written in Spanish and are being translated (see `docs/README.md`).
 

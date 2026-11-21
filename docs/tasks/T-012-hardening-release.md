@@ -1,6 +1,6 @@
 # T-012 · Hardening and the v0.1.0 release
 
-- **Status:** Ready (after T-010, #27)
+- **Status:** Ready
 - **Branch:** `chore/T-012-hardening-release`
 - **Plan:** `docs/PLAN.md` §5 (threat model), §6 (quality gates), §8 phase 6; Maintainer's decision of 2026-11-21: phase 5 (palettes, `showEffortMeter`) is optional and left for later, and the first release is cut after T-010.
 

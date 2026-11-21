@@ -17,13 +17,11 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 | #24 | T-004: 8-bit band above the prompt and `auto` placement, with provisional sprites (`aa60f67`) |
 | #25 | T-010 specified: 12×12 three-color sprites, Mythos family, `model` label (`c3b8688`) |
 | #26 | Dependabot ignores major updates of `@types/node`, which stays on the oldest supported Node, 22 (`1c93ce3`); #8 closed |
+| #27 | T-010: 12×12 three-color sprites (chalice with a ruby, quill, mountain, papyrus scroll, winged helmet, cartridge) in fixed hex identity colors, the Mythos family and the `model` label (`71d4031`) |
 
 ## In progress
 
-- **T-010** (#27, in review):
-  - the sprites' identity colors are now fixed hex, after the Maintainer's screenshots showed the theme keys collapsing on an ANSI theme (the ruby vanished);
-  - the light detail keeps the theme key `text`;
-  - **pending:** new Maintainer screenshots of Opus and Fable, then approval of the new head.
+- **T-012** (Ready, Builder): hardening and the v0.1.0 release.
 - **Documentation in English** (Maintainer's decision, 2026-11-21):
   - public documents translated (README, CONTRIBUTING, SECURITY, Code of Conduct, issue and pull request templates, `CLAUDE.md`);
   - the Builder translates the mod's README and the changelog in T-010/T-012;
@@ -34,13 +32,12 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 
 | # | What | Who | Depends on |
 | --- | --- | --- | --- |
-| 1 | Close **T-010** (#27): screenshots, approval, merge | Maintainer → Reviewer | — |
-| 2 | **T-012:** hardening and the v0.1.0 release | Builder | T-010 |
-| 3 | Translate the internal documentation to English | Reviewer | — |
-| 4 | Enable Dependabot security updates, Secret Protection with push protection, and private vulnerability reporting (`REPO-SETTINGS.md` §3), before the release | Maintainer | — |
-| 5 | After T-012: tag ruleset for `v*`, then the signed tag `v0.1.0` | Maintainer | T-012 |
-| 6 | Decision A/B on Code-Review (Scorecard) | Maintainer | — |
-| 7 | Delete the old branches (below) | Maintainer | — |
+| 1 | **T-012:** hardening and the v0.1.0 release | Builder | — |
+| 2 | Translate the internal documentation to English | Reviewer | — |
+| 3 | Enable Dependabot security updates, Secret Protection with push protection, and private vulnerability reporting (`REPO-SETTINGS.md` §3), before the release | Maintainer | — |
+| 4 | After T-012: tag ruleset for `v*`, then the signed tag `v0.1.0` | Maintainer | T-012 |
+| 5 | Decision A/B on Code-Review (Scorecard) | Maintainer | — |
+| 6 | Delete the old branches (below) | Maintainer | — |
 | — | **Phase 5, optional, later:** palettes and `showEffortMeter` (T-011, not specified) | Reviewer | Maintainer's call |
 
 **Old branches.** There are 10 branches that were merged or replaced. Each head matches its pull request's, so nothing is lost:
