@@ -152,7 +152,11 @@ Sprite 8-bit por familia (Opus / Sonnet / Haiku / Fable / Mythos / desconocido) 
 
 - **Sprites** (`hooks/core/sprite.ts`): cuadrículas de 12×12 píxeles (`GRIDS`), copiadas tal cual de T-010, con 3 ranuras de color y transparencia, al estilo NES. Se dibujan como 6 filas de 12 celdas.
   - Opus es un cáliz con un rubí, Sonnet una pluma, Haiku una montaña con sol, Fable un rollo de papiro griego, Mythos un casco alado y el desconocido un cartucho vacío.
-  - Cada familia tiene su paleta (`PALETTES`), solo con claves del tema y con el color de la familia en la ranura 1: Opus `claude`, `warning` y `error` (el rubí); Sonnet `suggestion`, `warning` y `text`; Haiku `success`, `warning` y `text`; Fable `merged`, `claude` y `text`; Mythos `planMode`, `warning` y `text`.
+  - Cada familia tiene su paleta (`PALETTES`):
+    - **Colores de identidad fijos** (`#rrggbb`), para que el sprite se vea como en el diseño con cualquier tema. Con temas que siguen la paleta ANSI de la terminal, las claves colisionaban: `claude` y `error` salían iguales y `warning` salía lima. Lo decidió el Maintainer en la revisión del #27, el 2026-11-21.
+    - El detalle claro (ranura 3) sigue con la clave `text`, que es clara en el tema oscuro y oscura en el claro.
+    - Los valores: Opus `#d77757`, `#f2c94c` y `#e0115f` (el rubí); Sonnet `#b1b9f9`, `#f2c94c` y `text`; Haiku `#4eba65`, `#f2c94c` y `text`; Fable `#af87ff`, `#d77757` y `text`; Mythos `#48968c`, `#f2c94c` y `text`.
+    - El pie y el rótulo siguen con las claves del tema (`familyColor`).
   - El desconocido va atenuado entero, y sirve también para el estado «desactivado» (§3.1.1).
 - **De píxeles a celdas** (`cellOf`, `spriteRuns`), una función pura: dos filas de píxeles dan una fila de celdas.
   - Dos píxeles de colores distintos dan `▀`, con `color` arriba y `backgroundColor` abajo; dos del mismo color, `█`.

@@ -43,7 +43,7 @@ Además del pie, puede mostrar encima del prompt una banda con un sprite de la f
   ▄██████▄
 ```
 
-- **Un sprite 8-bit original por familia**, de 12×12 píxeles en 3 colores del tema (6 filas por 12 columnas de medias celdas): un cáliz con un rubí (Opus), una pluma (Sonnet), una montaña con sol (Haiku), un rollo de papiro griego (Fable) y un casco alado (Mythos). Un modelo desconocido, o lo que aún no se ha leído, muestra un cartucho vacío atenuado. Los colores siguen tu tema de Claude Code.
+- **Un sprite 8-bit original por familia**, de 12×12 píxeles en 3 colores (6 filas por 12 columnas de medias celdas): un cáliz con un rubí (Opus), una pluma (Sonnet), una montaña con sol (Haiku), un rollo de papiro griego (Fable) y un casco alado (Mythos). Un modelo desconocido, o lo que aún no se ha leído, muestra un cartucho vacío atenuado. Cada sprite tiene sus colores fijos, para verse igual con cualquier tema. Solo los detalles claros siguen el color de texto del tema. El nombre del modelo y el pie usan los colores del tema.
 - **El rótulo,** `model` y `power`, en minúscula salvo el nombre del modelo, con las mismas piezas que la insignia del pie, también «apagadas» cuando falta algo.
 - **Se ajusta al ancho de la banda:** pierde primero el medidor, después el esfuerzo y el rótulo, y al final la banda entera.
 - **Cede el sitio** a las encuestas del motor y no aparece con menos de 6 filas libres. Se puede plegar con `[-]` como cualquier fila de la banda.

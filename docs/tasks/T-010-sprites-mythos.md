@@ -19,7 +19,7 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 ## Datos de partida
 
 - **Media celda con dos colores.** Una celda de la terminal es `▀` con `color` (píxel de arriba) y `backgroundColor` (píxel de abajo). `Text` admite las dos props, según los tipos de la CLI 2.1.327. Una celda con un solo píxel usa `▀` o `▄` sin fondo; una vacía, un espacio.
-- **Colores:** solo claves del tema (`ThemeKey`), nunca colores crudos, para que sigan al tema de la persona.
+- **Colores:** colores de identidad fijos (hex) y detalle claro con la clave `text`, por decisión del Maintainer del 2026-11-21: en temas que siguen la paleta ANSI, las claves colisionaban.
   - `text` es claro en el tema oscuro y oscuro en el claro. Por eso los diseños lo usan solo en **detalles finos**: brillos, la nieve, las líneas del libro, el filo del casco.
   - Las superficies grandes van en el color de la familia o en el de acento.
   - Vista previa con los dos temas: [`docs/assets/sprites-v2-preview.png`](../assets/sprites-v2-preview.png).
@@ -49,15 +49,17 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 
 **No entra:** paletas configurables, animaciones y cambios en el pie, salvo reconocer Mythos.
 
-### Paleta por sprite (claves del tema)
+### Paleta por sprite (colores fijos y `text`)
+
+Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identidad son hex fijos, en minúscula y con el formato `#rrggbb`. La ranura 3 sigue siendo la clave `text`, salvo el rubí de Opus.
 
 | Familia | Motivo | `1` | `2` | `3` |
 | --- | --- | --- | --- | --- |
-| Opus | cáliz con rubí | `claude` | `warning` | `error` (el rubí) |
-| Sonnet | pluma | `suggestion` | `warning` | `text` |
-| Haiku | montaña con sol | `success` | `warning` | `text` |
-| Fable | rollo de papiro griego | `merged` (papiro) | `claude` (rodillos) | `text` (texto y brillo de los rodillos) |
-| Mythos | casco alado | `planMode` | `warning` | `text` |
+| Opus | cáliz con rubí | `#d77757` (copa) | `#f2c94c` (oro) | `#e0115f` (el rubí) |
+| Sonnet | pluma | `#b1b9f9` | `#f2c94c` | `text` |
+| Haiku | montaña con sol | `#4eba65` | `#f2c94c` | `text` |
+| Fable | rollo de papiro griego | `#af87ff` (papiro) | `#d77757` (rodillos) | `text` (texto y brillo de los rodillos) |
+| Mythos | casco alado | `#48968c` | `#f2c94c` | `text` |
 | desconocido | cartucho vacío | atenuado | atenuado | atenuado |
 
 ### Cuadrículas
@@ -188,7 +190,7 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 
 ## Restricciones de seguridad
 
-- Los sprites y la paleta son constantes del código. Solo se usan claves del tema, nunca colores crudos.
+- Los sprites y la paleta son constantes del código: hex fijos y la clave `text`, que el motor traduce a la terminal. Nunca se escriben secuencias de escape propias, y ningún color depende de una entrada.
 - No hay llamadas nuevas a `$` ni dependencias nuevas.
 - Mythos se reconoce con la misma validación estricta de IDs que las demás familias: cualquier otro texto sigue siendo desconocido y se sanitiza igual.
 
