@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { badgeState, familyColor } from '../../plugins/model-meter/hooks/core/badge.ts'
+import { badgeState } from '../../plugins/model-meter/hooks/core/badge.ts'
 import { widthOf } from '../../plugins/model-meter/hooks/core/layout.ts'
 import { FAMILIES } from '../../plugins/model-meter/hooks/core/model.ts'
 import {
@@ -203,18 +203,61 @@ describe('the 12×12 sprites', () => {
     })
   })
 
-  test("the palettes are the task's: theme keys only, the family's first; the unknown one dim", () => {
+  // Review of #27 (Maintainer, 2026-11-21): in themes that follow the terminal's
+  // ANSI palette the theme keys collided (claude and error alike, warning lime),
+  // so each sprite's identity colors are fixed; the light detail stays `text`.
+  test("the palettes are the Maintainer's: fixed colors, the theme's text for detail; the unknown one dim", () => {
     assert.deepEqual(PALETTES, {
-      opus: { kind: 'theme', slots: ['claude', 'warning', 'error'] },
-      sonnet: { kind: 'theme', slots: ['suggestion', 'warning', 'text'] },
-      haiku: { kind: 'theme', slots: ['success', 'warning', 'text'] },
-      fable: { kind: 'theme', slots: ['merged', 'claude', 'text'] },
-      mythos: { kind: 'theme', slots: ['planMode', 'warning', 'text'] },
+      opus: { kind: 'theme', slots: ['#d77757', '#f2c94c', '#e0115f'] },
+      sonnet: { kind: 'theme', slots: ['#b1b9f9', '#f2c94c', 'text'] },
+      haiku: { kind: 'theme', slots: ['#4eba65', '#f2c94c', 'text'] },
+      fable: { kind: 'theme', slots: ['#af87ff', '#d77757', 'text'] },
+      mythos: { kind: 'theme', slots: ['#48968c', '#f2c94c', 'text'] },
       unknown: { kind: 'dim' },
     })
-    for (const family of FAMILIES) {
-      const palette = PALETTE_OF.get(family)
-      assert.equal(palette?.kind === 'theme' ? palette.slots[0] : undefined, familyColor(family))
+  })
+
+  test('every color is a lowercase #rrggbb, or a theme key the CLI knows', () => {
+    // RenderPropsOf's ThemeKey in the CLI's types (2.1.327 and later).
+    const THEME_KEYS = [
+      'text',
+      'inverseText',
+      'inactive',
+      'subtle',
+      'suggestion',
+      'remember',
+      'success',
+      'error',
+      'warning',
+      'merged',
+      'claude',
+      'permission',
+      'planMode',
+      'autoAccept',
+      'promptBorder',
+      'bashBorder',
+      'ide',
+      'diffAdded',
+      'diffRemoved',
+      'diffAddedDimmed',
+      'diffRemovedDimmed',
+      'diffAddedWord',
+      'diffRemovedWord',
+    ]
+    for (const [family, palette] of Object.entries(PALETTES)) {
+      if (palette.kind !== 'theme') continue
+      for (const slot of palette.slots) {
+        assert.ok(/^#[0-9a-f]{6}$/.test(slot) || THEME_KEYS.includes(slot), `${family}: ${slot}`)
+      }
+    }
+  })
+
+  test("Opus's ruby is not its cup's color, and each sprite's three slots differ", () => {
+    const opus = PALETTE_OF.get('opus')
+    assert.ok(opus?.kind === 'theme')
+    assert.notEqual(opus.slots[2], opus.slots[0])
+    for (const [family, palette] of Object.entries(PALETTES)) {
+      if (palette.kind === 'theme') assert.equal(new Set(palette.slots).size, 3, family)
     }
   })
 

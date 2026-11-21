@@ -756,11 +756,14 @@ describe('the band above the prompt (T-004 CA4)', () => {
         expect(rowsOf(drawn)).toEqual(OPUS_HIGH)
         expect(await ui.keepsBeneath()).toBe(true)
         const texts = textsOf(drawn)
-        // The ruby, gold around it, and two-color cells: gold over the cup.
-        expect(texts.some(({ text, props }) => text === '██' && props.color === 'error')).toBe(true)
+        // The ruby in its fixed color, and two-color cells: the cup over the gold
+        // (review of #27: fixed colors, so the sprite looks as designed in any theme).
+        expect(texts.some(({ text, props }) => text === '██' && props.color === '#e0115f')).toBe(
+          true,
+        )
         expect(
           texts.some(
-            ({ props }) => props.color === 'claude' && props.backgroundColor === 'warning',
+            ({ props }) => props.color === '#d77757' && props.backgroundColor === '#f2c94c',
           ),
         ).toBe(true)
       }

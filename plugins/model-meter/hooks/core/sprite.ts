@@ -1,14 +1,15 @@
 // The band's sprites (docs/PLAN.md §3.2; T-010): one per family and one for
 // an unknown model, original 8-bit designs of 12×12 pixels in three colors
 // and transparency, drawn as 6 rows of 12 half-block cells. Constants of the
-// code in theme keys only: nothing in them comes from the engine or the person.
+// code: nothing in them comes from the engine or the person.
 
 import type { BadgeView } from './badge.ts'
 import type { Family } from './model.ts'
 
 /**
- * How a sprite's three color slots are drawn: three theme keys (never raw
- * colors, so they follow the person's theme), or the off look, every pixel dim.
+ * How a sprite's three color slots are drawn: three colors the engine turns
+ * into the terminal's (a fixed `#rrggbb` or a theme key; never an escape
+ * sequence of ours), or the off look, every pixel dim.
  */
 export type Palette =
   | { readonly kind: 'theme'; readonly slots: readonly [string, string, string] }
@@ -207,13 +208,20 @@ export const GRIDS: Readonly<Record<Family, readonly string[]>> = Object.freeze(
 const theme = (one: string, two: string, three: string): Palette =>
   Object.freeze({ kind: 'theme', slots: Object.freeze([one, two, three] as const) })
 
-/** Each sprite's slots, theme keys only; the family's color first. The unknown one is dim. */
+/**
+ * Each sprite's slots. The identity colors are fixed, so a sprite looks as
+ * designed whatever the theme: in themes that follow the terminal's ANSI
+ * palette the theme keys collided (claude and error alike, warning lime).
+ * The light detail, slot 3, stays the theme's `text`, which is light on dark
+ * and dark on light; Opus's ruby aside. The unknown one is dim. Maintainer's
+ * decision, 2026-11-21 (review of #27).
+ */
 export const PALETTES: Readonly<Record<Family, Palette>> = Object.freeze({
-  opus: theme('claude', 'warning', 'error'),
-  sonnet: theme('suggestion', 'warning', 'text'),
-  haiku: theme('success', 'warning', 'text'),
-  fable: theme('merged', 'claude', 'text'),
-  mythos: theme('planMode', 'warning', 'text'),
+  opus: theme('#d77757', '#f2c94c', '#e0115f'), // cup, gold, ruby
+  sonnet: theme('#b1b9f9', '#f2c94c', 'text'),
+  haiku: theme('#4eba65', '#f2c94c', 'text'),
+  fable: theme('#af87ff', '#d77757', 'text'), // papyrus, rollers, writing
+  mythos: theme('#48968c', '#f2c94c', 'text'),
   unknown: Object.freeze({ kind: 'dim' }),
 })
 
