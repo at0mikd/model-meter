@@ -1,14 +1,19 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { badgeState } from '../../plugins/model-meter/hooks/core/badge.ts'
+import { badgeState, familyColor } from '../../plugins/model-meter/hooks/core/badge.ts'
 import { widthOf } from '../../plugins/model-meter/hooks/core/layout.ts'
+import { FAMILIES } from '../../plugins/model-meter/hooks/core/model.ts'
 import {
+  GRIDS,
+  PALETTES,
   SPRITES,
+  SPRITE_CELLS,
   SPRITE_SIZE,
   cellOf,
   spriteFor,
   spriteRuns,
+  spriteRunsFor,
 } from '../../plugins/model-meter/hooks/core/sprite.ts'
 import type { Palette } from '../../plugins/model-meter/hooks/core/sprite.ts'
 
@@ -139,5 +144,160 @@ describe('spriteRuns', () => {
       [{ text: '▀▄', color: 'claude' }],
       [{ text: '▀▀', color: 'warning' }],
     ])
+  })
+})
+
+// T-010 CA2: the 12×12 sprites of the task, as they are, and their palettes.
+describe('the 12×12 sprites', () => {
+  const BY_FAMILY = new Map(Object.entries(GRIDS))
+  const PALETTE_OF = new Map(Object.entries(PALETTES))
+  const FAMILIES_AND_UNKNOWN = ['opus', 'sonnet', 'haiku', 'fable', 'mythos', 'unknown'] as const
+
+  test('one per family and the unknown one, each 12 rows of 12 pixels: 6 rows of 12 cells', () => {
+    assert.deepEqual(Object.keys(GRIDS).sort(), [...FAMILIES_AND_UNKNOWN].sort())
+    assert.deepEqual(SPRITE_CELLS, { rows: 6, columns: 12 })
+    for (const [family, grid] of Object.entries(GRIDS)) {
+      assert.equal(grid.length, 12, family)
+      for (const row of grid) assert.equal(row.length, 12, `${family}: "${row}"`)
+      const drawn = spriteRuns(grid, { kind: 'dim' })
+      assert.equal(drawn.length, SPRITE_CELLS.rows, family)
+      for (const row of drawn) {
+        assert.equal(widthOf(row.map((run) => run.text).join('')), SPRITE_CELLS.columns, family)
+      }
+    }
+  })
+
+  test('three color slots at most, and transparency', () => {
+    for (const [family, grid] of Object.entries(GRIDS)) {
+      for (const row of grid) assert.match(row, /^[.123]{12}$/, `${family}: "${row}"`)
+    }
+  })
+
+  test('the six differ from one another', () => {
+    assert.equal(new Set(Object.values(GRIDS).map((grid) => grid.join('\n'))).size, 6)
+  })
+
+  test("the grids are the task's, pixel for pixel", () => {
+    assert.deepEqual(GRIDS, {
+      opus: [
+        '............',
+        '.2222222222.',
+        '.2112332112.',
+        '.2112332112.',
+        '..21122112..',
+        '...222222...',
+        '.....22.....',
+        '.....22.....',
+        '....2222....',
+        '.....22.....',
+        '...222222...',
+        '..22222222..',
+      ],
+      sonnet: [
+        '........111.',
+        '.......11113',
+        '......1.113.',
+        '.....11113..',
+        '....1.113...',
+        '...11113....',
+        '...1.13.....',
+        '...113......',
+        '....3.......',
+        '...3........',
+        '..22........',
+        '.2..........',
+      ],
+      haiku: [
+        '......2..2..',
+        '.......22...',
+        '......2222..',
+        '......2222..',
+        '.......22...',
+        '....3.2..2..',
+        '...333......',
+        '..33133.....',
+        '..1111113.3.',
+        '.11111111313',
+        '.11111111111',
+        '111111111111',
+      ],
+      fable: [
+        '............',
+        '.2........2.',
+        '232111111232',
+        '231111111132',
+        '231313313132',
+        '231111111132',
+        '231331331132',
+        '231111111132',
+        '231313133132',
+        '232111111232',
+        '.2........2.',
+        '............',
+      ],
+      mythos: [
+        '....2222....',
+        '...222222...',
+        '...111111...',
+        '..13333331..',
+        '2.11111111.2',
+        '221......122',
+        '2.111..111.2',
+        '.2111..1112.',
+        '..111..111..',
+        '...11..11...',
+        '............',
+        '............',
+      ],
+      unknown: [
+        '............',
+        '.1111111111.',
+        '.1333333331.',
+        '.13......31.',
+        '.13......31.',
+        '.1333333331.',
+        '.1111111111.',
+        '.1.1.11.1.1.',
+        '.1111111111.',
+        '............',
+        '............',
+        '............',
+      ],
+    })
+  })
+
+  test("the palettes are the task's: theme keys only, the family's first; the unknown one dim", () => {
+    assert.deepEqual(PALETTES, {
+      opus: { kind: 'theme', slots: ['claude', 'warning', 'error'] },
+      sonnet: { kind: 'theme', slots: ['suggestion', 'warning', 'text'] },
+      haiku: { kind: 'theme', slots: ['success', 'warning', 'text'] },
+      fable: { kind: 'theme', slots: ['merged', 'claude', 'text'] },
+      mythos: { kind: 'theme', slots: ['planMode', 'warning', 'text'] },
+      unknown: { kind: 'dim' },
+    })
+    for (const family of FAMILIES) {
+      const palette = PALETTE_OF.get(family)
+      assert.equal(palette?.kind === 'theme' ? palette.slots[0] : undefined, familyColor(family))
+    }
+  })
+
+  test("spriteFor: a known model's sprite in its palette; the unknown one dimmed otherwise", () => {
+    const effort = { source: 'step', level: 'high' } as const
+    for (const family of FAMILIES) {
+      const view = badgeState({ model: { family, label: 'X 1' }, effort })
+      const grid = BY_FAMILY.get(family) ?? []
+      const palette = PALETTE_OF.get(family) ?? { kind: 'dim' }
+      assert.deepEqual(spriteRunsFor(view), spriteRuns(grid, palette), family)
+    }
+    const dimmed = spriteRuns(GRIDS.unknown, { kind: 'dim' })
+    const off = badgeState({ model: null, effort: { source: 'unknown' } })
+    assert.equal(off.state, 'disabled')
+    assert.deepEqual(spriteRunsFor(off), dimmed)
+    const stranger = badgeState({ model: { family: 'unknown', label: 'mystery' }, effort })
+    assert.deepEqual(spriteRunsFor(stranger), dimmed)
+    assert.ok(
+      dimmed.flat().every((run) => run.text.trim() === '' || run.dimColor === true),
+      'every pixel of the unknown sprite is dim',
+    )
   })
 })

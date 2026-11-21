@@ -218,3 +218,152 @@ export function spriteFor(view: BadgeView): Sprite {
   const { enabled, family } = view.model
   return { rows: spriteOf(enabled ? family : null), paint: enabled ? 'family' : 'dim' }
 }
+
+// T-010: 12×12 sprites in three colors and transparency, as the Maintainer
+// chose them (docs/tasks/T-010-sprites-mythos.md): `.` is transparent, `1`,
+// `2` and `3` the palette's slots. Each draws as 6 rows of 12 cells.
+
+/** The size of every T-010 sprite in cells of the terminal. */
+export const SPRITE_CELLS = Object.freeze({ rows: 6, columns: 12 })
+
+/** Opus: a chalice with a ruby set in gold. */
+const CHALICE = [
+  '............',
+  '.2222222222.',
+  '.2112332112.',
+  '.2112332112.',
+  '..21122112..',
+  '...222222...',
+  '.....22.....',
+  '.....22.....',
+  '....2222....',
+  '.....22.....',
+  '...222222...',
+  '..22222222..',
+]
+/** Sonnet: a quill. */
+const QUILL_12 = [
+  '........111.',
+  '.......11113',
+  '......1.113.',
+  '.....11113..',
+  '....1.113...',
+  '...11113....',
+  '...1.13.....',
+  '...113......',
+  '....3.......',
+  '...3........',
+  '..22........',
+  '.2..........',
+]
+/** Haiku: a mountain under the sun. */
+const MOUNTAIN_12 = [
+  '......2..2..',
+  '.......22...',
+  '......2222..',
+  '......2222..',
+  '.......22...',
+  '....3.2..2..',
+  '...333......',
+  '..33133.....',
+  '..1111113.3.',
+  '.11111111313',
+  '.11111111111',
+  '111111111111',
+]
+/** Fable: a Greek papyrus scroll, as Aesop's fables were. */
+const SCROLL = [
+  '............',
+  '.2........2.',
+  '232111111232',
+  '231111111132',
+  '231313313132',
+  '231111111132',
+  '231331331132',
+  '231111111132',
+  '231313133132',
+  '232111111232',
+  '.2........2.',
+  '............',
+]
+/** Mythos: a winged helmet. */
+const HELMET = [
+  '....2222....',
+  '...222222...',
+  '...111111...',
+  '..13333331..',
+  '2.11111111.2',
+  '221......122',
+  '2.111..111.2',
+  '.2111..1112.',
+  '..111..111..',
+  '...11..11...',
+  '............',
+  '............',
+]
+/** Unknown: an empty cartridge, like the off look of the badge (§3.1.1). */
+const CARTRIDGE_12 = [
+  '............',
+  '.1111111111.',
+  '.1333333331.',
+  '.13......31.',
+  '.13......31.',
+  '.1333333331.',
+  '.1111111111.',
+  '.1.1.11.1.1.',
+  '.1111111111.',
+  '............',
+  '............',
+  '............',
+]
+
+export const GRIDS: Readonly<Record<Family, readonly string[]>> = Object.freeze({
+  opus: CHALICE,
+  sonnet: QUILL_12,
+  haiku: MOUNTAIN_12,
+  fable: SCROLL,
+  mythos: HELMET,
+  unknown: CARTRIDGE_12,
+})
+
+const theme = (one: string, two: string, three: string): Palette =>
+  Object.freeze({ kind: 'theme', slots: Object.freeze([one, two, three] as const) })
+
+/** Each sprite's slots, theme keys only; the family's color first. The unknown one is dim. */
+export const PALETTES: Readonly<Record<Family, Palette>> = Object.freeze({
+  opus: theme('claude', 'warning', 'error'),
+  sonnet: theme('suggestion', 'warning', 'text'),
+  haiku: theme('success', 'warning', 'text'),
+  fable: theme('merged', 'claude', 'text'),
+  mythos: theme('planMode', 'warning', 'text'),
+  unknown: Object.freeze({ kind: 'dim' }),
+})
+
+/** A known family's grid and palette; the unknown ones for anything else. */
+function lookOf12(family: Family | null): { grid: readonly string[]; palette: Palette } {
+  switch (family) {
+    case 'opus':
+      return { grid: GRIDS.opus, palette: PALETTES.opus }
+    case 'sonnet':
+      return { grid: GRIDS.sonnet, palette: PALETTES.sonnet }
+    case 'haiku':
+      return { grid: GRIDS.haiku, palette: PALETTES.haiku }
+    case 'fable':
+      return { grid: GRIDS.fable, palette: PALETTES.fable }
+    case 'mythos':
+      return { grid: GRIDS.mythos, palette: PALETTES.mythos }
+    default:
+      return { grid: GRIDS.unknown, palette: PALETTES.unknown }
+  }
+}
+
+/**
+ * The sprite for what the badge knows, as rows of runs: a known model's in
+ * its family's palette; the unknown one, dimmed, for a model of no known
+ * family and for the off state, as the badge dims its name.
+ */
+export function spriteRunsFor(view: BadgeView): SpriteRun[][] {
+  const { enabled, family } = view.model
+  const { grid, palette } = lookOf12(enabled ? family : null)
+  return spriteRuns(grid, palette)
+}
