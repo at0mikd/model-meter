@@ -86,13 +86,15 @@ const halfBlocks = (pixels: readonly string[]): readonly string[] =>
     ),
   )
 
-export const SPRITES: Readonly<Record<Family, readonly string[]>> = Object.freeze({
-  opus: halfBlocks(CROWN),
-  sonnet: halfBlocks(QUILL),
-  haiku: halfBlocks(MOUNTAIN),
-  fable: halfBlocks(BOOK),
-  unknown: halfBlocks(CARTRIDGE),
-})
+// Mythos has no sprite of its own yet: it draws as unknown until T-010's sprites land.
+export const SPRITES: Readonly<Record<Exclude<Family, 'mythos'>, readonly string[]>> =
+  Object.freeze({
+    opus: halfBlocks(CROWN),
+    sonnet: halfBlocks(QUILL),
+    haiku: halfBlocks(MOUNTAIN),
+    fable: halfBlocks(BOOK),
+    unknown: halfBlocks(CARTRIDGE),
+  })
 
 export interface Sprite {
   rows: readonly string[]

@@ -6,10 +6,10 @@
 
 import { sanitize } from './sanitize.js'
 
-export type Family = 'opus' | 'sonnet' | 'haiku' | 'fable' | 'unknown'
+export type Family = 'opus' | 'sonnet' | 'haiku' | 'fable' | 'mythos' | 'unknown'
 
 /** The families the badge knows, without `unknown`. */
-export const FAMILIES = Object.freeze(['opus', 'sonnet', 'haiku', 'fable'] as const)
+export const FAMILIES = Object.freeze(['opus', 'sonnet', 'haiku', 'fable', 'mythos'] as const)
 
 export interface ModelView {
   family: Family
@@ -24,6 +24,8 @@ const nameOf = (family: Known): string => family.charAt(0).toUpperCase() + famil
 const isKnown = (value: string): value is Known => (FAMILIES as readonly string[]).includes(value)
 const isVersion = (value: string): boolean => /^\d{1,2}$/.test(value)
 
+/** Mythos's preview on Bedrock, the only known id without a version number. */
+const PREVIEW = 'preview'
 /** `[1m]` → `1m`: the context window suffix, when there is one. */
 const CONTEXT = /\[(\d{1,3}[km])\]$/
 /** Cloud wrappers: Bedrock `us.anthropic.` and `-v1:0`, Vertex `@20250805`, and dates. */
@@ -45,6 +47,8 @@ function familyAndVersion(name: string): { family: Known; version: string[] } | 
   const [prefix, ...parts] = name.split('-')
   if (prefix !== 'claude' || parts.length < 2 || parts.length > 3) return undefined
   const [first, ...rest] = parts as [string, ...string[]]
+  // Bedrock's `claude-mythos-preview`: the one id with a word in place of a version.
+  if (first === 'mythos' && rest.join('-') === PREVIEW) return { family: first, version: [PREVIEW] }
   if (isKnown(first) && rest.every(isVersion)) return { family: first, version: rest }
   const last = parts.slice(-1).join('')
   const numbers = parts.slice(0, -1)
