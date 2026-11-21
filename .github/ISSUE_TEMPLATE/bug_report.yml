@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in the mod does not work as described.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for the report. For a **security** issue, do not use this form:
+        follow SECURITY.md and use private vulnerability reporting.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      placeholder: |
+        1. Open Claude Code in a terminal 95 columns wide
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: model-meter version and the output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and theme
+      description: For example Ghostty with a dark theme; other footer mods you use (sub-meter…).
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: >-
+        A screenshot of the footer or band helps a lot. Make sure it shows no
+        private data (paths, prompts, tokens).

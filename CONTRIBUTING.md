@@ -1,39 +1,56 @@
-# Cómo contribuir
+# Contributing
 
-El proyecto sigue el flujo **Reviewer–Builder** descrito en [`docs/WORKFLOW.md`](docs/WORKFLOW.md): léelo antes de empezar. El plan y las decisiones de diseño están en [`docs/PLAN.md`](docs/PLAN.md) y el trabajo pendiente en [`docs/tasks/`](docs/tasks/).
+Thanks for your interest in model-meter. The project follows the **Reviewer–Builder** workflow described in [`docs/WORKFLOW.md`](docs/WORKFLOW.md); please read it before you start. The design and its decisions are in [`docs/PLAN.md`](docs/PLAN.md), and the work ahead is in [`docs/tasks/`](docs/tasks/).
 
-## Requisitos
+## Ways to contribute
 
-- Node.js 22.15 o posterior (los tests del núcleo usan `module.registerHooks`; el mod en sí corre en el motor de Claude Code).
-- Claude Code ≥ 2.1.327 (la CLI `claude`) para los gates del mod.
+- **Report a bug or suggest an idea:** open an issue with one of the templates.
+- **Report a vulnerability:** never in a public issue. Follow [`SECURITY.md`](SECURITY.md).
+- **Code:**
+  - every change starts from a task in `docs/tasks/` with the status `Ready`;
+  - if you want to work on something that has no task yet, open an issue first, so it can be specified.
 
-## Puesta en marcha
+## Requirements
+
+- Node.js 22.15 or later. The core tests use `module.registerHooks`; the mod itself runs inside Claude Code's engine.
+- Claude Code 2.1.327 or later (the `claude` CLI) for the mod's gates.
+
+## Getting started
 
 ```bash
 npm ci --ignore-scripts
-npm run check        # todos los gates (necesita la CLI claude)
-npm run check:core   # los que no necesitan la CLI
+npm run check        # every gate (needs the claude CLI)
+npm run check:core   # the gates that do not need the CLI
 ```
 
-| Script | Qué comprueba |
+| Script | What it checks |
 | --- | --- |
-| `typecheck` | Núcleo puro y scripts con TypeScript estricto |
-| `lint` | ESLint (`strict-type-checked` + `eslint-plugin-security`), 0 avisos |
+| `typecheck` | The pure core and the scripts, with strict TypeScript |
+| `lint` | ESLint (`strict-type-checked` and `eslint-plugin-security`), zero warnings |
 | `format:check` | Prettier |
-| `test:node` | Tests `node --test` (núcleo en `test/`, scripts en `scripts/`) con cobertura ≥ 95 % (`c8`) |
-| `commitlint` | Conventional Commits en los commits de la rama |
-| `validate` | `claude plugin validate --strict` del mod y del marketplace |
-| `test:mod` | `claude plugin test` del mod |
-| `audit` | `npm audit` sin avisos salvo las excepciones aprobadas y vigentes de `security/audit-exceptions.json` |
-| `capabilities` | El mod solo usa las capacidades permitidas y sus hooks dejan pasar los eventos |
+| `test:node` | `node --test` tests (core in `test/`, scripts in `scripts/`), with coverage ≥ 95% (`c8`) |
+| `commitlint` | Conventional Commits on the branch's commits |
+| `validate` | `claude plugin validate --strict` of the mod and the marketplace |
+| `test:mod` | `claude plugin test` of the mod |
+| `audit` | `npm audit` with no advisories beyond the approved, unexpired exceptions in `security/audit-exceptions.json` |
+| `capabilities` | The mod uses only the allowed capabilities, and its hooks let events through |
 
-## Normas
+## Conventions
 
-- Un PR por tarea, contra `main`, con la plantilla completa y evidencia real.
-- TDD: test que falla → implementación mínima → refactor.
-- Commits en [Conventional Commits](https://www.conventionalcommits.org/).
-- Sin dependencias en tiempo de ejecución; las de desarrollo, con versión exacta.
-- Documentación en español; identificadores y comentarios del código en inglés.
-- Nada de secretos, rutas personales ni datos privados en código, fixtures, logs o evidencia.
+- **One task, one branch from `main`, one pull request.** Fill in the template with real evidence: command output, not summaries.
+- **TDD:** a failing test first, then the minimal implementation, then the refactor.
+- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/), with a lowercase subject after the type, e.g. `fix(core): measure the hint as drawn`.
+- **Dependencies:** no runtime dependencies. Development dependencies use exact versions.
+- **Language:**
+  - documentation, comments and identifiers in English;
+  - user-facing text in the terminal stays lowercase, except the model's name.
+- **Never commit** secrets, personal paths or private data, in code, fixtures, logs or evidence.
+- **Signed commits** are recommended on branches. `main` only receives squash merges, which GitHub signs.
 
-Para informar de una vulnerabilidad, sigue [`SECURITY.md`](SECURITY.md).
+## Review and merge
+
+- **Review:** every pull request is reviewed against its task's acceptance criteria.
+- **Merge:** only once all 12 required checks are green and the Maintainer has approved that exact commit.
+- **Details:** severity labels and the merge rules are in [`docs/WORKFLOW.md`](docs/WORKFLOW.md) §6.
+
+By contributing, you agree that your work is released under the [MIT License](LICENSE) and that you will follow the [Code of Conduct](CODE_OF_CONDUCT.md).
