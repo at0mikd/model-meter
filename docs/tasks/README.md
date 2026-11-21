@@ -13,7 +13,7 @@ Backlog del flujo Reviewer–Builder (`docs/WORKFLOW.md`). El Reviewer las escri
 | [T-007](T-007-audit-expiry-warning.md) | Aviso anticipado de caducidad de excepciones y auditoría semanal | 1 | Done |
 | [T-008](T-008-ci-dependabot-names.md) | CI: commits de Dependabot y nombre estable del job del mod | 1 | Done |
 | [T-009](T-009-review-debts.md) | Deudas de revisión: medir lo que se dibuja en toda la fila y probar la guarda de commitlint | 3 | Done |
-| [T-010](T-010-sprites-mythos.md) | Sprites 8-bit de alta calidad (12×12, 3 colores) y familia Mythos | 4 | Ready (tras T-004) |
+| [T-010](T-010-sprites-mythos.md) | Sprites 8-bit de alta calidad (12×12, 3 colores) y familia Mythos | 4 | In progress |
 
 ## Formato de una tarea
 
