@@ -53,7 +53,7 @@ Estado del proyecto `model-meter` para retomar en una sesión nueva (Reviewer en
 | 3 | Activar Dependabot security updates, Secret Protection con push protection y Private vulnerability reporting (`REPO-SETTINGS.md` §3) | Maintainer | — |
 | 4 | Decisión A/B sobre Code-Review (Scorecard) | Maintainer | — |
 | 5 | **Limpieza de ramas antiguas** (ver abajo) | Maintainer | — |
-| 6 | **T-010:** sprites 16×16 de 3 colores y familia Mythos | Builder | T-004 |
+| 6 | **T-010:** sprites 12×12 de 3 colores y familia Mythos | Builder | T-004 |
 | 7 | Especificar la tarea de paletas y `showEffortMeter` | Reviewer | T-010 |
 
 **Limpieza de ramas.** Son 10 ramas ya fusionadas o sustituidas. En cada una, la cabeza coincide con la del PR, así que no se pierde nada:

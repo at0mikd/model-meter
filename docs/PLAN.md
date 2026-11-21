@@ -139,7 +139,7 @@ Cuando falta información, la insignia no desaparece ni inventa datos: se ve **a
 
 ### 3.2 Modo grande (opcional, `AbovePrompt`)
 
-Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido), de como mucho 4×8, más un rótulo en minúscula salvo el nombre del modelo: `player Opus 5.5` · `power ▮▮▮▯▯ high` (decisión del Maintainer en CA7 de T-003). Diseño original: no se replica ningún personaje ni arte existente. Especificado en T-004. **Sprites v2 (T-010):** 16×16 píxeles con 3 colores y transparencia (estilo NES), en 8 filas × 16 columnas de medias celdas de dos colores; Opus pasa a un cáliz, y Mythos (`claude-mythos-*`) tiene un casco alado (decisiones del Maintainer, 2026-11-21).
+Sprite 8-bit con medios bloques (`▀ ▄ █`) por familia (Opus / Sonnet / Haiku / Fable / desconocido), de como mucho 4×8, más un rótulo en minúscula salvo el nombre del modelo: `player Opus 5.5` · `power ▮▮▮▯▯ high` (decisión del Maintainer en CA7 de T-003). Diseño original: no se replica ningún personaje ni arte existente. Especificado en T-004. **Sprites v2 (T-010):** 12×12 píxeles con 3 colores y transparencia (estilo NES), en 6 filas × 12 columnas de medias celdas de dos colores; Opus pasa a un cáliz, y Mythos (`claude-mythos-*`) tiene un casco alado (decisiones del Maintainer, 2026-11-21).
 
 ### 3.3 `userConfig`
 
