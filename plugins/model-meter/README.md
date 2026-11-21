@@ -8,7 +8,7 @@ Mod para Claude Code que muestra, en el pie de la terminal y con estética 8-bit
 
 ## Qué muestra
 
-- **Modelo:** `◆` y el nombre corto (`Opus 5.5`, `Sonnet 5.5 1m`…) en el color de su familia, con tokens del tema (nunca ANSI crudo). Un modelo que no reconoce sale como `?` y atenuado.
+- **Modelo:** `◆` y el nombre corto (`Opus 5.5`, `Sonnet 5.5 1m`, `Mythos 5.1`…) en el color de su familia, con tokens del tema (nunca ANSI crudo). Un modelo que no reconoce sale como `?` y atenuado.
 - **Esfuerzo:** un medidor de 5 «píxeles» (`low` = 1 … `max` = 5) y su etiqueta (`low`, `med`, `high`, `xhi`, `max`). Un esfuerzo numérico (solo en builds internas) sale como `custom`, sin medidor.
 - **En minúscula,** como el resto del pie (la etiqueta de modo, las pistas y otros mods), salvo la inicial del nombre del modelo, que va en mayúscula como la escribe Claude Code (`Opus`, `Sonnet`).
 - **En vivo:** se actualiza con cada turno, al momento con `/model` y como **pendiente** (`high…`, atenuado) tras `/effort`, hasta que el siguiente turno lo confirma.
@@ -35,14 +35,16 @@ Mod para Claude Code que muestra, en el pie de la terminal y con estética 8-bit
 Además del pie, puede mostrar encima del prompt una banda con un sprite de la familia del modelo y un rótulo:
 
 ```text
-█  ██  █
-██▄██▄██  player Opus 5.5
-█▀█▀▀█▀█  power  ▮▮▮▯▯ high
-▀▀▀▀▀▀▀▀
+ ▄▄▄▄▄▄▄▄▄▄
+ ██████████
+  ▀▀▀██▀▀▀    model Opus 5.5
+     ██       power ▮▮▮▯▯ high
+    ▀██▀
+  ▄██████▄
 ```
 
-- **Un sprite original por familia**, de 4 filas por 8 columnas en medios bloques y en el color de la familia: una corona (Opus), una pluma (Sonnet), una montaña bajo el sol (Haiku) y un libro (Fable). Un modelo desconocido, o lo que aún no se ha leído, muestra un cartucho vacío atenuado.
-- **El rótulo,** en minúscula salvo el nombre del modelo, con las mismas piezas que la insignia del pie, también «apagadas» cuando falta algo.
+- **Un sprite 8-bit original por familia**, de 12×12 píxeles en 3 colores del tema (6 filas por 12 columnas de medias celdas): un cáliz con un rubí (Opus), una pluma (Sonnet), una montaña con sol (Haiku), un rollo de papiro griego (Fable) y un casco alado (Mythos). Un modelo desconocido, o lo que aún no se ha leído, muestra un cartucho vacío atenuado. Los colores siguen tu tema de Claude Code.
+- **El rótulo,** `model` y `power`, en minúscula salvo el nombre del modelo, con las mismas piezas que la insignia del pie, también «apagadas» cuando falta algo.
 - **Se ajusta al ancho de la banda:** pierde primero el medidor, después el esfuerzo y el rótulo, y al final la banda entera.
 - **Cede el sitio** a las encuestas del motor y no aparece con menos de 6 filas libres. Se puede plegar con `[-]` como cualquier fila de la banda.
 - **Solo en la terminal.**
