@@ -1,6 +1,6 @@
 # T-010 · Sprites 8-bit de alta calidad y familia Mythos
 
-- **Estado:** In progress
+- **Estado:** In review
 - **Rama:** `feat/T-010-sprites-mythos`
 - **Plan:** `docs/PLAN.md` §3.2; decisiones del Maintainer sobre los sprites de T-004 (2026-11-21)
 
