@@ -8,13 +8,15 @@
 // is only awaited once the engine has answered.
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderNode } from 'claude-code'
+import type { ElementTable, EngineInterface, Register, RenderNode } from 'claude-code'
 
 import { badgeRuns, badgeState, badgeVariants, familyColor } from './core/badge.js'
 import type { BadgeView, Run } from './core/badge.ts'
+import { bandRows, bandVisibility, fitBand } from './core/band.js'
 import { parseLevel } from './core/effort.js'
 import { drawnModesWidth, fitBadge, hintLineWidth, widthOf, widthOfTree } from './core/layout.js'
 import { parseModel } from './core/model.js'
+import { parseOptions } from './core/options.js'
 import { sanitize } from './core/sanitize.js'
 import { effortState } from './core/state.js'
 
@@ -84,7 +86,22 @@ async function currentView($: EngineInterface): Promise<BadgeView> {
   })
 }
 
-export const register: Register = (on) => {
+/** Paints runs on the terminal: in the family's color, plain, or dimmed. */
+function painter(
+  Text: ElementTable<'terminal'>['Text'],
+  color: string | undefined,
+): (run: Run) => RenderNode {
+  return (run) => {
+    if (run.paint === 'dim' || (run.paint === 'family' && color === undefined)) {
+      return <Text dimColor>{run.text}</Text>
+    }
+    return run.paint === 'family' ? <Text color={color}>{run.text}</Text> : <Text>{run.text}</Text>
+  }
+}
+
+export const register: Register = (on, options) => {
+  // Fixed for this activation: a change in /config loads the mod again.
+  const { placement, autoMinColumns } = parseOptions(options)
   // Columns of the hint line as last drawn on the terminal. Not $.state: the
   // engine refuses a state write while a ui.render hook draws, and the hint is
   // only seen there. A change redraws the footer through $.ui.invalidate.
@@ -190,21 +207,52 @@ export const register: Register = (on) => {
       })
       if (variant === 'none') return beneath
       const { Box, Text } = $.ui.resolve(e)
-      const color = familyColor(view.model.family)
-      const paint = (run: Run): RenderNode => {
-        if (run.paint === 'dim' || (run.paint === 'family' && color === undefined)) {
-          return <Text dimColor>{run.text}</Text>
-        }
-        return run.paint === 'family' ? (
-          <Text color={color}>{run.text}</Text>
-        ) : (
-          <Text>{run.text}</Text>
-        )
-      }
+      const paint = painter(Text, familyColor(view.model.family))
       return (
         <Box flexDirection="row">
           {badgeRuns(view, variant, below > 0 ? 'left' : 'right').map(paint)}
           {below > 0 ? <Text dimColor>{SEPARATOR}</Text> : null}
+          {beneath}
+        </Box>
+      )
+    } catch {
+      return beneath
+    }
+  })
+
+  // The 8-bit band above the prompt (PLAN §3.2–§3.4): model-meter's own row,
+  // on the terminal alone, with what is beneath it kept under it. With the
+  // default placement, footer, the hook is not even registered, so the engine
+  // asks no row of this mod and the band is as it was.
+  if (placement === 'footer') return
+  // Auto's width state from one drawing to the next; like hintColumns, not
+  // $.state, which the engine does not let a ui.render hook write.
+  let wide = false
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.surface !== 'terminal' || e.plugin !== 'model-meter') return next(e)
+    let show = false
+    try {
+      const { hasSurvey, maxRows } = e.props
+      const columns = e.viewport?.columns ?? 0
+      const shown = bandVisibility({ placement, autoMinColumns, columns, maxRows, hasSurvey, wide })
+      wide = shown.wide
+      show = shown.show
+    } catch {
+      // No band: the row passes.
+    }
+    if (!show) return next(e)
+    const [beneath, view] = await Promise.all([next(e), currentView($).catch(() => undefined)])
+    if (view === undefined) return beneath
+    try {
+      const variant = fitBand(view, e.props.bodyColumns)
+      if (variant === 'none') return beneath
+      const { Box, Text } = $.ui.resolve(e)
+      const paint = painter(Text, familyColor(view.model.family))
+      return (
+        <Box flexDirection="column">
+          {bandRows(view, variant).map((row) => (
+            <Box flexDirection="row">{row.map(paint)}</Box>
+          ))}
           {beneath}
         </Box>
       )

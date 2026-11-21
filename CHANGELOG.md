@@ -7,6 +7,7 @@ Todos los cambios relevantes de este proyecto se anotan aquí. Formato basado en
 ### Añadido
 
 - **Insignia compacta en el pie de la terminal** (`model-meter`): modelo y esfuerzo en vivo con `/model`, `/effort` y cada turno; el esfuerzo pendiente atenuado con `…`; lo que falta, «apagado» en 8-bit (`◇`, `░`, `---`) sin cambiar de ancho; degradación por ancho junto a las pistas y otros mods. Solo observa y guarda únicamente el último nivel de esfuerzo.
+- **Banda 8-bit opcional encima del prompt** (`model-meter`): un sprite original por familia (corona, pluma, montaña, libro; un cartucho vacío para lo desconocido) y el rótulo `player Opus 5.5` / `power ▮▮▮▯▯ high`. Se ajusta al ancho de la banda y cede el sitio a las encuestas. Las opciones son `placement` (`footer` por defecto, `auto` o `band`) y `autoMinColumns` (140, de 80 a 400). Con `auto` usa histéresis: entra a 140 columnas y sale por debajo de 120. El pie no cambia.
 - `check-capabilities` admite `$.state` solo para las claves propias de `model-meter` declaradas en su contrato.
 - Esqueleto del mod `model-meter` (sin hooks todavía) y marketplace `model-meter`.
 - Núcleo puro del mod (`hooks/core/`): sanitización del texto, lectura del id de modelo (incluidos Bedrock y Vertex), niveles de esfuerzo como lista cerrada, cascada del esfuerzo a mostrar y encaje de la insignia según el ancho del pie. Sin `$` ni dependencias; sus tests viven en `test/core/`.
