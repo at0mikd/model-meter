@@ -11,6 +11,8 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 **Decisiones del Maintainer (2026-11-21):**
 - Tamaño de 12×12 (6 filas en la terminal), elegido frente al de 16×16 para que la banda ocupe menos alto.
 - Opus pasa de una corona a un **cáliz** con un **rubí** rojo engastado en oro.
+- Fable pasa de un libro a un **rollo de papiro griego**, como las fábulas de Esopo.
+- El rótulo de la banda dice `model Opus 5.5` en vez de `player Opus 5.5`; `power` no cambia.
 - Se añade **Mythos**, con un sprite inspirado en la mitología: un **casco alado**.
 - La calidad debe estar al nivel de la mascota de Claude, pero **sin copiarla ni parecerse a ella**: los diseños son originales.
 
@@ -39,7 +41,8 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
    - `.` es transparente;
    - `1`, `2` y `3` son las ranuras de color de la tabla.
 3. **Paso de píxeles a celdas** como función pura: dos filas de píxeles dan una fila de celdas, cada una con su carácter, color y fondo. El hook solo pinta.
-4. **Banda** de 6 filas por 12 columnas:
+4. **Rótulo:** `model` en vez de `player`. Las dos etiquetas, `model ` y `power `, tienen el mismo ancho (6), así que los valores quedan alineados.
+5. **Banda** de 6 filas por 12 columnas:
    - `BAND_MIN_ROWS` sigue en 6, la altura del sprite;
    - el rótulo va junto a las dos filas centrales;
    - el resto de T-004 (opciones, histéresis y orden de ajuste) no cambia.
@@ -52,14 +55,14 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 | --- | --- | --- | --- | --- |
 | Opus | cáliz con rubí | `claude` | `warning` | `error` (el rubí) |
 | Sonnet | pluma | `suggestion` | `warning` | `text` |
-| Haiku | montaña y sol | `success` | `warning` | `text` |
-| Fable | libro abierto | `merged` | `claude` | `text` |
+| Haiku | montaña con sol | `success` | `warning` | `text` |
+| Fable | rollo de papiro griego | `merged` (papiro) | `claude` (rodillos) | `text` (texto y brillo de los rodillos) |
 | Mythos | casco alado | `planMode` | `warning` | `text` |
 | desconocido | cartucho vacío | atenuado | atenuado | atenuado |
 
 ### Cuadrículas
 
-**Opus — cáliz**
+**Opus — cáliz con rubí**
 
 ```text
 ............
@@ -85,7 +88,7 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 .....11113..
 ....1.113...
 ...11113....
-...1113.....
+...1.13.....
 ...113......
 ....3.......
 ...3........
@@ -93,51 +96,51 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
 .2..........
 ```
 
-**Haiku — montaña y sol**
+**Haiku — montaña con sol**
 
 ```text
-........222.
-.......22222
-.......22222
-........222.
-....3.......
+......2..2..
+.......22...
+......2222..
+......2222..
+.......22...
+....3.2..2..
 ...333......
-..11111.....
-..1111111.3.
-.11111111131
+..33133.....
+..1111113.3.
+.11111111313
 .11111111111
-111111111111
 111111111111
 ```
 
-**Fable — libro abierto**
+**Fable — rollo de papiro griego**
 
 ```text
 ............
-.1111..1111.
-211111111112
-213331133312
-211111111112
-213311113312
-211111111112
-213331133312
-221111111122
-.2222223222.
-.......3....
-.......3....
+.2........2.
+232111111232
+231111111132
+231313313132
+231111111132
+231331331132
+231111111132
+231313133132
+232111111232
+.2........2.
+............
 ```
 
 **Mythos — casco alado**
 
 ```text
-.....22.....
 ....2222....
+...222222...
 ...111111...
 ..13333331..
 2.11111111.2
 221......122
+2.111..111.2
 .2111..1112.
-..111..111..
 ..111..111..
 ...11..11...
 ............
@@ -177,6 +180,7 @@ Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12
   - la banda dibuja 6 filas;
   - con `maxRows` 5 no sale y con 6 sí;
   - con Mythos, el pie dice `Mythos 5.1` en `planMode`;
+  - el rótulo dice `model Opus 5.5` y `power ▮▮▮▯▯ high`;
   - los tests de T-004 y del pie siguen en verde.
 - **CA5** — `capabilities` en verde, con las mismas llamadas a `$`. `npm run check` en verde.
 - **CA6** — PLAN §3.2, el README del mod y el CHANGELOG al día.
