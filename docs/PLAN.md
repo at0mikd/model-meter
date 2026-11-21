@@ -295,8 +295,8 @@ Cada historia: especificación (criterios de aceptación) → test que falla →
 | **2. Núcleo puro (TDD)** | `model.ts`, `effort.ts`, `sanitize.ts`, `sprites.ts` + tests y property tests | Cobertura ≥ 95 % |
 | **3. Modo compacto** | `register.tsx`: `turn.step` (observador), `session.*`, render `SessionMode` componiendo con lo de debajo | Tests de mod en `terminal` y `desktop`; convive con `sub-meter` |
 | **4. Modo grande 8-bit** | Banda `AbovePrompt` con sprites y paletas | Tests de render y de ancho |
-| **5. Config y persistencia** | `userConfig`, `$.store` del último valor conocido | Tests con `test(name, { options })` |
-| **6. Hardening y release** | Revisión de seguridad, README con capturas, `marketplace.json`, tag `v0.1.0` con provenance | Todos los gates verdes; instalación con `/plugin install model-meter --marketplace at0mikd/model-meter` |
+| **5. Config y persistencia** (**opcional, más adelante**) | `userConfig` (`placement` y `autoMinColumns` ya hechos en T-004; `$.store` del último esfuerzo, en T-003). Quedan las paletas y `showEffortMeter` (T-011) | Decisión del Maintainer (2026-11-21): no bloquea la v0.1.0 |
+| **6. Hardening y release** (T-012) | Revisión de seguridad, README con capturas, `marketplace.json`, tag `v0.1.0` con provenance | Todos los gates verdes; instalación con `/plugin install model-meter --marketplace at0mikd/model-meter` |
 
 ---
 

@@ -1,21 +1,21 @@
-## Tarea
+## Task
 
-<!-- T-NNN y enlace al fichero en docs/tasks/ -->
+<!-- T-NNN and a link to its file in docs/tasks/ -->
 
-## Qué cambia
+## What changes
 
-<!-- Resumen breve. Qué NO cambia, si puede haber dudas. -->
+<!-- A short summary. What does NOT change, if there could be doubts. -->
 
-## Criterios de aceptación
+## Acceptance criteria
 
-<!-- Uno por línea, cada uno con su evidencia (test, comando o salida). -->
+<!-- One per line, each with its evidence (test, command or output). -->
 
-- [ ] CA1 — evidencia:
-- [ ] CA2 — evidencia:
+- [ ] AC1 — evidence:
+- [ ] AC2 — evidence:
 
-## Evidencia
+## Evidence
 
-<!-- Salidas reales de los comandos, pegadas tal cual. Sin rutas personales, tokens ni datos privados. -->
+<!-- Real command output, pasted as is. No personal paths, tokens or private data. -->
 
 <details><summary>npm run check</summary>
 
@@ -24,22 +24,22 @@
 
 </details>
 
-<details><summary>claude plugin validate (capacidades del mod)</summary>
+<details><summary>claude plugin validate (mod capabilities)</summary>
 
 ```text
 ```
 
 </details>
 
-## Checklist de seguridad
+## Security checklist
 
-- [ ] El mod solo observa: ningún hook reescribe `model`/`effort` ni bloquea eventos
-- [ ] Capacidades del mod dentro de la allowlist (`docs/PLAN.md` §5)
-- [ ] Sin dependencias nuevas, o justificadas y permitidas por la tarea
-- [ ] El texto que se muestra en pantalla pasa por la sanitización
-- [ ] Sin secretos, datos personales ni rutas locales en código, fixtures o evidencia
-- [ ] Workflows (si se tocan): permisos mínimos, acciones fijadas por SHA, sin `pull_request_target`
+- [ ] The mod only observes: no hook rewrites `model`/`effort` or blocks events
+- [ ] Mod capabilities stay within the allowlist (`docs/PLAN.md` §5)
+- [ ] No new dependencies, or justified and allowed by the task
+- [ ] Text drawn on screen goes through sanitization
+- [ ] No secrets, personal data or local paths in code, fixtures or evidence
+- [ ] Workflows (if touched): least privilege, actions pinned by SHA, no `pull_request_target`
 
-## Notas para la revisión
+## Notes for the review
 
-<!-- Decisiones, dudas o riesgos que el Reviewer debe mirar. -->
+<!-- Decisions, doubts or risks the Reviewer should look at. -->

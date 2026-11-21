@@ -1,38 +1,70 @@
-# Política de seguridad
+# Security policy
 
-## Cómo informar de una vulnerabilidad
+## Reporting a vulnerability
 
-Usa el **reporte privado de vulnerabilidades de GitHub**: pestaña *Security* del repositorio → *Report a vulnerability*. No abras un issue público ni un PR con los detalles.
+Please use **GitHub's private vulnerability reporting**: the repository's *Security* tab → *Report a vulnerability*. Do not open a public issue or pull request with the details.
 
-Incluye, si puedes:
+If you can, include:
 
-- versión del mod (`model-meter`) y de Claude Code;
-- qué hace mal y cómo reproducirlo;
-- el impacto que crees que tiene.
+- the version of the mod (`model-meter`) and of Claude Code;
+- what goes wrong and how to reproduce it;
+- the impact you believe it has.
 
-Recibirás acuse en un plazo razonable y te mantendremos al tanto hasta la corrección. Si el informe se confirma, se publicará un aviso de seguridad (GitHub Security Advisory) con el crédito que prefieras.
+You will get an acknowledgement within a reasonable time and updates until the fix. If the report is confirmed, a GitHub Security Advisory is published, crediting you as you prefer.
 
-## Alcance
+## Supported versions
 
-- El mod `plugins/model-meter/` y los scripts y workflows de este repositorio.
-- **Fuera de alcance:** `spikes/` (código desechable que no se publica) y Claude Code en sí (repórtalo a Anthropic).
+| Version | Supported |
+| --- | --- |
+| Latest release | ✅ |
+| Earlier releases | ❌ (please upgrade) |
 
-## Qué se considera un fallo de seguridad aquí
+## Scope
 
-El mod debe **solo observar**: no puede reescribir ni bloquear eventos del motor, ni usar ficheros, procesos, red o variables de entorno. Cualquier forma de saltarse eso, de inyectar secuencias de control en lo que dibuja o de filtrar datos de la sesión es un fallo de seguridad. Las capacidades permitidas están en `docs/PLAN.md` §5–§6 y la CI las comprueba en cada PR.
+- **In scope:** the mod (`plugins/model-meter/`) and this repository's scripts and workflows.
+- **Out of scope:**
+  - `spikes/`: throwaway code that is never published;
+  - Claude Code itself: please report that to Anthropic.
 
-## Excepciones activas
+## What counts as a security bug here
 
-Avisos de seguridad que se aceptan temporalmente, con aprobación del Maintainer y fecha de caducidad. La fuente de verdad es [`security/audit-exceptions.json`](security/audit-exceptions.json); `npm run audit` falla si aparece cualquier otro aviso, si una excepción caduca o queda obsoleta, si afecta a código de runtime o si `allow-ghsas` en `dependency-review.yml` no coincide. Renovar una excepción exige una nueva aprobación del Maintainer.
+The mod must **only observe**.
 
-Para que una caducidad no pille por sorpresa:
+- It may not rewrite or block engine events.
+- It may not use files, processes, the network or environment variables.
 
-- **Aviso a 14 días.** Desde 14 días antes de que caduque una excepción, `npm run audit` imprime un aviso con el GHSA, la fecha y los días que quedan, sin fallar. En GitHub Actions sale además como anotación (`::warning`), visible en el resumen de la ejecución y del PR. Al día siguiente de la fecha de caducidad, la auditoría falla.
-- **Auditoría semanal.** El workflow `Scheduled audit` (`.github/workflows/audit-schedule.yml`) ejecuta `npm run audit` y audita el lockfile de la CLI fijada todos los lunes sobre `main`, también sin PRs abiertos, y se puede lanzar a mano. Solo lee el repositorio: si falla, GitHub avisa al Maintainer por su correo estándar de notificaciones.
-- **Workflows programados pausados.** GitHub desactiva los workflows programados de un repositorio público tras 60 días sin actividad, y entonces la auditoría semanal deja de ejecutarse hasta que se reactive ([documentación de GitHub](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)). Se reactivan desde la pestaña *Actions*, en el workflow `Scheduled audit`.
+Any way around that is a security bug. So is injecting control sequences into what it draws, or leaking session data. The allowed capabilities are listed in [`docs/PLAN.md`](docs/PLAN.md) §5–§6, and CI checks them on every pull request.
 
-Ninguna por ahora. La última, [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) (`picomatch`, solo desarrollo), se quitó cuando GitHub retiró el aviso el 2026-11-18.
+## Controls in place
 
-## Versiones soportadas
+- **Capabilities:**
+  - a closed allowlist of engine calls (`npm run capabilities`);
+  - `claude plugin validate --strict`;
+  - pass-through checks on every hook that can gate an event.
+- **Supply chain:**
+  - no runtime dependencies, and exact development versions;
+  - GitHub Actions pinned by SHA;
+  - Dependabot, dependency review, CodeQL (`security-extended`), gitleaks, actionlint, zizmor and OpenSSF Scorecard.
+- **Branch protection:** `main` only changes through pull requests, with 12 required checks, a linear history and signed commits. The settings are in [`docs/REPO-SETTINGS.md`](docs/REPO-SETTINGS.md).
 
-Solo la última versión publicada recibe correcciones.
+## Active exceptions
+
+These are security advisories accepted for a limited time, each with the Maintainer's approval and an expiry date.
+
+- **Source of truth:** [`security/audit-exceptions.json`](security/audit-exceptions.json).
+- **When `npm run audit` fails:**
+  - any other advisory appears;
+  - an exception expires or becomes stale;
+  - an exception affects runtime code;
+  - `allow-ghsas` in `dependency-review.yml` does not match.
+- **Renewal:** renewing an exception requires a new approval from the Maintainer.
+
+So that an expiry never comes as a surprise:
+
+- **14-day warning.** From 14 days before an exception expires, `npm run audit` prints a warning with the GHSA, the date and the days left, without failing. On GitHub Actions it is also an annotation (`::warning`), visible in the run and PR summaries. The day after the expiry date, the audit fails.
+- **Weekly audit.** The `Scheduled audit` workflow (`.github/workflows/audit-schedule.yml`) runs every Monday on `main`, even with no open pull requests, and can be run by hand.
+  - It runs `npm run audit` and audits the pinned CLI's lockfile.
+  - It only reads the repository. If it fails, GitHub notifies the Maintainer through their standard notification email.
+- **Paused scheduled workflows.** GitHub disables scheduled workflows in a public repository after 60 days without activity, and the weekly audit then stops until it is re-enabled ([GitHub docs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)). Re-enable it from the *Actions* tab, under the `Scheduled audit` workflow.
+
+None at the moment. The last one, [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) (`picomatch`, development only), was removed when GitHub withdrew the advisory on 2026-11-18.
