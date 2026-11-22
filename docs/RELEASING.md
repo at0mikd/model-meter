@@ -60,19 +60,21 @@ git tag -s vX.Y.Z -m "model-meter vX.Y.Z"   # a signed tag on the merged commit
 git push origin vX.Y.Z
 ```
 
+The tag must be annotated and signed (`git tag -s`), with a key registered on GitHub as a signing key, so that GitHub verifies the signature. It must also point to a commit on `main`. The workflow refuses any other tag.
+
 ### 4. Let the workflow run
 
 `release.yml` runs these jobs in order, each with only the permissions it needs:
 
 | Job | What it does | Permissions |
 | --- | --- | --- |
-| `tag matches the manifests` | `release-version.mjs check` on the tag | `contents: read` |
+| `tag matches the manifests` | `release-version.mjs check` on the tag; the tagged commit is on `main`; the tag is annotated, signed, verified by GitHub, and points to that commit | `contents: read` |
 | `npm run check` | the whole CI again (`ci.yml` through `workflow_call`) | `contents: read` |
 | `package` | `package.mjs`, `sha256sum --check`, uploads the files as an artifact | `contents: read` |
 | `attest provenance` | `actions/attest-build-provenance` over the archive | `id-token: write`, `attestations: write` |
 | `GitHub release` | creates the release with the archive, `SHA256SUMS` and the notes | `contents: write` |
 
-If any job fails, nothing is published. A protected tag cannot be moved or deleted, so a fix means a new patch version: go back to step 1.
+If any job fails, nothing is published. A tag on a commit that is not on `main`, a lightweight tag, or a tag whose signature GitHub cannot verify stops the release at the first job. A protected tag cannot be moved or deleted, so a fix means a new patch version: go back to step 1.
 
 ### 5. Verify the release
 

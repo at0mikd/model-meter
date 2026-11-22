@@ -1,8 +1,9 @@
 name: Release
 
 # Publishes model-meter from a tag vX.Y.Z (T-012, docs/RELEASING.md): the tag
-# must match the three manifests, the full check runs again, and the package
-# is built, attested and released. It runs on tags alone, never on a pull
+# must match the three manifests, be annotated, signed and verified, and point
+# to a commit on main; the full check runs again, and the package is built,
+# attested and released. It runs on tags alone, never on a pull
 # request or a branch. It is the only workflow that may write the repository's
 # contents or ask for an OIDC token, each in the one job that needs it.
 
@@ -25,6 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # the whole history, to tell whether the tagged commit is on main
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -35,6 +37,42 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: node scripts/release-version.mjs check "$TAG"
+      # Only reviewed, merged code is released: the tagged commit must be on main.
+      # The commit is HEAD, which the checkout resolved from the tag.
+      - name: The tagged commit is on main
+        run: |
+          commit=$(git rev-parse 'HEAD^{commit}')
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::the tagged commit $commit is not on main"
+            exit 1
+          fi
+          echo "$commit is on main"
+      # A release tag is annotated and signed, its signature verified by GitHub,
+      # and it points to exactly the commit being released.
+      - name: The tag is annotated, signed and verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          commit=$(git rev-parse 'HEAD^{commit}')
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '"\(.object.type) \(.object.sha)"')
+          read -r kind object <<< "$ref"
+          if [ "$kind" != "tag" ]; then
+            echo "::error::$TAG is a lightweight tag: release tags are annotated and signed (git tag -s)"
+            exit 1
+          fi
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$object" --jq '"\(.verification.verified) \(.verification.reason) \(.object.sha)"')
+          read -r verified reason target <<< "$tag"
+          if [ "$verified" != "true" ]; then
+            echo "::error::the signature of $TAG is not verified by GitHub ($reason)"
+            exit 1
+          fi
+          if [ "$target" != "$commit" ]; then
+            echo "::error::$TAG points to $target, not to the commit being released ($commit)"
+            exit 1
+          fi
+          echo "$TAG: annotated, signed and verified ($reason), on $commit"
 
   check:
     name: npm run check
