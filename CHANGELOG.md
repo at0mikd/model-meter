@@ -1,27 +1,38 @@
 # Changelog
 
-Todos los cambios relevantes de este proyecto se anotan aquí. Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones según [SemVer](https://semver.org/lang/es/).
+All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Sin publicar]
+## [Unreleased]
 
-### Añadido
+## [0.1.0] - 2026-11-22
 
-- **Insignia compacta en el pie de la terminal** (`model-meter`): modelo y esfuerzo en vivo con `/model`, `/effort` y cada turno; el esfuerzo pendiente atenuado con `…`; lo que falta, «apagado» en 8-bit (`◇`, `░`, `---`) sin cambiar de ancho; degradación por ancho junto a las pistas y otros mods. Solo observa y guarda únicamente el último nivel de esfuerzo.
-- **Banda 8-bit opcional encima del prompt** (`model-meter`): un sprite 8-bit original por familia, de 12×12 píxeles en 3 colores, fijos para verse igual con cualquier tema: cáliz con rubí, pluma, montaña con sol, rollo de papiro y casco alado, más un cartucho vacío para lo desconocido. Lleva el rótulo `model Opus 5.5` / `power ▮▮▮▯▯ high`. Se ajusta al ancho de la banda y cede el sitio a las encuestas. Las opciones son `placement` (`footer` por defecto, `auto` o `band`) y `autoMinColumns` (140, de 80 a 400). Con `auto` usa histéresis: entra a 140 columnas y sale por debajo de 120. El pie no cambia.
-- **Familia Mythos** (`model-meter`): `claude-mythos-5`, `claude-mythos-5-1` y `claude-mythos-preview` se muestran como `Mythos 5`, `Mythos 5.1` y `Mythos preview`, en el color `planMode`, en el pie y en la banda.
-- `check-capabilities` admite `$.state` solo para las claves propias de `model-meter` declaradas en su contrato.
-- Esqueleto del mod `model-meter` (sin hooks todavía) y marketplace `model-meter`.
-- Núcleo puro del mod (`hooks/core/`): sanitización del texto, lectura del id de modelo (incluidos Bedrock y Vertex), niveles de esfuerzo como lista cerrada, cascada del esfuerzo a mostrar y encaje de la insignia según el ancho del pie. Sin `$` ni dependencias; sus tests viven en `test/core/`.
-- Gates locales (`npm run check`, `npm run check:core`) y CI: matriz Node 22/24 × Linux/macOS/Windows, validación y tests del mod con la CLI fijada, comprobación de capacidades, CodeQL, revisión de dependencias, Scorecard, gitleaks, actionlint y zizmor.
-- `npm run audit`: falla ante cualquier aviso de seguridad sin una excepción aprobada y vigente (`security/audit-exceptions.json`).
-- `npm run audit` avisa 14 días antes de que caduque una excepción (también como anotación en GitHub Actions), y una auditoría semanal de solo lectura (`Scheduled audit`) la ejecuta sobre `main`.
-- `SECURITY.md` (con las excepciones activas), `CONTRIBUTING.md`, `CODEOWNERS` y Dependabot.
+### Added
 
-### Corregido
+- **Compact badge in the terminal footer** (`model-meter`): the model and the effort, live with `/model`, `/effort` and every turn. A pending effort is dimmed with `…`, and anything unknown looks "switched off" in 8-bit (`◇`, `░`, `---`) without changing width. The badge gives way by width next to the hints and other mods. It only observes, and stores nothing but the last effort level.
+- **Optional 8-bit band above the prompt** (`model-meter`), with the label `model Opus 5.5` / `power ▮▮▮▯▯ high`:
+  - an original 8-bit sprite per family, 12×12 pixels in 3 fixed colors, so it looks the same in any theme: a chalice with a ruby, a quill, a mountain with the sun, a papyrus scroll and a winged helmet, plus an empty cartridge for anything unknown;
+  - it fits the band's width and gives way to surveys;
+  - options `placement` (`footer` by default, `auto` or `band`) and `autoMinColumns` (140, from 80 to 400); `auto` uses hysteresis, coming in at 140 columns and going under 120;
+  - the footer does not change.
+- **Mythos family** (`model-meter`): `claude-mythos-5`, `claude-mythos-5-1` and `claude-mythos-preview` show as `Mythos 5`, `Mythos 5.1` and `Mythos preview`, in the `planMode` color, in the footer and in the band.
+- **Release workflow**: a `v*` tag that matches the three manifests runs the full check again. It then builds a deterministic package of what the marketplace serves (`model-meter-<version>.tar.gz` and `SHA256SUMS`), attests its build provenance and publishes the GitHub release (`docs/RELEASING.md`). CI runs a dry run of the package on every pull request.
+- Security review of v0.1.0 (`docs/security/review-v0.1.0.md`).
+- `check-capabilities` allows `$.state` only for `model-meter`'s own keys, declared in its contract.
+- The `model-meter` mod skeleton and the `model-meter` marketplace.
+- The mod's pure core (`hooks/core/`): text sanitization, reading the model id (Bedrock and Vertex included), effort levels as a closed list, the cascade that picks the effort to show, and fitting the badge to the footer's width. No `$` and no dependencies; its tests live in `test/core/`.
+- Local gates (`npm run check`, `npm run check:core`) and CI:
+  - a Node 22/24 × Linux/macOS/Windows matrix;
+  - the mod's validation and tests with a pinned CLI, and the capabilities check;
+  - CodeQL, dependency review, Scorecard, gitleaks, actionlint and zizmor.
+- `npm run audit`: fails on any security advisory without an approved, current exception (`security/audit-exceptions.json`).
+- `npm run audit` warns 14 days before an exception expires, also as a GitHub Actions annotation. A weekly read-only audit (`Scheduled audit`) runs it on `main`.
+- `SECURITY.md` (with the active exceptions), `CONTRIBUTING.md`, `CODEOWNERS` and Dependabot.
 
-- La insignia de `model-meter` vuelve a aparecer a media pantalla junto a `sub-meter`: mide la pista del pie tal como se dibuja, no como le llega, y deja de reservar el texto que otro mod oculta.
-- La insignia también cuenta con lo que un mod de debajo cambia en la fila: el texto con que envuelve la línea de pistas y las etiquetas de modo que quita o añade.
+### Fixed
 
-### Seguridad
+- The `model-meter` badge shows again at half screen next to `sub-meter`. It measures the footer's hint as drawn, not as it arrives, and no longer reserves room for the text another mod hides.
+- The badge also counts what a mod beneath changes in the row: the text it wraps the hint line in, and the mode labels it removes or adds.
 
-- Se quita la excepción de auditoría de `picomatch` (GHSA-fc5q-39xc-vjpf): GitHub retiró el aviso el 2026-11-18 y `npm run audit` ya no la necesita.
+### Security
+
+- The audit exception for `picomatch` (GHSA-fc5q-39xc-vjpf) is removed: GitHub withdrew the advisory on 2026-11-18, and `npm run audit` no longer needs it.
