@@ -1,6 +1,6 @@
 {
   "name": "model-meter",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Shows which Claude model and effort level the session is using, in 8-bit style.",
   "author": {
     "name": "at0mikd",

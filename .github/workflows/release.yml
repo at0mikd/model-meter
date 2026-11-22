@@ -1,0 +1,159 @@
+name: Release
+
+# Publishes model-meter from a tag vX.Y.Z (T-012, docs/RELEASING.md): the tag
+# must match the three manifests, be annotated, signed and verified, and point
+# to a commit on main; the full check runs again, and the package is built,
+# attested and released. It runs on tags alone, never on a pull
+# request or a branch. It is the only workflow that may write the repository's
+# contents or ask for an OIDC token, each in the one job that needs it.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: tag matches the manifests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the whole history, to tell whether the tagged commit is on main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          # No cache in a publishing workflow: a poisoned cache could reach the release.
+          package-manager-cache: false
+      - name: The tag is v plus the version of plugin.json, marketplace.json and package.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/release-version.mjs check "$TAG"
+      # Only reviewed, merged code is released: the tagged commit must be on main.
+      # The commit is HEAD, which the checkout resolved from the tag.
+      - name: The tagged commit is on main
+        run: |
+          commit=$(git rev-parse 'HEAD^{commit}')
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::the tagged commit $commit is not on main"
+            exit 1
+          fi
+          echo "$commit is on main"
+      # A release tag is annotated and signed, its signature verified by GitHub,
+      # and it points to exactly the commit being released.
+      - name: The tag is annotated, signed and verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          commit=$(git rev-parse 'HEAD^{commit}')
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '"\(.object.type) \(.object.sha)"')
+          read -r kind object <<< "$ref"
+          if [ "$kind" != "tag" ]; then
+            echo "::error::$TAG is a lightweight tag: release tags are annotated and signed (git tag -s)"
+            exit 1
+          fi
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$object" --jq '"\(.verification.verified) \(.verification.reason) \(.object.sha)"')
+          read -r verified reason target <<< "$tag"
+          if [ "$verified" != "true" ]; then
+            echo "::error::the signature of $TAG is not verified by GitHub ($reason)"
+            exit 1
+          fi
+          if [ "$target" != "$commit" ]; then
+            echo "::error::$TAG points to $target, not to the commit being released ($commit)"
+            exit 1
+          fi
+          echo "$TAG: annotated, signed and verified ($reason), on $commit"
+
+  check:
+    name: npm run check
+    needs: version
+    permissions:
+      contents: read
+    # `./` loads ci.yml from the caller's own commit, not from a checkout's files.
+    # GitHub's newer `$/` form is newer than the actionlint pinned in CI (1.7.12).
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository]
+
+  package:
+    name: package
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          # No cache in a publishing workflow: a poisoned cache could reach the release.
+          package-manager-cache: false
+      - name: Package what the marketplace serves (explicit file list)
+        run: node scripts/package.mjs
+      - name: Check the digest
+        working-directory: dist
+        run: sha256sum --check --strict SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  attest:
+    name: attest provenance
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package
+          path: dist
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/model-meter-*.tar.gz
+
+  release:
+    name: GitHub release
+    needs: attest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          # No cache in a publishing workflow: a poisoned cache could reach the release.
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package
+          path: dist
+      - name: Release notes, from that version's section of CHANGELOG.md
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/release-version.mjs notes "$TAG" > "$RUNNER_TEMP/notes.md"
+      - name: Create the release with the archive and SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$TAG" dist/model-meter-*.tar.gz dist/SHA256SUMS
+          --repo "$GITHUB_REPOSITORY" --verify-tag --title "model-meter $TAG"
+          --notes-file "$RUNNER_TEMP/notes.md"

@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The release workflow runs the same checks on a tag before it publishes (T-012).
+  workflow_call:
 
 permissions:
   contents: read
@@ -63,3 +65,27 @@ jobs:
       - run: npm run validate
       - run: npm run test:mod
       - run: npm run capabilities
+
+  # A dry run of the release package on every pull request (T-012 AC3): the
+  # same script as the release workflow, publishing nothing.
+  package:
+    name: package (dry run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: The three manifests agree on the version
+        run: |
+          version=$(node -p "require('./plugins/model-meter/.claude-plugin/plugin.json').version")
+          node scripts/release-version.mjs check "v$version"
+      - name: Package what the marketplace serves (explicit file list)
+        run: node scripts/package.mjs
+      - name: Check the digest
+        working-directory: dist
+        run: sha256sum --check --strict SHA256SUMS
+      - name: The archive's contents
+        run: tar -tzvf dist/model-meter-*.tar.gz

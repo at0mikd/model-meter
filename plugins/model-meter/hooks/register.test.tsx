@@ -949,3 +949,40 @@ describe('Mythos (T-010 CA4)', () => {
     },
   )
 })
+
+// T-012 security review (PLAN §5, Tampering): the mod only observes a model
+// call. The engine gets the event as it was sent, and the caller gets the
+// engine's result as it came.
+describe('turn.step reaches the engine untouched (T-012)', () => {
+  test('the model and effort sent, and the result returned, are the same objects', async ($, on) => {
+    const received: { model: string; effort: unknown }[] = []
+    const result = {
+      turnId: 't',
+      index: 0,
+      answer: 'done',
+      toolUses: [],
+      stopReason: 'end_turn',
+      usage: null,
+    } as const
+    on('store.get', () => ({ value: undefined }))
+    on('store.set', () => ({ value: undefined }))
+    on('session.model', () => ({ value: OPUS }))
+    // eslint-disable-next-line require-yield
+    on('turn.step', async function* ($, e) {
+      received.push({ model: e.model, effort: e.effort })
+      return result
+    })
+    for (const effort of ['high', 'max', 42] as const) {
+      const stream = $.turn.step({ turnId: 't', index: 0, model: SONNET, messageCount: 1, effort })
+      // The stream's return value is the engine's result, once read to its end.
+      let step = await stream.next()
+      while (step.done !== true) step = await stream.next()
+      expect(step.value).toEqual(result)
+    }
+    expect(received).toEqual([
+      { model: SONNET, effort: 'high' },
+      { model: SONNET, effort: 'max' },
+      { model: SONNET, effort: 42 },
+    ])
+  })
+})
