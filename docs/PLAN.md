@@ -1,145 +1,165 @@
-# model-meter — Plan de implementación
+# model-meter — Implementation plan
 
-> Mod para Claude Code que muestra **qué modelo y qué nivel de esfuerzo** usa la sesión, con estética **8-bit**.
-> Estado: propuesta · Versión del motor analizada: Claude Code `2.1.327`
+> A Claude Code mod that shows **which model and effort level** the session is using, in **8-bit** style.
+> Status: phases 0–4 done, phase 5 optional, phase 6 (v0.1.0) in progress · Engine version analyzed: Claude Code `2.1.327`
 
 ---
 
-## 1. Resumen ejecutivo
+## 1. Executive summary
 
-| Decisión | Elección | Motivo |
+| Decision | Choice | Reason |
 | --- | --- | --- |
-| Tipo de extensión | **Mod** (plugin de *function hooks*, TSX) | Se dibuja en la UI nativa (terminal, desktop, móvil), sin ejecutar procesos externos. Mismo patrón que `sub-meter`. |
-| Fuente del modelo | `$.session.model()` + `e.model` de `turn.step` | API oficial; `turn.step` refleja el modelo *realmente enviado* (incluye fallbacks). |
-| Fuente del esfuerzo | `e.effort` de `turn.step` (solo hilo principal) | Es el nivel efectivo tras límites (`maxEffortLevel`, capacidades del modelo). |
-| Ubicación en UI | **Compacto** en el pie (`SessionMode`) por defecto; **modo grande** (`AbovePrompt`) opcional y modo **`auto`** según el ancho | Pensado para usar Claude Code a media pantalla; convive con `sub-meter` (ver §3.4). |
-| Visibilidad del repo | **Público** | Controles adicionales en §6.1. |
-| Nombre | **`model-meter`** para el plugin, el marketplace y el repositorio | Claude Code 2.1.327 rechaza en `validate --strict` el nombre `who-is-claude` («reads as one of Anthropic's own»), y `--strict` es la barrera de tipos de los hooks. Decisión del Maintainer: un único nombre en todo el proyecto, coherente con `sub-meter`, `context-meter` y `token-meter`. |
-| Metodología | **Spec-driven + TDD** dentro de un **SSDF (NIST SP 800-218)** ligero | Calidad verificable y seguridad desde el diseño. |
-| Superficie de ataque | **Cero capacidades**: sin `$.fs`, `$.process`, `$.model`, red ni tools | Un indicador visual no necesita más; se verifica en CI. |
+| Kind of extension | **Mod** (a plugin of function hooks, TSX) | It draws in the native UI (terminal, desktop, mobile) without running external processes. Same pattern as `sub-meter`. |
+| Source of the model | `$.session.model()` plus `e.model` from `turn.step` | The official API. `turn.step` reflects the model *actually sent*, fallbacks included. |
+| Source of the effort | `e.effort` from `turn.step` (main thread only) | The effective level after limits (`maxEffortLevel`, the model's capabilities). |
+| Place in the UI | **Compact** in the footer (`SessionMode`) by default; an optional **large mode** (`AbovePrompt`) and an **`auto`** mode by width | Built for using Claude Code at half screen; it lives alongside `sub-meter` (§3.4). |
+| Repository visibility | **Public** | Extra controls in §6.1. |
+| Name | **`model-meter`** for the plugin, the marketplace and the repository | Claude Code 2.1.327 rejects the name `who-is-claude` in `validate --strict` ("reads as one of Anthropic's own"), and `--strict` is the hooks' type gate. The Maintainer chose a single name across the project, consistent with `sub-meter`, `context-meter` and `token-meter`. |
+| Methodology | **Spec-driven + TDD** within a light **SSDF (NIST SP 800-218)** | Verifiable quality and security by design. |
+| Attack surface | **No capabilities beyond the allowlist**: no `$.fs`, `$.process`, `$.model`, network or tools | A visual indicator needs nothing more; CI checks it. |
 
 ---
 
-## 2. Hallazgos de la investigación
+## 2. Research findings
 
-### 2.1 Cómo está construido el ejemplo (`midudev/better-claude/plugins/sub-meter`)
+### 2.1 How the reference mod is built (`midudev/better-claude/plugins/sub-meter`)
 
-- Estructura: `.claude-plugin/plugin.json`, `hooks/hooks.json` → `{ "modules": ["./register.tsx"] }`, `hooks/register.tsx`, `types/index.d.ts` (contrato de `$.state`), `hooks/register.test.tsx`, `tsconfig.json` que extiende `./.claude-plugin/types/tsconfig.json`.
-- Opciones de usuario vía `userConfig` en `plugin.json` (aparecen en `/config`).
-- Dibuja en `ui.render` sobre `{ component: 'SessionMode' }` (pie, abajo a la derecha), **componiendo** con lo que hay debajo (`next(e)`) y adaptándose al ancho (`e.viewport.columns`).
-- Estado reactivo con `atom` / `read` / `update`; persistencia entre sesiones con `$.store`.
-- CI (`.github/workflows/test.yml`): `claude plugin validate`, `claude plugin test`, matriz Node 22/24 × 3 SO.
+- **Layout:**
+  - `.claude-plugin/plugin.json`;
+  - `hooks/hooks.json` → `{ "modules": ["./register.tsx"] }`;
+  - `hooks/register.tsx` and `hooks/register.test.tsx`;
+  - `types/index.d.ts` (the `$.state` contract);
+  - a `tsconfig.json` that extends `./.claude-plugin/types/tsconfig.json`.
+- **User options:** through `userConfig` in `plugin.json`; they show in `/config`.
+- **Drawing:** it draws in `ui.render` on `{ component: 'SessionMode' }` (the footer, bottom right), **composing** with what lies beneath (`next(e)`) and adapting to the width (`e.viewport.columns`).
+- **State:** reactive with `atom` / `read` / `update`; persisted across sessions with `$.store`.
+- **CI** (`.github/workflows/test.yml`): `claude plugin validate`, `claude plugin test`, and a Node 22/24 × 3 OS matrix.
 
-Fuente: <https://github.com/midudev/better-claude/tree/main/plugins/sub-meter>
+Source: <https://github.com/midudev/better-claude/tree/main/plugins/sub-meter>
 
-### 2.2 API relevante (tipos del motor, `claude-code.d.ts`)
+### 2.2 Relevant API (the engine's types, `claude-code.d.ts`)
 
-| Necesidad | API | Notas |
+| Need | API | Notes |
 | --- | --- | --- |
-| Modelo actual | `$.session.model(): Promise<string>` | "the main loop's model, as `/model` shows it". |
-| Modelo + esfuerzo efectivos | `on('turn.step', …)` → `e.model`, `e.effort` | `effort?: 'low'\|'medium'\|'high'\|'xhigh'\|'max'\|number`; ausente si el modelo no soporta esfuerzo o `CLAUDE_CODE_EFFORT_LEVEL=auto/unset`. Filtrar `e.agentId === undefined` (ignorar subagentes). Es *streaming*: **solo observar** y devolver `next(e)` sin modificarlo. |
-| Inicio / fin de sesión | `session.start`, `session.end`, `classic.SessionStart` (`source: 'clear'`) | Igual que `sub-meter`. |
-| Pie de la UI | `ui.render` `{ component: 'SessionMode' }` | Props `modes`; componer con `next(e)`. |
-| Banda sobre el prompt | `ui.render` `{ component: 'AbovePrompt' }` | Para el modo "grande" (sprite 8-bit). |
-| Superficie | `e.surface`: `terminal` \| `desktop` \| `vscode` \| `mobile` | Elementos vía `$.ui.resolve(e)`. |
+| Current model | `$.session.model(): Promise<string>` | "the main loop's model, as `/model` shows it". |
+| Effective model and effort | `on('turn.step', …)` → `e.model`, `e.effort` | `effort?: 'low'\|'medium'\|'high'\|'xhigh'\|'max'\|number`; absent if the model does not support effort or `CLAUDE_CODE_EFFORT_LEVEL=auto/unset`. Filter `e.agentId === undefined` (ignore subagents). It is *streaming*: **observe only** and return `next(e)` untouched. |
+| Session start and end | `session.start`, `session.end`, `classic.SessionStart` (`source: 'clear'`) | As `sub-meter` does. |
+| The UI footer | `ui.render` `{ component: 'SessionMode' }` | Props `modes`; compose with `next(e)`. |
+| The band above the prompt | `ui.render` `{ component: 'AbovePrompt' }` | For the "large" mode (the 8-bit sprite). |
+| Surface | `e.surface`: `terminal` \| `desktop` \| `vscode` \| `mobile` | Elements through `$.ui.resolve(e)`. |
 
-### 2.3 Alternativa descartada: `statusLine` clásico
+### 2.3 Rejected alternative: the classic `statusLine`
 
-`settings.json → statusLine.command` recibe JSON con `model` y `effort.level` por stdin.
-**Descartada** como vía principal: ejecuta un proceso de shell (mayor superficie de ataque), solo funciona en terminal y reemplaza la statusline que el usuario ya tenga. Se puede documentar como *fallback* para versiones antiguas.
-Fuente: <https://code.claude.com/docs/en/statusline>
+`settings.json → statusLine.command` receives JSON with `model` and `effort.level` on stdin.
 
-### 2.4 Incógnitas a resolver con *spikes* (Fase 0)
+**Rejected** as the main path:
 
-1. **Esfuerzo antes del primer turno**: `turn.step` no ha ocurrido aún. Probar `$.settings`/`settings.read` (clave `effortLevel`) y `$.store` (último valor conocido). Si no hay dato fiable → mostrar `?` en lugar de inventar.
-2. **Cambios con `/model` o `/effort` entre turnos**: comprobar si algún evento (`config.set`, `command.run`, `prompt.submit`) permite refrescar sin esperar al siguiente turno.
-3. **Ancho real** disponible junto a `sub-meter` en el pie (medir con `viewport.columns`).
+- it runs a shell process, a larger attack surface;
+- it only works in the terminal;
+- it replaces whatever status line the user already has.
 
-Fuentes candidatas para el punto 1 ya identificadas en los tipos: `$.settings.read({ key: 'effortLevel' })` y `$.env.get('CLAUDE_CODE_EFFORT_LEVEL')` (ambas aparecen en el informe de `claude plugin validate`, por lo que entran en la allowlist de forma auditable).
+Source: <https://code.claude.com/docs/en/statusline>
 
-**Resultados del spike (2026-11-18, sesión cloud, CLI 2.1.327):**
+### 2.4 Unknowns resolved with spikes (phase 0)
 
-| Fuente | Resultado |
+1. **Effort before the first turn:** `turn.step` has not happened yet.
+2. **Changes with `/model` or `/effort` between turns:** is there an event to refresh without waiting for the next turn?
+3. **Real width** available next to `sub-meter` in the footer.
+
+**Spike results (2026-11-18, cloud session, CLI 2.1.327):**
+
+| Source | Result |
 | --- | --- |
-| `$.session.model()` en `session.start` | `claude-opus-5-5` ✅ disponible desde el arranque |
-| `turn.step` (hilo principal) | `model: claude-opus-5-5`, `effort: "medium"` ✅ coincide con la UI |
-| `$.settings.read({ key: 'effortLevel' })` | `undefined` (no configurado en esta sesión) |
-| `CLAUDE_CODE_EFFORT_LEVEL` / `CLAUDE_EFFORT` | `undefined` (no definidas en el proceso del motor) |
-| Renders `SessionMode` / `AbovePrompt` | No se dispararon: la sesión cloud vista desde la app no dibuja ese pie → validar en terminal local |
+| `$.session.model()` in `session.start` | `claude-opus-5-5` ✅ available from the start |
+| `turn.step` (main thread) | `model: claude-opus-5-5`, `effort: "medium"` ✅ matches the UI |
+| `$.settings.read({ key: 'effortLevel' })` | `undefined` (not set in this session) |
+| `CLAUDE_CODE_EFFORT_LEVEL` / `CLAUDE_EFFORT` | `undefined` (not defined in the engine's process) |
+| `SessionMode` / `AbovePrompt` renders | Not fired: the cloud session seen from the app does not draw that footer → validate in a local terminal |
 
-~~Decisión inicial: cascada `settings.effortLevel` → `CLAUDE_CODE_EFFORT_LEVEL` → `$.store` → `?`.~~ **Sustituida tras T-000** (ver abajo).
+**T-000 results in a terminal** (`docs/spikes/T-000-results.md`, Fedora + Ghostty, CLI 2.1.327):
 
-**Resultados de T-000 en terminal** (`docs/spikes/T-000-results.md`, Fedora + Ghostty, CLI 2.1.327):
-
-| Pregunta | Resultado |
+| Question | Result |
 | --- | --- |
-| `/model` entre turnos | `command.run` + `config.set { key: "model", value: <alias>, previous }` **antes** del siguiente `turn.step`; `$.session.model()` ya devuelve el id nuevo |
-| `/effort` entre turnos | Solo `command.run`; sin `config.set`. El nivel nuevo se conoce en el siguiente `turn.step` |
-| `settings.effortLevel` | **No fiable**: vale `medium` mientras el esfuerzo efectivo es `xhigh`/`high`; `/effort` guarda su valor en otro sitio |
-| Variables de entorno | `CLAUDE_CODE_EFFORT_LEVEL` y `CLAUDE_EFFORT` vacías |
-| Viewport | 95×47 a media pantalla, 191×47 maximizada; `bodyColumns = columns − 5`; `maxRows` 18 en uso |
-| `isFullscreen` | `true` con el renderer fullscreen (a cualquier ancho), `false` con el clásico |
+| `/model` between turns | `command.run` plus `config.set { key: "model", value: <alias>, previous }` **before** the next `turn.step`; `$.session.model()` already returns the new id |
+| `/effort` between turns | Only `command.run`, no `config.set`. The new level is known at the next `turn.step` |
+| `settings.effortLevel` | **Not reliable**: it reads `medium` while the effective effort is `xhigh`/`high`; `/effort` stores its value elsewhere |
+| Environment variables | `CLAUDE_CODE_EFFORT_LEVEL` and `CLAUDE_EFFORT` empty |
+| Viewport | 95×47 at half screen, 191×47 maximized; `bodyColumns = columns − 5`; `maxRows` 18 in use |
+| `isFullscreen` | `true` with the fullscreen renderer (at any width), `false` with the classic one |
 
-**Decisiones (vigentes):**
+**Decisions in force:**
 
-1. **Esfuerzo antes del primer `turn.step`:** último valor de `$.store`, atenuado y marcado como previo; si no hay, `?`. No se leen settings ni variables de entorno: `$.settings.read` y `$.env.get` **salen de la allowlist**.
-2. **`/model`:** un hook `config.set` (solo observa) con `key === "model"` refresca con `$.session.model()` al momento.
-3. **`/effort`:** `on('command.run', { command: 'effort' }, …)` (solo observa; `command` llega sin barra y con alias resueltos, `args` es lo escrito tras el nombre, y el evento llega **antes** de que el comando se ejecute):
-   - `args` vacío (selector interactivo) → **pendiente** con el último valor conocido.
-   - `args` que es un nivel válido (`/effort high`) → **pendiente** mostrando ese nivel.
-   - En ambos casos lo confirma o corrige el siguiente `turn.step`: el comando puede fallar o el modelo puede limitar el nivel.
-   - `args` pasa por la sanitización y una allowlist de niveles; cualquier otro valor se ignora.
-4. **Ancho propio de `sub-meter`:** se mide en el producto, sobre el nodo que devuelve `next(e)` en `SessionMode`, con tests de degradación por ancho.
-5. **Probar el mod con `/model` o `/effort` cambia el valor por defecto del usuario:** se avisa en el README («Cómo probar»).
-6. **Hooks en puntos que pueden bloquear un evento** (`config.set`, `command.run`, `prompt.submit`): son observadores y deben **dejar pasar siempre**. Un hook que lanza una excepción ahí se salta y el evento sigue, pero un hook que devuelve **sin** llamar a `next(e)` se queda con el evento y anularía el `/model` o el `/effort` del usuario. Por eso:
-   - el cuerpo va en `try/catch` y siempre termina en `return next(e)`;
-   - cada uno lleva un `.catch` explícito que deja pasar (`($, e, next) => next(e)`; si `next` ya se llamó, eso repite su resultado sin volver a ejecutar nada), para que el fallo hacia «dejar pasar» sea una decisión escrita;
-   - tests que prueban que el comando llega intacto a lo que hay debajo, incluso si la lógica interna lanza;
-   - `check-capabilities` falla si `validate --json` lista algún `gatingHooks` sin `.catch`.
+1. **Effort before the first `turn.step`:**
+   - the last value from `$.store`, dimmed and marked as previous; if there is none, the "off" look;
+   - settings and environment variables are not read: `$.settings.read` and `$.env.get` **are not in the allowlist**.
+2. **`/model`:** an observe-only `config.set` hook with `key === "model"` refreshes at once with `$.session.model()`.
+3. **`/effort`:** `on('command.run', { command: 'effort' }, …)`, observe only.
+   - **What the event carries:** `command` arrives without the slash and with aliases resolved; `args` is what was typed after the name; the event arrives **before** the command runs.
+   - Empty `args` (the interactive picker) → **pending**, with the last known value.
+   - `args` that is a valid level (`/effort high`) → **pending**, showing that level.
+   - In both cases the next `turn.step` confirms or corrects it: the command may fail, or the model may cap the level.
+   - `args` goes through sanitization and an allowlist of levels; any other value is ignored.
+4. **`sub-meter`'s own width:** measured in the product, on the node that `next(e)` returns in `SessionMode`, with degradation tests by width.
+5. **Testing the mod with `/model` or `/effort` changes the user's default:** the mod's README warns about it ("How to try it").
+6. **Hooks at points that can block an event** (`config.set`, `command.run`, `prompt.submit`) are observers and must **always let the event through**.
+   - **The risk:** a hook that throws there is skipped and the event goes on. But a hook that returns **without** calling `next(e)` keeps the event, and would cancel the user's `/model` or `/effort`.
+   - **The controls:**
+     - the body runs in `try/catch` and always ends in `return next(e)`;
+     - each hook has an explicit `.catch` that lets the event through (`($, e, next) => next(e)`), so failing open is a written decision;
+     - tests prove that the command reaches what lies beneath untouched, even when the inner logic throws;
+     - `check-capabilities` fails if `validate --json` lists a `gatingHooks` entry without `.catch`.
 
-
-El *spike* `wic-spike` (fuera del repositorio) registra `session.start`, `prompt.submit`, `turn.step`, `config.set`, `command.run` y los renders `SessionMode`/`AbovePrompt`, y expone lo observado mediante una herramienta de solo lectura.
+The `wic-spike` spike (`spikes/`) records these events and renders, and exposes what it observed through a read-only tool.
 
 ---
 
-## 3. Diseño funcional
+## 3. Functional design
 
-### 3.1 Modo compacto (pie, por defecto)
+### 3.1 Compact mode (footer, the default)
 
-```
+```text
 ◆ Opus 5.5 ▮▮▯▯▯ med · ⏵⏵ auto mode on
 ```
 
-- Nombre del modelo normalizado: `claude-opus-5-5` → `Opus 5.5`; sufijo `[1m]` → `1m`.
-- Todo el texto en minúscula, como el resto del pie: etiquetas `low`, `med`, `high`, `xhi`, `max`. Solo el nombre del modelo empieza por mayúscula, como lo escribe Claude Code: `Opus`, `Sonnet`, `Haiku`, `Fable`, `Mythos` (decisiones del Maintainer en CA7 de T-003, 2026-11-19).
-- Medidor de esfuerzo de 5 "píxeles": `low=1 … max=5`; numérico → escalado.
-- Paleta retro por familia (tokens del tema: `claude`, `warning`, `success`…; nunca ANSI crudo).
-- Degradación por ancho: completo → sin medidor → solo modelo → nada (como `sub-meter`).
-- **El espacio disponible no es fijo.** El pie comparte fila con la etiqueta del modo de permisos (`⏵⏵ auto mode on`) y con la línea de pistas (`PromptHint`). Esa línea crece con indicadores temporales: `1 shell · ↓ to manage` cuando hay una shell en segundo plano, `esc to interrupt` mientras Claude trabaja, `(shift+tab to cycle)`, etc. (observado por el Maintainer, 2026-11-18). Por tanto:
-  - el mod observa `ui.render { component: 'PromptHint' }` **solo para medir** la pista (devuelve `next(e)` intacto: no oculta ni reescribe pistas del motor) y guarda su ancho. Mide la línea **tal como se dibuja**, no `e.props.hint`: el árbol que devuelve `next(e)`, con el nodo del motor del ancho de la pista que recibe el eslabón del motor según `next.trace`. Así cuenta un mod que la recorta de camino (`sub-meter` oculta `(shift+tab to cycle)`), esté por encima o por debajo (T-003b, `docs/spikes/T-003b-results.md`), y también uno de debajo que la envuelve con más texto (T-009);
-  - si el ancho cambia, pide redibujar (`$.ui.invalidate('ui.render')`) para que el pie se recalcule en el momento, sin esperar a otro evento;
-  - el espacio se calcula como `columns − márgenes − etiqueta de modo − ancho de las pistas − lo que devuelve next(e)` (p. ej. `sub-meter`), y la insignia se degrada en ese orden. En lo que devuelve `next(e)`, el nodo del motor cuenta con las etiquetas de modo (`focus`…) que recibió el eslabón del motor según `next.trace`, no con `e.props.modes`: un mod de debajo puede quitar o añadir alguna (T-009);
-  - tests de degradación con pistas de distintos anchos (vacía, `1 shell · ↓ to manage`, `esc to interrupt`) a 95 y 191 columnas, con y sin un nodo debajo.
+- **The model's name**, normalized: `claude-opus-5-5` → `Opus 5.5`; the suffix `[1m]` → `1m`.
+- **Lowercase,** like the rest of the footer: the labels are `low`, `med`, `high`, `xhi` and `max`.
+  - Only the model's name starts with a capital, as Claude Code writes it: `Opus`, `Sonnet`, `Haiku`, `Fable`, `Mythos`.
+  - The Maintainer decided this in T-003's AC7 (2026-11-19).
+- **Effort meter of 5 "pixels":** `low = 1 … max = 5`; a numeric effort shows as `custom`, without a meter.
+- **Color:** a retro color per family, with theme keys (`claude`, `warning`, `success`…), never raw ANSI.
+- **Degradation by width:** full → no meter → model only → nothing (as `sub-meter` does).
+- **The available room is not fixed.** The footer shares its row with the permission mode's label (`⏵⏵ auto mode on`) and with the hint line (`PromptHint`). That line grows with transient indicators: `1 shell · ↓ to manage` with a background shell, `esc to interrupt` while Claude works, `(shift+tab to cycle)`, and so on (observed by the Maintainer, 2026-11-18). So:
+  - **Measure the hint, never change it.** The mod watches `ui.render { component: 'PromptHint' }` **only to measure** the hint. It returns `next(e)` untouched, so it never hides or rewrites the engine's hints.
+  - **Measure the line as drawn,** not `e.props.hint`: the tree that `next(e)` returns, with the engine's node as wide as the hint the engine's own link received, according to `next.trace`.
+    - A mod that trims the hint on the way counts, above or beneath (`sub-meter` hides `(shift+tab to cycle)`; T-003b, `docs/spikes/T-003b-results.md`).
+    - So does a mod beneath that wraps the line with more text (T-009).
+  - **Redraw at once:** when the width changes, the mod asks for a redraw (`$.ui.invalidate('ui.render')`), so the footer is recomputed without waiting for another event.
+  - **The room** is `columns − margins − mode label − hint width − what next(e) returns` (for example `sub-meter`), and the badge degrades in that order.
+    - In what `next(e)` returns, the engine's node counts with the mode labels (`focus`…) that the engine's own link received according to `next.trace`, not with `e.props.modes`: a mod beneath may remove or add one (T-009).
+  - **Tests:** degradation with hints of different widths (empty, `1 shell · ↓ to manage`, `esc to interrupt`), at 95 and 191 columns, with and without a node beneath.
 
-### 3.1.1 Estado «desactivado» 8-bit (petición del Maintainer, 2026-11-18)
+### 3.1.1 The 8-bit "off" state (Maintainer's request, 2026-11-18)
 
-Cuando falta información, la insignia no desaparece ni inventa datos: se ve **apagada**, como una ranura de cartucho vacía. Se aplica por partes, sin cambiar el ancho de la insignia, para que no salte al activarse:
+When information is missing, the badge neither disappears nor makes up data: it looks **switched off**, like an empty cartridge slot. It applies part by part, without changing the badge's width, so nothing jumps when it lights up:
 
-| Modelo | Esfuerzo | Aspecto (`full`) | Estado |
+| Model | Effort | Look (`full`) | State |
 | --- | --- | --- | --- |
-| conocido | de `turn.step` o pendiente | `◆ Opus 5.5 ▮▮▯▯▯ med` | `active` |
-| conocido | previo (`$.store`) | `◆ Opus 5.5` + `▮▮▯▯▯ med` atenuado | `partial` |
-| conocido | desconocido | `◆ Opus 5.5` + `░░░░░ ---` apagado | `partial` |
-| desconocido o aún sin leer | conocido | `◇ ?` + `▮▮▯▯▯ med` | `partial` |
-| desconocido | desconocido | `◇ ----- ░░░░░ ---` todo apagado | `disabled` |
+| known | from `turn.step`, or pending | `◆ Opus 5.5 ▮▮▯▯▯ med` | `active` |
+| known | previous (`$.store`) | `◆ Opus 5.5` + `▮▮▯▯▯ med` dimmed | `partial` |
+| known | unknown | `◆ Opus 5.5` + `░░░░░ ---` off | `partial` |
+| unknown, or not read yet | known | `◇ ?` + `▮▮▯▯▯ med` | `partial` |
+| unknown | unknown | `◇ ----- ░░░░░ ---` all off | `disabled` |
 
-- **Glifos «apagados»:** rombo hueco `◇` en vez de `◆`, celdas `░` en vez de `▮▯` y guiones `---`, todo con el token de color atenuado del tema (nunca ANSI crudo).
-- **Cuándo es habitual:** al abrir una sesión antes del primer turno (sin esfuerzo previo guardado) y en el instante anterior a que `$.session.model()` responda.
-- **Dónde se decide:** en la lógica pura (`badgeState` en `hooks/core/`), así se prueba con tests de todas las combinaciones, desde la primera tarea que dibuja la insignia.
+- **"Off" glyphs:** a hollow diamond `◇` instead of `◆`, cells `░` instead of `▮▯`, and dashes `---`, all in the theme's dim color, never raw ANSI.
+- **When it is common:** when a session opens before the first turn (with no stored effort), and in the instant before `$.session.model()` answers.
+- **Where it is decided:** in the pure logic (`badgeState` in `hooks/core/`), so every combination is tested.
 
-### 3.2 Modo grande (opcional, `AbovePrompt`)
+### 3.2 Large mode (optional, `AbovePrompt`)
 
-Sprite 8-bit por familia (Opus / Sonnet / Haiku / Fable / Mythos / desconocido) más un rótulo en minúscula salvo el nombre del modelo: `model Opus 5.5` · `power ▮▮▮▯▯ high`. Diseño original: no se replica ningún personaje ni arte existente. La banda, sus opciones y el ajuste al ancho llegaron en T-004. Los sprites y el rótulo actuales, en T-010 (decisiones del Maintainer, 2026-11-21), que sustituyen a los de 4×8 en un color de T-004. Así se ve con Opus (en el terminal, cada celda lleva sus colores):
+An 8-bit sprite per family (Opus, Sonnet, Haiku, Fable, Mythos, unknown) plus a label, lowercase except the model's name: `model Opus 5.5` · `power ▮▮▮▯▯ high`. Original design: no existing character or artwork is reproduced.
+
+- **History:** the band, its options and its fit to the width came in T-004. The current sprites and label came in T-010 (Maintainer's decisions, 2026-11-21), replacing T-004's single-color 4×8 sprites.
+- **How it looks with Opus** (on the terminal, each cell carries its own colors):
 
 ```text
  ▄▄▄▄▄▄▄▄▄▄
@@ -150,187 +170,222 @@ Sprite 8-bit por familia (Opus / Sonnet / Haiku / Fable / Mythos / desconocido) 
   ▄██████▄
 ```
 
-- **Sprites** (`hooks/core/sprite.ts`): cuadrículas de 12×12 píxeles (`GRIDS`), copiadas tal cual de T-010, con 3 ranuras de color y transparencia, al estilo NES. Se dibujan como 6 filas de 12 celdas.
-  - Opus es un cáliz con un rubí, Sonnet una pluma, Haiku una montaña con sol, Fable un rollo de papiro griego, Mythos un casco alado y el desconocido un cartucho vacío.
-  - Cada familia tiene su paleta (`PALETTES`):
-    - **Colores de identidad fijos** (`#rrggbb`), para que el sprite se vea como en el diseño con cualquier tema. Con temas que siguen la paleta ANSI de la terminal, las claves colisionaban: `claude` y `error` salían iguales y `warning` salía lima. Lo decidió el Maintainer en la revisión del #27, el 2026-11-21.
-    - El detalle claro (ranura 3) sigue con la clave `text`, que es clara en el tema oscuro y oscura en el claro.
-    - Los valores: Opus `#d77757`, `#f2c94c` y `#e0115f` (el rubí); Sonnet `#b1b9f9`, `#f2c94c` y `text`; Haiku `#4eba65`, `#f2c94c` y `text`; Fable `#af87ff`, `#d77757` y `text`; Mythos `#48968c`, `#f2c94c` y `text`.
-    - El pie y el rótulo siguen con las claves del tema (`familyColor`).
-  - El desconocido va atenuado entero, y sirve también para el estado «desactivado» (§3.1.1).
-- **De píxeles a celdas** (`cellOf`, `spriteRuns`), una función pura: dos filas de píxeles dan una fila de celdas.
-  - Dos píxeles de colores distintos dan `▀`, con `color` arriba y `backgroundColor` abajo; dos del mismo color, `█`.
-  - Un píxel solo da `▀` o `▄`, sin fondo; ninguno, un espacio.
-  - El aspecto atenuado nunca necesita fondo.
-  - Las celdas contiguas del mismo aspecto se juntan en un solo `Text`.
-- **Rótulo** (`hooks/core/band.ts`): dos líneas junto a las dos filas centrales del sprite, `model ` y `power `, ambas de 6 columnas para que los valores queden alineados. Usa las mismas piezas sanitizadas que la insignia del pie (`badgeState`, `effortRuns`).
-- **Ajuste a `bodyColumns`:** completo → sin medidor → solo el modelo → solo el sprite → nada. Se dibuja el mayor que cabe. Si quitar el esfuerzo no libera sitio, porque la línea del modelo es la más larga, el esfuerzo se va junto con el rótulo. Con Opus a `high`: 30, 28, 28 y 12 celdas.
-- **Hook `AbovePrompt`:** solo dibuja la fila de model-meter (`e.plugin`) en la terminal, con lo que hay debajo (`next(e)`) a continuación. En cualquier otro caso pasa. No añade llamadas a `$`.
-- **Mythos** (T-010): `claude-mythos-5` → `Mythos 5`, `claude-mythos-5-1` → `Mythos 5.1` y `claude-mythos-preview` (Bedrock) → `Mythos preview`, en el color `planMode`, en el pie y en la banda. Cualquier otro texto sigue siendo desconocido.
+- **Sprites** (`hooks/core/sprite.ts`): 12×12-pixel grids (`GRIDS`), copied verbatim from T-010, with 3 color slots and transparency, NES style. They are drawn as 6 rows of 12 cells.
+  - **The motifs:** Opus is a chalice with a ruby, Sonnet a quill, Haiku a mountain under the sun, Fable a Greek papyrus scroll, Mythos a winged helmet, and the unknown model an empty cartridge.
+  - **Each family has its palette (`PALETTES`):**
+    - **Fixed identity colors** (`#rrggbb`), so the sprite looks as designed in any theme. With themes that follow the terminal's ANSI palette, theme keys collided: `claude` and `error` came out the same, and `warning` came out lime. The Maintainer decided this in the review of #27, on 2026-11-21.
+    - **The light detail** (slot 3) keeps the theme key `text`, which is light on dark themes and dark on light ones.
+    - **The values:**
+
+      | Family | Slots 1 / 2 / 3 |
+      | --- | --- |
+      | Opus | `#d77757`, `#f2c94c`, `#e0115f` (the ruby) |
+      | Sonnet | `#b1b9f9`, `#f2c94c`, `text` |
+      | Haiku | `#4eba65`, `#f2c94c`, `text` |
+      | Fable | `#af87ff`, `#d77757`, `text` |
+      | Mythos | `#48968c`, `#f2c94c`, `text` |
+
+    - **The footer and the label** keep the theme keys (`familyColor`).
+  - **The unknown sprite** is dimmed whole, and also serves the "off" state (§3.1.1).
+- **From pixels to cells** (`cellOf`, `spriteRuns`, pure functions): two rows of pixels make one row of cells.
+  - Two pixels of different colors give `▀`, with `color` above and `backgroundColor` below; two of the same color give `█`.
+  - A single pixel gives `▀` or `▄` with no background; none, a space.
+  - The dimmed look never needs a background.
+  - Adjacent cells that look alike are joined into a single `Text`.
+- **Label** (`hooks/core/band.ts`): two lines beside the sprite's two middle rows, `model ` and `power `, both 6 columns wide so the values line up. It uses the same sanitized parts as the footer badge (`badgeState`, `effortRuns`).
+- **Fit to `bodyColumns`:** full → no meter → model only → sprite only → nothing. The largest size that fits is drawn. If dropping the effort frees no room, because the model's line is the longer one, the effort goes with the label. With Opus at `high`: 30, 28, 28 and 12 cells.
+- **`AbovePrompt` hook:** it draws only model-meter's own row (`e.plugin`) on the terminal, followed by what lies beneath (`next(e)`). Otherwise it passes. It adds no `$` calls.
+- **Mythos** (T-010): `claude-mythos-5` → `Mythos 5`, `claude-mythos-5-1` → `Mythos 5.1` and `claude-mythos-preview` (Bedrock) → `Mythos preview`, in the color `planMode`, in the footer and the band. Any other text stays unknown.
 
 ### 3.3 `userConfig`
 
-| Campo | Tipo | Default |
+| Field | Type | Default |
 | --- | --- | --- |
 | `placement` | `footer` \| `auto` \| `band` | `footer` |
-| `autoMinColumns` | number | `140` |
-| `showEffortMeter` | boolean | `true` (pendiente: otra tarea) |
-| `palette` | `classic` \| `gameboy` \| `mono` | `classic` (pendiente: otra tarea) |
+| `autoMinColumns` | number (80–400) | `140` |
+| `showEffortMeter` | boolean | `true` (phase 5, optional, not implemented) |
+| `palette` | `classic` \| `gameboy` \| `mono` | `classic` (phase 5, optional, not implemented) |
 
-`placement` y `autoMinColumns` están en `plugin.json` desde T-004. `autoMinColumns` admite de 80 a 400. Son entrada no confiable: `parseOptions` (`hooks/core/options.ts`) cambia por el valor por defecto lo que no es de la lista o se sale del rango, sin lanzar errores.
+`placement` and `autoMinColumns` have been in `plugin.json` since T-004. They are untrusted input: `parseOptions` (`hooks/core/options.ts`) replaces anything off the list or out of range with the default, without throwing.
 
-### 3.4 Evaluación: modo `auto` (compacto a media pantalla, grande a pantalla completa)
+### 3.4 Evaluation: `auto` mode (compact at half screen, large at full screen)
 
-**Viable.** Cada `ui.render` recibe `e.viewport = { columns, rows, isFullscreen? }` y, en la terminal, un cambio de ancho redibuja todos los sitios enganchados al asentarse el redimensionado. No hacen falta timers ni sondeos.
+**Viable.** Every `ui.render` receives `e.viewport = { columns, rows, isFullscreen? }`. On the terminal, a change of width redraws every hooked site once the resize settles. No timers or polling are needed.
 
-| Señal | ¿Sirve? | Motivo |
+| Signal | Useful? | Why |
 | --- | --- | --- |
-| `viewport.columns` | **Sí, señal principal** | Refleja el ancho real de la terminal y dispara redibujado. |
-| `viewport.rows` | Secundaria | Informativa: un cambio *solo* de alto no redibuja. |
-| `viewport.isFullscreen` | **No** como criterio | Indica el modo de pantalla alternativa de Claude Code (fijo por sesión), no si la ventana está maximizada. |
-| `AbovePrompt.props.bodyColumns` / `maxRows` | Sí, para dimensionar el sprite | Ancho útil real de la banda (descuenta un `Pane` acoplado). |
+| `viewport.columns` | **Yes, the main signal** | It reflects the terminal's real width and triggers a redraw. |
+| `viewport.rows` | Secondary | Informative: a change of height *alone* does not redraw. |
+| `viewport.isFullscreen` | **No**, not as a criterion | It tells Claude Code's alternate-screen mode (fixed per session), not whether the window is maximized. |
+| `AbovePrompt.props.bodyColumns` / `maxRows` | Yes, to size the sprite | The band's real usable width (it subtracts a docked `Pane`). |
 
-Regla propuesta para `placement: auto`:
+The rule for `placement: auto`:
 
-- Pie compacto **siempre** (es la información esencial).
-- Se añade la banda grande si `columns ≥ autoMinColumns` (140 por defecto) **y** `maxRows` permite el sprite (≥ 6 filas). Confirmado en T-000: 95 columnas a media pantalla y 191 maximizada; `maxRows` = 18 en uso.
-- **Histéresis** para evitar parpadeo al redimensionar: entra con ≥ `autoMinColumns` y sale con < `autoMinColumns − 20` (140 y 120 por defecto).
-- Solo en la terminal: en `desktop` y `mobile` el mod no dibuja la banda, igual que el pie.
+- The compact footer **always** shows: it is the essential information.
+- The band is added when `columns ≥ autoMinColumns` (140 by default) **and** `maxRows` fits the sprite (≥ 6 rows). T-000 measured 95 columns at half screen and 191 maximized, with `maxRows` 18 in use.
+- **Hysteresis,** so a resize does not flicker it: it enters at `≥ autoMinColumns` and leaves at `< autoMinColumns − 20` (140 and 120 by default).
+- Terminal only: on `desktop` and `mobile` the mod draws no band, as with the footer.
 
-Implementado en T-004 (`bandVisibility`, en `hooks/core/band.ts`):
+**Implemented in T-004** (`bandVisibility`, in `hooks/core/band.ts`):
 
-- `footer` nunca muestra la banda. `band` la muestra siempre que quepa. `auto` la muestra mientras la terminal se considera ancha.
-- En los tres casos, solo con `maxRows ≥ 6` y sin encuesta (`hasSurvey`).
-- El estado que se arrastra de un dibujo al siguiente es solo el del ancho (`wide`). Una encuesta o una banda corta la ocultan un rato sin reiniciarlo.
-- Ese estado vive en el cierre del módulo, como el ancho de la pista, porque el motor no deja escribir `$.state` mientras dibuja.
-- Con `placement: footer`, el hook de `AbovePrompt` ni se registra: el mod no pide fila en la banda y todo queda como antes de T-004.
+- **When the band shows:**
+  - `footer` never shows the band; `band` shows it whenever it fits; `auto` shows it while the terminal counts as wide;
+  - in all three cases, only with `maxRows ≥ 6` and no survey (`hasSurvey`).
+- **The state between drawings:**
+  - the only state carried from one drawing to the next is the width's (`wide`), so a survey or a short band hides the band for a while without resetting it;
+  - that state lives in the module's closure, like the hint's width, because the engine does not let a hook write `$.state` while it draws.
+- **With `placement: footer`,** the `AbovePrompt` hook is not even registered: the mod asks for no row in the band.
 
-Referencia orientativa: un monitor de 1920 px con fuente de 14 px da ~200 columnas a pantalla completa y ~95–110 a media pantalla, por lo que 140 separa bien ambos casos. Se ajustará con los datos del spike.
+A rough reference: a 1920 px monitor with a 14 px font gives ~200 columns at full screen and ~95–110 at half screen, so 140 separates both cases well.
 
-**Coste:** la banda ocupa filas verticales encima del prompt en cada turno (comparte espacio con las encuestas del motor y el usuario puede plegarla con `[-]`). Por eso el default es `footer` y `auto` es *opt-in*; se reevaluará como default tras usarlo.
+**Cost:** the band takes rows above the prompt on every turn. It shares that space with the engine's surveys, and the user can fold it with `[-]`. That is why the default is `footer` and `auto` is opt-in.
 
 ---
 
-## 4. Arquitectura
+## 4. Architecture
 
-```
+```text
 plugins/model-meter/
-├── .claude-plugin/plugin.json
+├── .claude-plugin/plugin.json   # name, version, userConfig (placement, autoMinColumns)
 ├── hooks/
 │   ├── hooks.json
-│   ├── register.tsx        # cableado de eventos y render (fino; tipos del motor vía validate --strict)
-│   ├── register.test.tsx   # tests de mod (claude plugin test)
-│   └── core/               # PURO, sin `$` ni `claude-code` (tsc + node --test)
-│       ├── sanitize.ts     # limpiar/acotar texto mostrado
-│       ├── model.ts        # id de modelo → { family, label }
-│       ├── effort.ts       # nivel → { cells, label }; parseEffortArg
-│       ├── state.ts        # cascada step / stored / pending / unknown
-│       ├── layout.ts       # anchos y elección de variante por espacio
-│       └── sprites.ts      # (T-004) matrices de píxeles → filas de texto
-├── types/index.d.ts        # contrato de $.state
+│   ├── register.tsx             # event wiring and drawing only (engine types via validate --strict)
+│   ├── register.test.tsx        # mod tests (claude plugin test)
+│   └── core/                    # PURE: no `$` and no `claude-code` (tsc + node --test)
+│       ├── sanitize.ts          # clean and bound any text that is drawn
+│       ├── model.ts             # model id → { family, label }
+│       ├── effort.ts            # level → { cells, label }; parseEffortArg
+│       ├── state.ts             # cascade step / stored / pending / unknown
+│       ├── badge.ts             # badge state, runs, family colors
+│       ├── layout.ts            # widths, drawn-hint measures, variant by room
+│       ├── options.ts           # parseOptions: userConfig as untrusted input
+│       ├── band.ts              # band visibility (hysteresis), rows and fit
+│       └── sprite.ts            # 12×12 grids, palettes, pixels → cells
+├── types/index.d.ts             # the $.state contract
 ├── tsconfig.json
 └── README.md
-.claude-plugin/marketplace.json   # el repo es un marketplace
+.claude-plugin/marketplace.json  # the repository is a marketplace
 ```
 
-Principios: **núcleo puro y testeable** (sin `$`), *hooks* finos, ninguna dependencia en tiempo de ejecución.
+Principles: a **pure, testable core** (no `$`), thin hooks, and no runtime dependencies.
 
 ---
 
-## 5. Seguridad (modelo de amenazas STRIDE resumido)
+## 5. Security (a short STRIDE threat model)
 
-| Amenaza | Vector | Control |
+| Threat | Vector | Control |
 | --- | --- | --- |
-| *Tampering* | Un hook que reescriba `model`/`effort` | El mod **solo observa**: siempre `next(e)` intacto. Test que lo verifica. |
-| *Spoofing / injection* en UI | Cadena de modelo con secuencias de control/ANSI o muy larga | `sanitize.ts`: allowlist `[A-Za-z0-9.\-\[\] ]`, longitud ≤ 32, tests de *fuzzing* con `fast-check`. |
-| *Information disclosure* | Persistir datos sensibles | Solo se guarda `{ model, effort, seenAt }`. Sin rutas, prompts ni tokens. |
-| *Elevation of privilege* | Uso de `$.fs`, `$.process`, `$.model`, red, `$.tool.register` | Prohibido. CI analiza la salida de `claude plugin validate` (lista lo que el módulo llama) contra una **allowlist**. |
-| *DoS* | Timers o renders costosos | Sin `$.clock.every` salvo necesidad; cálculo O(1); cancelar en `session.end`. |
-| Cadena de suministro | Dependencias / Actions comprometidas | Cero deps de runtime; devDeps fijadas con lockfile; Actions fijadas por **SHA**; Dependabot; `npm ci --ignore-scripts`. |
+| *Tampering* | A hook that rewrites `model`/`effort`, or blocks a command | The mod **only observes**: always `next(e)` untouched; gating hooks carry a `.catch` that lets the event through. Tests prove it, and `check-capabilities` enforces the `.catch`. |
+| *Spoofing / injection* in the UI | A model string with control or ANSI sequences, or a very long one | `sanitize.ts`: an allowlist `[A-Za-z0-9.\-\[\] ]`, length ≤ 32, property tests with `fast-check`. The options are validated with closed lists and ranges, and never drawn verbatim. |
+| *Information disclosure* | Persisting sensitive data | Only the **last effort level** is stored (`$.store`). No paths, prompts, tokens or model ids. |
+| *Elevation of privilege* | Use of `$.fs`, `$.process`, `$.model`, the network, `$.tool.register` | Forbidden. CI parses the output of `claude plugin validate` (which lists what the module calls) against an **allowlist**. |
+| *DoS* | Timers or costly renders | No timers; O(1) per render; redraws only when a measured width changes. |
+| Supply chain | Compromised dependencies or actions | No runtime dependencies; development dependencies pinned by the lockfile; actions pinned by **SHA**; Dependabot; `npm ci --ignore-scripts`; releases with build provenance (T-012). |
 
 ---
 
-## 6. Controles de calidad y seguridad (*quality gates*)
+## 6. Quality and security gates
 
-Todo cambio entra por **PR** a `main` con *branch protection*; ningún gate es opcional.
+Every change enters `main` through a **pull request** under the `main` ruleset; no gate is optional.
 
-| Gate | Herramienta | Umbral |
+| Gate | Tool | Threshold |
 | --- | --- | --- |
-| Validación del mod | `claude plugin validate` (CLI fijada a versión) | 0 errores |
-| Allowlist de capacidades | script que parsea `claude plugin validate --json` | Solo `$.session.model`, `$.store.get`/`set`, `$.ui.invalidate`/`resolve`, `$.clock.now` y `$.state.get`/`set` **acotado** al estado propio de `model-meter` con las claves que declara su contrato (`types/index.d.ts`) (decisión del Maintainer, 2026-11-18, T-003); **ninguna** variable de entorno; todo hook que pueda bloquear un evento, con `.catch` |
-| Tipos | Núcleo puro: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict` (comprueba los tipos del motor sin incluirlos en el repo) | 0 errores |
-| Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 avisos |
-| Formato | Prettier (o Biome) | `--check` |
-| Tests lógicos | `node --test` + `c8` | Cobertura ≥ 95 % líneas/ramas del núcleo puro |
-| Tests del mod | `claude plugin test` en `terminal` y `desktop` | 100 % verdes |
-| Property-based | `fast-check` sobre `sanitize`/`model` | 1 000 casos |
-| SAST | CodeQL (JS/TS) | 0 alertas ≥ medium |
-| Secretos | GitHub secret scanning + `gitleaks` | 0 hallazgos |
-| Dependencias | `npm audit --audit-level=low`, Dependabot, *dependency-review-action* | 0 vulnerabilidades |
-| Workflows | `zizmor` / `actionlint`; `permissions: contents: read` | 0 hallazgos |
-| Postura | OpenSSF Scorecard | ≥ 8/10 |
-| Commits | Conventional Commits (commitlint); `main` solo por squash merge firmado por GitHub | Obligatorio |
-| Releases | SemVer, `CHANGELOG.md`, *build provenance* (GitHub attestations) | Por tag |
+| Mod validation | `claude plugin validate` (CLI pinned to a version) | 0 errors |
+| Capability allowlist | A script that parses `claude plugin validate --json` | See below |
+| Types | Pure core: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict`, which checks the engine's types without vendoring them | 0 errors |
+| Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 warnings |
+| Formatting | Prettier | `--check` |
+| Logic tests | `node --test` + `c8` | Coverage ≥ 95% lines/branches of the pure core (it is at 100%) |
+| Mod tests | `claude plugin test` on `terminal` and `desktop` | 100% green |
+| Property-based | `fast-check` on `sanitize`/`model` | 1,000 cases |
+| SAST | CodeQL (JS/TS) | 0 alerts ≥ medium |
+| Secrets | GitHub secret scanning + `gitleaks` | 0 findings |
+| Dependencies | `npm audit --audit-level=low`, Dependabot, *dependency-review-action* | 0 vulnerabilities |
+| Workflows | `zizmor` / `actionlint`; `permissions: contents: read` by default | 0 findings |
+| Posture | OpenSSF Scorecard | ≥ 8/10 |
+| Commits | Conventional Commits (commitlint); `main` only through squash merges signed by GitHub | Required |
+| Releases | SemVer, `CHANGELOG.md`, build provenance (GitHub attestations) | Per tag |
 
-### 6.1 Controles adicionales por ser repositorio público
+**The capability allowlist** admits:
 
-- *Secret scanning* con **push protection** y **private vulnerability reporting** activados.
-- *Ruleset* en `main`: PR obligatorio con **0 aprobaciones requeridas**, checks de estado requeridos (desde T-001), solo squash merge, historial lineal, commits firmados, sin *force-push* ni borrado. No se exige revisión de `CODEOWNERS`: los PRs los abre la cuenta del Maintainer (vía `gh` del Builder) y GitHub no permite aprobar un PR propio, así que bloquearía toda fusión. La aprobación humana queda registrada como se describe en `docs/WORKFLOW.md` §6.
-- Workflows activados por `pull_request` (nunca `pull_request_target` con checkout del PR); `GITHUB_TOKEN` de solo lectura por defecto; aprobación manual para workflows de forks de primeros contribuidores.
-- Publicación del resultado de OpenSSF Scorecard (badge) y licencia MIT ya presente.
-- Sin datos personales en el código, los fixtures ni el historial (revisión con `gitleaks` también sobre el historial completo).
+- `$.session.model`, `$.store.get`/`set`, `$.ui.invalidate`/`resolve` and `$.clock.now`;
+- `$.state.get`/`set`, **bounded** to `model-meter`'s own state and to the keys its contract declares (`types/index.d.ts`). The Maintainer decided this on 2026-11-18, in T-003.
 
-Archivos de gobierno: `SECURITY.md`, `CODEOWNERS`, `CONTRIBUTING.md`, plantilla de PR con checklist de seguridad, `.editorconfig`.
+It admits **no** environment variable, and every hook that can block an event must carry a `.catch`.
+
+### 6.1 Extra controls because the repository is public
+
+- **Repository security features:** secret scanning with **push protection**, and **private vulnerability reporting**.
+- **The `main` ruleset:**
+  - a pull request is required, with **0 required approvals**;
+  - required status checks, squash merge only, linear history, signed commits;
+  - no force push and no deletion.
+  - **Why no `CODEOWNERS` review:** the pull requests are opened by the Maintainer's account (through the Builder's `gh`), and GitHub does not let anyone approve their own pull request, so it would block every merge. The human approval is recorded as `docs/WORKFLOW.md` §6 describes.
+- **A tag ruleset for `v*`** before the first release (`docs/REPO-SETTINGS.md` §4).
+- **Workflows:**
+  - triggered by `pull_request`, never `pull_request_target` with the pull request checked out;
+  - `GITHUB_TOKEN` read-only by default;
+  - manual approval for workflows from first-time contributors' forks.
+- **Public posture:** the OpenSSF Scorecard result is published as a badge, and the MIT license is present.
+- **No personal data** in the code, the fixtures or the history (`gitleaks` also scans the full history).
+
+Governance files: `SECURITY.md`, `CODEOWNERS`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue forms, a pull request template with a security checklist, and `.editorconfig`.
 
 ---
 
-## 7. Metodología
+## 7. Methodology
 
-**Spec-driven + TDD (red → green → refactor)** en iteraciones cortas, enmarcado en NIST SSDF:
+**Spec-driven + TDD (red → green → refactor)** in short iterations, framed by NIST SSDF:
 
-- **PO (Prepare)**: este plan, gates y CI antes del primer código de producto.
-- **PS (Protect)**: protección de rama, firmas, Actions por SHA, mínimo privilegio.
-- **PW (Produce)**: diseño puro/testeable, threat model, revisión (`/code-review`, `/security-review`) en cada PR.
-- **RV (Respond)**: `SECURITY.md`, Dependabot, Scorecard periódico.
+- **PO (Prepare):** this plan, the gates and CI before the first line of product code.
+- **PS (Protect):** branch protection, signatures, actions pinned by SHA, least privilege.
+- **PW (Produce):** a pure, testable design, a threat model, and review (`/code-review`, `/security-review`) on every pull request.
+- **RV (Respond):** `SECURITY.md`, Dependabot, a periodic Scorecard and a weekly audit.
 
-Cada historia: especificación (criterios de aceptación) → test que falla → implementación mínima → refactor → gates verdes → PR.
+Each story goes: specification (acceptance criteria) → failing test → minimal implementation → refactor → green gates → pull request.
 
-**Patrón Reviewer–Builder** (detalle en `docs/WORKFLOW.md`): una sesión Claude Code en la nube diseña, planifica y revisa; una sesión Claude Code local del mantenedor implementa y prueba en el entorno real (terminal, CLI `claude`); la persona aprueba y fusiona. Las tareas viven en `docs/tasks/` con criterios de aceptación verificables, y GitHub (ramas y PRs) es el canal y el registro auditable.
+**The Reviewer–Builder pattern** (detail in `docs/WORKFLOW.md`):
+
+- a Claude Code session in the cloud designs, plans and reviews;
+- the Maintainer's local Claude Code session implements and tests in the real environment (terminal, the `claude` CLI);
+- the person approves.
+
+The tasks live in `docs/tasks/` with verifiable acceptance criteria, and GitHub (branches and pull requests) is the channel and the audit trail.
 
 ---
 
-## 8. Plan por fases
+## 8. Phased plan
 
-| Fase | Entregable | Criterio de salida |
+| Phase | Deliverable | Exit criterion |
 | --- | --- | --- |
-| **0. Spikes** (½ día) | Prototipo desechable que registra `session.model()` y `turn.step` | Respuestas documentadas a las 3 incógnitas de §2.4 |
-| **1. Andamiaje seguro** | `package.json` sin deps de runtime, tsconfig estricto, ESLint, Prettier, CI con todos los gates, `SECURITY.md`, `CODEOWNERS`, Dependabot, CodeQL, Scorecard | CI verde sobre un mod vacío que valida |
-| **2. Núcleo puro (TDD)** | `model.ts`, `effort.ts`, `sanitize.ts`, `sprites.ts` + tests y property tests | Cobertura ≥ 95 % |
-| **3. Modo compacto** | `register.tsx`: `turn.step` (observador), `session.*`, render `SessionMode` componiendo con lo de debajo | Tests de mod en `terminal` y `desktop`; convive con `sub-meter` |
-| **4. Modo grande 8-bit** | Banda `AbovePrompt` con sprites y paletas | Tests de render y de ancho |
-| **5. Config y persistencia** (**opcional, más adelante**) | `userConfig` (`placement` y `autoMinColumns` ya hechos en T-004; `$.store` del último esfuerzo, en T-003). Quedan las paletas y `showEffortMeter` (T-011) | Decisión del Maintainer (2026-11-21): no bloquea la v0.1.0 |
-| **6. Hardening y release** (T-012) | Revisión de seguridad, README con capturas, `marketplace.json`, tag `v0.1.0` con provenance | Todos los gates verdes; instalación con `/plugin install model-meter --marketplace at0mikd/model-meter` |
+| **0. Spikes** ✅ | A throwaway prototype that records `session.model()` and `turn.step` | Documented answers to the unknowns of §2.4 |
+| **1. Secure scaffold** ✅ | `package.json` with no runtime dependencies, strict tsconfig, ESLint, Prettier, CI with every gate, `SECURITY.md`, `CODEOWNERS`, Dependabot, CodeQL, Scorecard | CI green on an empty mod that validates |
+| **2. Pure core (TDD)** ✅ | `model.ts`, `effort.ts`, `sanitize.ts` and more, with tests and property tests | Coverage ≥ 95% |
+| **3. Compact mode** ✅ | `register.tsx`: `turn.step` (observer), `session.*`, a `SessionMode` render composing with what lies beneath | Mod tests on `terminal` and `desktop`; lives alongside `sub-meter` |
+| **4. 8-bit large mode** ✅ | The `AbovePrompt` band with sprites (T-004, T-010) | Render and width tests |
+| **5. Config and persistence** (**optional, later**) | `placement` and `autoMinColumns` are done (T-004) and the last effort is stored (T-003). Palettes and `showEffortMeter` remain (T-011) | The Maintainer's decision (2026-11-21): it does not block v0.1.0 |
+| **6. Hardening and release** (T-012) | Security review, README with screenshots, release workflow with provenance, tag `v0.1.0` | Every gate green; installation with `/plugin marketplace add at0mikd/model-meter` and `/plugin install model-meter@model-meter` |
 
 ---
 
-## 9. Riesgos
+## 9. Risks
 
-| Riesgo | Mitigación |
+| Risk | Mitigation |
 | --- | --- |
-| La API de mods cambia entre versiones del CLI | Fijar versión de `claude` en CI; job semanal contra `latest`. |
-| Esfuerzo desconocido hasta el primer turno | Mostrar `?` y último valor del `$.store` marcado como "previo". |
-| Conflicto de espacio con otros mods del pie | Componer con `next(e)` y degradar por ancho; modo `band` como alternativa. |
-| Fuentes sin soporte de bloques Unicode | Paleta/glifos `mono` ASCII de reserva. |
+| The mod API changes between CLI versions | Pin the `claude` CLI in CI; Dependabot proposes CLI bumps as their own reviewed pull requests. |
+| Effort unknown until the first turn | Show the last stored value marked as previous, or the "off" look. |
+| Room conflicts with other footer mods | Compose with `next(e)`, measure what is drawn, and degrade by width; the band as an alternative. |
+| Terminals without 24-bit color or block glyphs | The footer uses theme keys; an ASCII/`mono` fallback is part of the optional phase 5. |
 
 ---
 
-## 10. Referencias
+## 10. References
 
-- Ejemplo: <https://github.com/midudev/better-claude/tree/main/plugins/sub-meter>
-- Plugins de Claude Code: <https://code.claude.com/docs/en/plugins>
-- Statusline clásica: <https://code.claude.com/docs/en/statusline>
-- Tipos del motor (local, v2.1.327): `claude-code.d.ts` — `session.model` (l. 3256), `TurnStepInput.effort` (l. 17465), `SessionMode`/`AbovePrompt` (l. 12659–12730)
+- Reference mod: <https://github.com/midudev/better-claude/tree/main/plugins/sub-meter>
+- Claude Code plugins: <https://code.claude.com/docs/en/plugins>
+- The classic status line: <https://code.claude.com/docs/en/statusline>
+- The engine's types (local, v2.1.327): `claude-code.d.ts`: `session.model`, `TurnStepInput.effort`, `SessionMode`/`AbovePrompt`, `PromptHint`, `TraceEntry`
 - NIST SSDF SP 800-218: <https://csrc.nist.gov/pubs/sp/800/218/final>
-- Hardening de GitHub Actions: <https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions>
+- GitHub Actions hardening: <https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions>
 - OpenSSF Scorecard: <https://github.com/ossf/scorecard>
 - SLSA / provenance: <https://slsa.dev>
