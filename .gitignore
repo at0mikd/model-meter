@@ -6,3 +6,5 @@ coverage/
 # Tipos generados por el motor de Claude Code al cargar un mod
 **/.claude-plugin/types/
 .claude/settings.local.json
+# Release packages built by scripts/package.mjs
+dist/

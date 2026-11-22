@@ -1,6 +1,6 @@
 {
   "name": "model-meter",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Claude Code mod that shows the session's model and effort level in 8-bit style.",
   "license": "MIT",
