@@ -3,7 +3,7 @@
 - **Date:** 2026-11-22
 - **Scope:** the published mod (`plugins/model-meter/`), `scripts/`, the new `.github/workflows/release.yml` and the changes to `.github/workflows/ci.yml`. Task T-012, AC1.
 - **Base:** `main` at `99d809b`, plus the T-012 branch `chore/T-012-hardening-release`.
-- **Result:** no open finding of any severity. One test gap was found and closed in this task (see [Findings](#findings)).
+- **Result:** no open finding of any severity. Two issues were found and closed in this task: a test gap, and a cache that zizmor flagged in the release workflow (see [Findings](#findings)).
 
 ## 1. `/security-review`
 
@@ -108,5 +108,6 @@ plugins/model-meter/types/index.d.ts
 | 1 | PLAN §5 promised a test that the mod never rewrites `model` or `effort` in `turn.step`. The existing tests covered `/model`, `/effort` and the drawing, but not `turn.step` itself. | Low (a test gap; the code was already correct) | **Fixed in T-012** (`0fa36f7`): a new mod test fails when the hook rewrites the effort, as checked against a mutated hook. |
 | 2 | PLAN §5 (Information disclosure) says the mod stores `{ model, effort, seenAt }`. The code stores less, only the effort level. | Informational (documentation) | For the Reviewer, who is translating PLAN: the control is stricter than documented. |
 | 3 | A tag on any commit runs that commit's `release.yml` with `contents: write`. | Hardening | The Maintainer applies the `v*` tag ruleset after the merge: creation restricted to the Maintainer, no deletions or updates, signed tags (T-012, "After the merge"). |
+| 4 | zizmor (`cache-poisoning`, high) on this pull request: `actions/setup-node` v5 and later turn on the npm cache unless told otherwise, so the three jobs of `release.yml` that set up Node restored a cache that a pull request could have written. `/security-review` read the workflow as using no cache. | High (in the release workflow, before it ever ran) | **Fixed in T-012:** `package-manager-cache: false` on every `setup-node` of `release.yml`. zizmor's `self-repository` help on `uses: ./.github/workflows/ci.yml` is suppressed inline, with the reason. `./` loads the reusable workflow from the caller's own commit, and the newer `$/` form is newer than the actionlint pinned in CI. |
 
 No finding of high severity is open.
