@@ -1,42 +1,54 @@
-# T-007 · Aviso anticipado de caducidad de excepciones y auditoría semanal
+# T-007 · Early warning on expiring exceptions, and a weekly audit
 
-- **Estado:** Done ([#9](https://github.com/at0mikd/model-meter/pull/9); CA4: ejecución manual en verde sobre `main`)
-- **Rama:** `chore/T-007-audit-expiry-warning`
-- **Plan:** `docs/PLAN.md` §6; T-001 «Excepciones de seguridad»
+- **Status:** Done ([#9](https://github.com/at0mikd/model-meter/pull/9); AC4: a manual run, green on `main`)
+- **Branch:** `chore/T-007-audit-expiry-warning`
+- **Plan:** `docs/PLAN.md` §6; T-001 "Security exceptions"
 
-## Objetivo
+## Goal
 
-Que la caducidad de una excepción de auditoría (hoy `GHSA-fc5q-39xc-vjpf`, el 2026-12-18) **no pille por sorpresa**: aviso visible con antelación y una auditoría periódica en `main` que no dependa de que haya PRs ni de ninguna sesión de Claude. Decisión del Maintainer (opción 3, 2026-11-18).
+An audit exception's expiry (at the time, `GHSA-fc5q-39xc-vjpf` on 2026-12-18) must **never come as a surprise**:
 
-## Alcance
+- a visible warning ahead of time;
+- a periodic audit on `main` that depends neither on open pull requests nor on any Claude session.
 
-**Entra:**
-- `scripts/audit.mjs`: si una excepción caduca en **14 días o menos** (UTC), emite un aviso. No falla: la caducidad sigue siendo la regla 2. El aviso sale:
-  - en la salida estándar, con el GHSA, la fecha y los días que quedan;
-  - como anotación de GitHub Actions (`::warning title=...::...`) cuando `GITHUB_ACTIONS === 'true'`, sin rutas ni datos del entorno.
-  - El margen es una constante exportada (`EXPIRY_WARNING_DAYS = 14`) con tests en los límites (15, 14, 1 y 0 días) y con varias excepciones.
-- `.github/workflows/audit-schedule.yml`:
-  - Disparadores: `schedule` semanal (lunes, minuto no redondo) y `workflow_dispatch`.
-  - Pasos: `npm ci --ignore-scripts` y `npm run audit` sobre `main`, más `npm audit --prefix tools/claude-cli --audit-level=low`.
-  - Permisos: `permissions: contents: read` y nada más; acciones fijadas por SHA; `persist-credentials: false`.
-  - Un fallo programado avisa al Maintainer por el correo estándar de GitHub. No se crean issues ni se usa ningún token con escritura.
-- `SECURITY.md`: en «Excepciones activas», explicar el aviso a 14 días y la auditoría semanal.
+The Maintainer's decision (option 3, 2026-11-18).
 
-**No entra:** renovar o cambiar ninguna excepción, crear issues automáticamente o tocar Dependabot.
+## Scope
 
-## Criterios de aceptación
+**In:**
 
-- **CA1** — Con una excepción que caduca dentro de ≤ 14 días, `npm run audit` termina con 0 e imprime el aviso; con > 14 días no hay aviso; caducada, falla como antes. Cada caso cubierto por un test.
-- **CA2** — Bajo `GITHUB_ACTIONS=true`, el aviso sale como anotación `::warning` (test).
-- **CA3** — `audit-schedule.yml` pasa actionlint y zizmor (también el perfil pedante); solo `contents: read`.
-- **CA4** — Una ejecución manual (`workflow_dispatch`) del workflow sobre la rama del PR o tras la fusión queda en verde, con su enlace en el PR.
-- **CA5** — `npm run check` en verde; cobertura de `scripts/` ≥ 95 %.
+- **`scripts/audit.mjs`:** if an exception expires in **14 days or fewer** (UTC), it warns. It does not fail: expiry is still rule 2.
+  - **Where the warning goes:**
+    - to standard output, with the GHSA, the date and the days left;
+    - as a GitHub Actions annotation (`::warning title=...::...`) when `GITHUB_ACTIONS === 'true'`, with no paths or environment data.
+  - **The margin** is an exported constant (`EXPIRY_WARNING_DAYS = 14`), with tests at the boundaries (15, 14, 1 and 0 days) and with several exceptions.
+- **`.github/workflows/audit-schedule.yml`:**
+  - **Triggers:** a weekly `schedule` (Mondays, at a non-round minute) and `workflow_dispatch`.
+  - **Steps:** `npm ci --ignore-scripts` and `npm run audit` on `main`, plus `npm audit --prefix tools/claude-cli --audit-level=low`.
+  - **Permissions:** `permissions: contents: read` and nothing else; actions pinned by SHA; `persist-credentials: false`.
+  - **On failure:** a scheduled failure notifies the Maintainer through GitHub's standard email. No issues are created and no token with write access is used.
+- **`SECURITY.md`:** under "Active exceptions", explain the 14-day warning and the weekly audit.
 
-## Restricciones de seguridad
+**Out:** renewing or changing any exception, creating issues automatically, or touching Dependabot.
 
-- Ningún permiso de escritura ni secreto en el workflow nuevo.
-- El aviso no imprime rutas absolutas ni contenido del entorno.
+## Acceptance criteria
 
-## Evidencia requerida
+- **AC1** — `npm run audit`, with each case covered by a test:
+  - with an exception that expires in ≤ 14 days, it ends with 0 and prints the warning;
+  - with > 14 days, there is no warning;
+  - once expired, it fails as before.
+- **AC2** — With `GITHUB_ACTIONS=true`, the warning comes out as a `::warning` annotation (test).
+- **AC3** — `audit-schedule.yml` passes actionlint and zizmor (the pedantic profile too), with only `contents: read`.
+- **AC4** — A manual run (`workflow_dispatch`) of the workflow, on the pull request's branch or after the merge, is green, with its link on the pull request.
+- **AC5** — `npm run check` green; coverage of `scripts/` ≥ 95%.
 
-Salida de `npm run audit` con una excepción simulada a 10 días (en test), salida de actionlint y zizmor, y el enlace a la ejecución de CA4.
+## Security constraints
+
+- No write permission or secret in the new workflow.
+- The warning prints no absolute paths or environment content.
+
+## Required evidence
+
+- The output of `npm run audit` with a simulated exception at 10 days (in a test).
+- The output of actionlint and zizmor.
+- The link to AC4's run.

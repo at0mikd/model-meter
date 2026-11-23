@@ -17,8 +17,6 @@ The backlog of the Reviewer–Builder workflow (`docs/WORKFLOW.md`). The Reviewe
 | T-011 | Palettes (`classic`, `gameboy`, `mono`) and `showEffortMeter` | 5 | Optional, later (not specified yet) |
 | [T-012](T-012-hardening-release.md) | Hardening and the v0.1.0 release | 6 | In review |
 
-Task files up to T-010 were written in Spanish and are being translated (see `docs/README.md`).
-
 ## Task format
 
 A header with `Status`, `Branch` and `Plan`; then Goal, Scope (in / out), Acceptance criteria (AC), Security constraints and Required evidence.

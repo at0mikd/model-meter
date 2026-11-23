@@ -1,82 +1,113 @@
-# T-003 · Modo compacto en el pie (`SessionMode`)
+# T-003 · Compact mode in the footer (`SessionMode`)
 
-- **Estado:** Done ([#12](https://github.com/at0mikd/model-meter/pull/12); el espacio a media pantalla sigue en T-003b)
-- **Rama:** `feat/T-003-compact-footer`
-- **Plan:** `docs/PLAN.md` §2.4 (decisiones 1–6), §3.1, §5, §6
+- **Status:** Done ([#12](https://github.com/at0mikd/model-meter/pull/12); the room at half screen continues in T-003b)
+- **Branch:** `feat/T-003-compact-footer`
+- **Plan:** `docs/PLAN.md` §2.4 (decisions 1–6), §3.1, §5, §6
 
-## Objetivo
+## Goal
 
-Primera versión usable del mod: `◆ Opus 5.5 ▮▮▯▯▯ med` en el pie de la terminal, compartiendo fila con otros mods (`sub-meter`) y con las pistas del motor, y actualizada en vivo con `/model`, `/effort` y cada turno. Toda la lógica de decisión sale de `hooks/core/` (T-002); `register.tsx` solo cablea eventos y dibuja.
+The first usable version of the mod: `◆ Opus 5.5 ▮▮▯▯▯ med` in the terminal footer.
 
-> **Decisión del Maintainer (2026-11-18): `$.state` acotado a `model-meter`.** Los `atom`s del punto 7 son `$.state` y `claude plugin validate` los cuenta como `state.get`/`state.set`, fuera de la allowlist de CA6. Se acepta la opción B: la allowlist suma `state.get` y `state.set`, nada más, y `check-capabilities` falla si cualquier entrada de `uses.state` (lecturas y escrituras) no es `plugin: 'model-meter'`, si su clave no está declarada en `types/index.d.ts` bajo `PluginState['model-meter']`, o si `uses.state` tiene una forma inesperada. El contrato declara exactamente las claves que usa el mod. En `$.store` solo se guarda `effort` (un `Level`).
+- It shares the row with other mods (`sub-meter`) and with the engine's hints.
+- It updates live with `/model`, `/effort` and every turn.
+- All the decision logic comes from `hooks/core/` (T-002); `register.tsx` only wires events and draws.
 
-> **Decisión del Maintainer (2026-11-19, en CA7): todo en minúscula.** En la terminal todas las letras ocupan una celda, pero las mayúsculas hacían que la insignia pareciera más grande que el resto del pie (`auto mode on`, `week`, `context`). El nombre del modelo y la etiqueta del esfuerzo van en minúscula: `◆ opus 5.5 ▮▮▮▮▯ xhi`, `sonnet 5.5 1m`, `custom`. Los anchos no cambian.
+> **Maintainer's decision (2026-11-18): `$.state` bounded to `model-meter`.**
 >
-> **Ajuste del Maintainer (2026-11-19, tras CA7): el nombre del modelo empieza por mayúscula,** como lo escribe Claude Code (`Set model to Opus 5.5`): `◆ Opus 5.5 ▮▮▮▮▯ xhi`, `Sonnet 5.5 1m`. El resto sigue en minúscula, también el id de un modelo desconocido (`gpt-x`). Los anchos no cambian.
+> - **The problem:** the atoms of item 7 are `$.state`, and `claude plugin validate` counts them as `state.get`/`state.set`, outside AC6's allowlist.
+> - **Option B is accepted:** the allowlist adds `state.get` and `state.set`, nothing else.
+> - **`check-capabilities` fails when:**
+>   - any entry of `uses.state` (reads and writes) is not `plugin: 'model-meter'`;
+>   - its key is not declared in `types/index.d.ts` under `PluginState['model-meter']`;
+>   - `uses.state` has an unexpected shape.
+> - **The contract** declares exactly the keys the mod uses. `$.store` only keeps `effort` (a `Level`).
 
-## Alcance
+> **Maintainer's decision (2026-11-19, in AC7): everything lowercase.** In the terminal every letter takes one cell, but capitals made the badge look bigger than the rest of the footer (`auto mode on`, `week`, `context`). The model's name and the effort label go lowercase: `◆ opus 5.5 ▮▮▮▮▯ xhi`, `sonnet 5.5 1m`, `custom`. The widths do not change.
+>
+> **Maintainer's adjustment (2026-11-19, after AC7): the model's name starts with a capital,** as Claude Code writes it (`Set model to Opus 5.5`): `◆ Opus 5.5 ▮▮▮▮▯ xhi`, `Sonnet 5.5 1m`. Everything else stays lowercase, including the id of an unknown model (`gpt-x`). The widths do not change.
 
-**Entra:**
+## Scope
 
-1. **Superficie.** Solo se dibuja en `e.surface === 'terminal'`. En `desktop`, `vscode` y `mobile`, `return next(e)` sin cambios: la app ya muestra modelo y esfuerzo, y duplicarlo no aporta nada.
-2. **Imports.** `register.tsx` importa el núcleo como `./core/<nombre>.js` (la forma que aceptan `validate --strict` y `claude plugin test`; ver la desviación de T-002). Los tests del mod siguen siendo solo `hooks/register.test.tsx`.
-3. **Hooks.** Todos observan y devuelven el resultado de `next(e)` sin cambios:
-   - `session.start`: `isInteractive`; `$.session.model()` → estado; `$.store.get('effort')` → `stored`, validado con `parseLevel`.
-   - `classic.SessionStart` con `source === 'clear'`: igual que `session.start` (el modelo puede seguir, el turno no).
-   - `turn.step`: **generador asíncrono** con `return yield* next(e)`. Solo si `e.agentId === undefined`: guarda `e.model` y `e.effort` en el estado y borra `pending`. Si `parseLevel(e.effort)` da un nivel, `$.store.set('effort', level)` (solo ese valor de la allowlist, nunca otro texto).
-   - `config.set` con `key === 'model'`: refresca con `$.session.model()`.
-   - `command.run` con `{ command: 'effort' }`: `pending = { args: e.args }`. El texto lo interpreta `effortState`, que nunca devuelve texto del usuario.
-   - `ui.render` `{ component: 'PromptHint' }`: solo mide `widthOf(e.props.hint)` y guarda el ancho; si cambia, llama a `$.ui.invalidate('ui.render')`. Devuelve `next(e)` intacto: no oculta, recorta ni reescribe pistas.
-   - `ui.render` `{ component: 'SessionMode' }`: dibuja la insignia y, a continuación, lo que devuelve `next(e)`, con un separador ` · ` solo si debajo hay algo.
-4. **Puntos que pueden bloquear un evento** (`config.set`, `command.run`): el cuerpo va en `try/catch` y siempre devuelve `next(e)`, y cada hook lleva `.catch(($, e, next) => next(e))` (PLAN §2.4, decisión 6). `capabilities` ya rechaza cualquier hook de este tipo sin `.catch`.
-5. **Encaje por ancho**, con `fitBadge` del núcleo:
-   - `reserved` = márgenes del pie + etiqueta de modo (`e.props.modes`) + ancho medido de las pistas + ancho de lo que devuelve `next(e)`.
-   - El ancho de un árbol de render se calcula con un helper **puro** nuevo en `hooks/core/layout.ts` (`widthOfTree`), con un tipo estructural propio, sin importar `claude-code`, y tests en `test/core/`.
-   - Con `none` se devuelve solo lo que hay debajo.
-6. **Presentación**:
-   - **Familia reconocida:** `◆` + etiqueta con el color de la familia, mediante tokens del tema (nunca ANSI crudo).
-   - **`unknown`:** `? ` + etiqueta atenuada, para que no se confunda con un modelo reconocido (comentario de la revisión de #10).
-   - **Medidor:** `▮` llenas con color, `▯` vacías atenuadas. `custom` sin medidor.
-   - **Estados** según `source`: `stored` atenuado; `pending` atenuado con `…` al final; `unknown` como `?`.
-6b. **Estado «desactivado» 8-bit** (PLAN §3.1.1, petición del Maintainer). Función **pura** nueva `badgeState({ model, effort })` en `hooks/core/badge.ts`, con tests en `test/core/badge.test.ts`:
-   - recibe la salida de `parseModel` (o `null` si el modelo aún no se ha leído) y la de `effortState`;
-   - devuelve `{ state: 'active' | 'partial' | 'disabled', model: { enabled, text }, effort: { enabled, cells, text } }` con los glifos de la tabla de §3.1.1 (`◆`/`◇`, `▮▯`/`░`, `---`);
-   - las tres variantes (`full`, `noMeter`, `modelOnly`) miden lo mismo en estado activo y apagado, para que la insignia no salte al activarse;
-   - el render pinta las partes `enabled: false` con el token atenuado del tema.
-7. **Estado**: `atom`s con contrato en `types/index.d.ts`: `model: string | null`, `step: unknown` (validado al leer), `pending: { args: string } | null` y `hintWidth: number`. En `$.store` solo se guarda `effort` (un `Level`).
-8. **README** del plugin: qué muestra, cómo instalarlo, «Cómo probar», con el aviso de que `/model` y `/effort` cambian los valores por defecto del usuario (T-000, hallazgo 7), y qué datos guarda (solo el último nivel de esfuerzo).
+**In:**
 
-**No entra:** la banda 8-bit y el modo `auto` (T-004), `userConfig` (T-005), ampliar la allowlist de capacidades.
+1. **Surface.** It only draws when `e.surface === 'terminal'`. On `desktop`, `vscode` and `mobile` it returns `next(e)` unchanged: the app already shows the model and effort, and duplicating them adds nothing.
+2. **Imports.** `register.tsx` imports the core as `./core/<name>.js`, the form that `validate --strict` and `claude plugin test` accept (see T-002's deviation). The mod's tests are still only `hooks/register.test.tsx`.
+3. **Hooks.** They all observe, and return what `next(e)` gives, unchanged:
+   - `session.start`: `isInteractive`; `$.session.model()` → state; `$.store.get('effort')` → `stored`, validated with `parseLevel`.
+   - `classic.SessionStart` with `source === 'clear'`: the same as `session.start` (the model may carry on; the turn does not).
+   - `turn.step`: an **async generator** with `return yield* next(e)`.
+     - Only when `e.agentId === undefined`: it keeps `e.model` and `e.effort` in the state, and clears `pending`.
+     - If `parseLevel(e.effort)` gives a level: `$.store.set('effort', level)`. Only that allowlisted value is stored, never any other text.
+   - `config.set` with `key === 'model'`: refreshes with `$.session.model()`.
+   - `command.run` with `{ command: 'effort' }`: `pending = { args: e.args }`. The text is interpreted by `effortState`, which never returns the user's text.
+   - `ui.render` `{ component: 'PromptHint' }`: it only measures `widthOf(e.props.hint)` and keeps the width; if it changes, it calls `$.ui.invalidate('ui.render')`. It returns `next(e)` untouched: it does not hide, trim or rewrite hints.
+   - `ui.render` `{ component: 'SessionMode' }`: draws the badge and then what `next(e)` returns, with a ` · ` separator only when something lies beneath.
+4. **Points that can block an event** (`config.set`, `command.run`):
+   - the body runs in `try/catch` and always returns `next(e)`;
+   - each hook carries `.catch(($, e, next) => next(e))` (PLAN §2.4, decision 6). `capabilities` already rejects any such hook without `.catch`.
+5. **Fit by width,** with the core's `fitBadge`:
+   - `reserved` = the footer's margins + the mode label (`e.props.modes`) + the measured width of the hints + the width of what `next(e)` returns;
+   - a render tree's width comes from a new **pure** helper in `hooks/core/layout.ts` (`widthOfTree`), with its own structural type, never importing `claude-code`, and tests in `test/core/`;
+   - with `none`, only what lies beneath is returned.
+6. **Presentation:**
+   - **A known family:** `◆` and the label in the family's color, through theme keys (never raw ANSI).
+   - **`unknown`:** `? ` and the label dimmed, so it is not mistaken for a known model (a comment from the review of #10).
+   - **The meter:** filled `▮` in color, empty `▯` dimmed. `custom` has no meter.
+   - **States** by `source`: `stored` dimmed; `pending` dimmed with `…` at the end; `unknown` as `?`.
 
-## Criterios de aceptación
+   6b. **The 8-bit "off" state** (PLAN §3.1.1, the Maintainer's request). A new **pure** function `badgeState({ model, effort })` in `hooks/core/badge.ts`, with tests in `test/core/badge.test.ts`:
+   - it takes the output of `parseModel` (or `null` if the model has not been read yet) and that of `effortState`;
+   - it returns `{ state: 'active' | 'partial' | 'disabled', model: { enabled, text }, effort: { enabled, cells, text } }`, with the glyphs of the §3.1.1 table (`◆`/`◇`, `▮▯`/`░`, `---`);
+   - the three variants (`full`, `noMeter`, `modelOnly`) are as wide when active as when off, so the badge does not jump when it lights up;
+   - the render paints the parts with `enabled: false` in the theme's dim color.
+7. **State:** atoms with a contract in `types/index.d.ts`:
+   - `model: string | null`;
+   - `step: unknown`, validated on read;
+   - `pending: { args: string } | null`;
+   - `hintWidth: number`.
 
-- **CA1** — Tests de mod en `terminal`:
-  - con `session.start`, la insignia muestra el modelo y el esfuerzo previo atenuado (o `?`);
-  - un `turn.step` del hilo principal la actualiza, y uno con `agentId` no;
-  - `config.set` del modelo la refresca;
-  - `/effort high` la muestra como pendiente;
-  - un `turn.step` posterior la confirma.
-- **CA1b** — Estado desactivado, probado desde el principio:
-  - tests puros de `badgeState` para **todas** las combinaciones de modelo (conocido, `unknown`, `null`) × esfuerzo (`step`, `pending`, `stored`, `unknown`, `CUSTOM`), con glifo, texto y `enabled` de cada parte;
-  - test de anchos: las variantes activa y apagada miden lo mismo;
-  - test de mod: la **primera** insignia de una sesión sin esfuerzo previo sale `partial` (esfuerzo apagado) y pasa a `active` con el primer `turn.step`; con el modelo aún sin leer y sin esfuerzo, sale `disabled`.
-- **CA2** — En `desktop`, la salida es exactamente la del motor (`next(e)`), y lo prueba un test.
-- **CA3** — Tests de que `/model` y `/effort` llegan intactos a lo que hay debajo, también cuando la lógica interna lanza (inyectado en el test).
-- **CA4** — Tests de degradación a 95 y 191 columnas con las pistas `''`, `1 shell · ↓ to manage` y `esc to interrupt`, con y sin un nodo debajo de 30 columnas: el orden `full` → `noMeter` → `modelOnly` → `none` se cumple y lo que hay debajo nunca se pierde.
-- **CA5** — `$.store` solo recibe valores de `LEVELS`; un `stored` corrupto da `?` (test).
-- **CA6** — `npm run check` en verde, `capabilities` en verde **sin ampliar la allowlist**, y `validate --strict` en verde.
-- **CA7** — Prueba manual del Maintainer en su terminal, con capturas en el PR:
-  - junto a `sub-meter`, a media pantalla y maximizada;
-  - con una shell en segundo plano (`1 shell · ↓ to manage`);
-  - tras `/model` y `/effort`;
-  - **el estado apagado**: una sesión nueva antes del primer turno (borrando antes el valor guardado del mod, o en una instalación limpia).
+   `$.store` only keeps `effort` (a `Level`).
+8. **The plugin's README:** what it shows, how to install it, and "How to try it". It includes the warning that `/model` and `/effort` change the user's defaults (T-000, finding 7), and what data the mod keeps: only the last effort level.
 
-## Restricciones de seguridad
+**Out:**
 
-- Ningún texto del motor ni del usuario se dibuja sin pasar por `sanitize`, `parseModel` o la allowlist de niveles.
-- Ningún hook reescribe, bloquea ni retrasa un evento del motor.
-- Sin dependencias nuevas.
+- the 8-bit band and `auto` mode (T-004);
+- `userConfig` (T-005);
+- widening the capability allowlist.
 
-## Evidencia requerida
+## Acceptance criteria
 
-Salida de `npm run check` y `npm run capabilities`, la lista de tests del mod y las capturas de CA7.
+- **AC1** — Mod tests on `terminal`:
+  - with `session.start`, the badge shows the model and the previous effort dimmed (or `?`);
+  - a main-thread `turn.step` updates it, and one with `agentId` does not;
+  - the model's `config.set` refreshes it;
+  - `/effort high` shows it as pending;
+  - a later `turn.step` confirms it.
+- **AC1b** — The off state, tested from the start:
+  - pure tests of `badgeState` for **every** combination of model (known, `unknown`, `null`) × effort (`step`, `pending`, `stored`, `unknown`, `CUSTOM`), with each part's glyph, text and `enabled`;
+  - a width test: the active and off variants are equally wide;
+  - a mod test:
+    - the **first** badge of a session with no previous effort comes out `partial` (effort off), and turns `active` with the first `turn.step`;
+    - with the model not yet read and no effort, it comes out `disabled`.
+- **AC2** — On `desktop`, the output is exactly the engine's (`next(e)`), proved by a test.
+- **AC3** — Tests that `/model` and `/effort` reach what lies beneath untouched, even when the inner logic throws (injected in the test).
+- **AC4** — Degradation tests:
+  - at 95 and 191 columns, with the hints `''`, `1 shell · ↓ to manage` and `esc to interrupt`, with and without a 30-column node beneath;
+  - the order `full` → `noMeter` → `modelOnly` → `none` holds, and what lies beneath is never lost.
+- **AC5** — `$.store` only receives values from `LEVELS`; a corrupt `stored` gives `?` (test).
+- **AC6** — `npm run check` green, `capabilities` green **without widening the allowlist**, and `validate --strict` green.
+- **AC7** — A manual test by the Maintainer in their terminal, with screenshots on the pull request:
+  - next to `sub-meter`, at half screen and maximized;
+  - with a background shell (`1 shell · ↓ to manage`);
+  - after `/model` and `/effort`;
+  - **the off state:** a new session before the first turn, after deleting the mod's stored value, or in a clean install.
+
+## Security constraints
+
+- No text from the engine or the user is drawn without going through `sanitize`, `parseModel` or the allowlist of levels.
+- No hook rewrites, blocks or delays an engine event.
+- No new dependencies.
+
+## Required evidence
+
+The output of `npm run check` and `npm run capabilities`, the list of mod tests, and the AC7 screenshots.

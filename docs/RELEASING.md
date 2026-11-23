@@ -10,7 +10,7 @@ The package is what the marketplace serves, and nothing else:
 - `SHA256SUMS` holds the archive's SHA-256, in the format `sha256sum --check` reads.
 - A build provenance attestation is made for the archive.
 
-The files must match the explicit `PUBLISHED` list in `scripts/package.mjs`. Anything missing or extra fails the build, so a file added to the plugin folder must be added to that list on purpose. `git archive` packs the files from the tagged commit, so the same commit always gives the same bytes.
+The files must match the explicit `PUBLISHED` list in `scripts/package.mjs`. Anything missing or extra fails the build, so a file added to the plugin folder must be added to that list on purpose. `git archive` packs the files from the tagged commit, so the same commit always gives the same **uncompressed tar**, byte for byte. The `.tar.gz` is identical only when the same zlib compresses it: GitHub's runners use classic zlib, while some distributions ship zlib-ng (Fedora, for example), which compresses the same tar differently. To check a release against a local build, compare the uncompressed tars: `gzip -dc model-meter-<version>.tar.gz | sha256sum` on both sides (verified for v0.1.0: the tars match while the `.gz` digests differ).
 
 ## Steps
 

@@ -1,68 +1,68 @@
-# T-009 · Deudas de revisión: medir lo que se dibuja en toda la fila y probar la guarda de commitlint
+# T-009 · Review debts: measure what is drawn across the row, and test the commitlint guard
 
-- **Estado:** Done ([#22](https://github.com/at0mikd/model-meter/pull/22), `5abaade`)
-- **Rama:** `fix/T-009-review-debts`
-- **Plan:** `docs/PLAN.md` §3.1; revisiones de [#19](https://github.com/at0mikd/model-meter/pull/19) (hallazgo 2) y [#20](https://github.com/at0mikd/model-meter/pull/20) (nit 2)
+- **Status:** Done ([#22](https://github.com/at0mikd/model-meter/pull/22), `5abaade`)
+- **Branch:** `fix/T-009-review-debts`
+- **Plan:** `docs/PLAN.md` §3.1; the reviews of [#19](https://github.com/at0mikd/model-meter/pull/19) (finding 2) and [#20](https://github.com/at0mikd/model-meter/pull/20) (nit 2)
 
-## Objetivo
+## Goal
 
-Que la insignia cuente con lo que de verdad se dibuja en su fila. Eso incluye los casos en que un mod de debajo envuelve la línea de pistas o cambia las etiquetas de modo del motor. Además, que la guarda de tipo de `isDependabotBump` tenga un test que la distinga.
+The badge counts what is really drawn on its row, including when a mod beneath wraps the hint line or changes the engine's mode labels. Also, `isDependabotBump`'s type guard gets a test that tells it apart.
 
-## Datos de partida
+## Starting data
 
-- **Pista (`PromptHint`).** Desde T-003b, el hook mide la pista que recibe el eslabón del motor en `next.trace` (`drawnHintWidth`).
-  - Cubre las dos formas documentadas de cambiar la línea: reescribir `hint` o añadir `tail`. También cubre un eslabón que dibuja la línea él mismo.
-  - No cubre un eslabón de debajo que llama a `next(e)` y **envuelve** el nodo del motor en un árbol con más texto: solo se mide la pista del motor.
-- **Etiquetas de modo (`SessionMode`).** El ancho del nodo del motor sale de `e.props.modes`, es decir, de los `modes` tal como **le llegan** a model-meter (`register.tsx`, cálculo de `below`).
-  - Si un mod de debajo quita o añade etiquetas, el motor dibuja otras.
-  - Es el mismo problema que T-003b resolvió para la pista.
-- **Contrato** (tipos de la CLI 2.1.327):
-  - `next.trace` lista los eslabones de debajo: el más cercano primero y el motor (el par `engine`/`core`) el último;
-  - `next(e)` resuelve a lo que dibujan los de debajo. En `PromptHint`, sin envolturas, es el nodo opaco del motor, `{ type: 'engine' }` (T-003b, P1).
-  - Si el arnés o el motor no dejan ver el nodo del motor dentro de un árbol que lo envuelve, se marca la tarea `Blocked` y se explica (`docs/WORKFLOW.md` §8).
-- **commitlint.** Sin la guarda `typeof message !== 'string'`, `RegExp.test` convierte el valor a texto: `undefined`, `null` y `42` siguen dando `false`, y el mutante sobrevive (revisión de #20).
+- **Hint (`PromptHint`).** Since T-003b, the hook measures the hint that the engine's link receives in `next.trace` (`drawnHintWidth`).
+  - It covers the two documented ways to change the line: rewriting `hint`, or adding `tail`. It also covers a link that draws the line itself.
+  - It does not cover a link beneath that calls `next(e)` and **wraps** the engine's node in a tree with more text: only the engine's hint is measured.
+- **Mode labels (`SessionMode`).** The engine node's width comes from `e.props.modes`, that is, the `modes` as they **reach** model-meter (`register.tsx`, where `below` is computed).
+  - If a mod beneath removes or adds labels, the engine draws different ones.
+  - It is the same problem T-003b solved for the hint.
+- **The contract** (CLI 2.1.327 types):
+  - `next.trace` lists the links beneath, the nearest first and the engine (the pair `engine`/`core`) last;
+  - `next(e)` resolves to what the links beneath draw. In `PromptHint`, without wrappers, it is the engine's opaque node, `{ type: 'engine' }` (T-003b, P1).
+  - If the harness or the engine does not expose the engine's node inside a tree that wraps it, the task is marked `Blocked` and explained (`docs/WORKFLOW.md` §8).
+- **commitlint.** Without the guard `typeof message !== 'string'`, `RegExp.test` converts the value to text: `undefined`, `null` and `42` still give `false`, so the mutant survives (review of #20).
 
-## Alcance
+## Scope
 
-**Entra:**
+**In:**
 
-1. **La pista, medida como se dibuja, también con envolturas.**
-   - El ancho de la línea es el del árbol que devuelve `next(e)`. El nodo del motor cuenta con el ancho de la pista que recibió el eslabón del motor, que es lo que hoy da `drawnHintWidth`.
-   - Si el resultado no es un árbol reconocible, se mide como hoy.
-   - La lógica pura va en el núcleo, por ejemplo con `widthOfTree(result, engineWidth)`, que ya usa `SessionMode`.
-2. **Las etiquetas de modo, como se dibujan.** El ancho del nodo del motor en `SessionMode` sale de los `modes` que recibió el eslabón del motor según `next.trace` (el par `engine`/`core`). Si el trace no lo dice, se usa `e.props.modes`, como hoy.
-3. **Test de la guarda de commitlint.** Un objeto cuyo `toString()` devuelve un asunto de bump da `false` y no lanza ningún error. Sin la guarda, el test falla.
+1. **The hint, measured as drawn, wrappers included.**
+   - The line's width is that of the tree `next(e)` returns. The engine's node counts as wide as the hint the engine's link received, which is what `drawnHintWidth` gives today.
+   - If the result is not a recognizable tree, it is measured as today.
+   - The pure logic goes in the core, for example with `widthOfTree(result, engineWidth)`, which `SessionMode` already uses.
+2. **The mode labels, as drawn.** The engine node's width in `SessionMode` comes from the `modes` that the engine's link received according to `next.trace` (the pair `engine`/`core`). If the trace does not say, `e.props.modes` is used, as today.
+3. **A test of the commitlint guard.** An object whose `toString()` returns a bump subject gives `false` and throws no error. Without the guard, the test fails.
 
-**No entra:**
+**Out:**
 
-- cambiar la reserva de 26 columnas de la etiqueta de modo ni el orden `full → noMeter → modelOnly → none`;
-- los mods que están **por encima**, porque sus cambios no se ven desde aquí;
-- dibujar nada de otros mods: solo se mide.
+- changing the mode label's 26-column reservation, or the order `full → noMeter → modelOnly → none`;
+- mods **above**, whose changes cannot be seen from here;
+- drawing anything of other mods: they are only measured.
 
-## Criterios de aceptación
+## Acceptance criteria
 
-- **CA1** — Tests de núcleo para la medición de la línea, con la cobertura del núcleo al 100 %:
-  - solo el nodo del motor;
-  - el nodo del motor envuelto con texto delante y detrás;
-  - un árbol propio sin nodo del motor;
-  - un resultado no reconocible, que se mide como hoy.
-- **CA2** — Tests de mod a 95 columnas:
-  - un mod en `append` envuelve la línea de pistas con unas 10 columnas más: la insignia las cuenta y cede (el test calcula la variante esperada);
-  - un mod en `append` quita `focus` de los `modes`: la insignia gana ese sitio;
-  - un mod en `append` añade una etiqueta: la insignia cede;
-  - sin ningún mod, todo sale igual que hoy.
-- **CA3** — Existe el test de la guarda de commitlint, y la salida de ese test con la guarda quitada muestra que falla.
-- **CA4** — `capabilities` en verde, con las mismas llamadas a `$` que hoy, y `npm run check` en verde.
-- **CA5** — PLAN §3.1 y el README del mod dicen que se mide lo que se dibuja, también las etiquetas de modo y las envolturas.
+- **AC1** — Core tests for measuring the line, with the core's coverage at 100%:
+  - the engine's node alone;
+  - the engine's node wrapped with text before and after;
+  - a tree of a mod's own, without the engine's node;
+  - an unrecognizable result, measured as today.
+- **AC2** — Mod tests at 95 columns:
+  - a mod in `append` wraps the hint line with about 10 more columns: the badge counts them and gives way (the test computes the expected variant);
+  - a mod in `append` removes `focus` from the `modes`: the badge gains that room;
+  - a mod in `append` adds a label: the badge gives way;
+  - with no mod, everything comes out as today.
+- **AC3** — The test of the commitlint guard exists, and its output with the guard removed shows that it fails.
+- **AC4** — `capabilities` green, with the same `$` calls as today, and `npm run check` green.
+- **AC5** — PLAN §3.1 and the mod's README say that what is drawn is measured, mode labels and wrappers included.
 
-## Restricciones de seguridad
+## Security constraints
 
-- Lo que llega de otros mods (`next.trace` y el resultado de `next(e)`) solo se mide, con la profundidad acotada de `widthOfTree`. Nunca se dibuja ni se guarda.
-- Los hooks devuelven intacto el resultado de `next(e)`.
-- Sin dependencias nuevas.
+- What comes from other mods (`next.trace` and the result of `next(e)`) is only measured, with `widthOfTree`'s bounded depth. It is never drawn or stored.
+- Hooks return the result of `next(e)` untouched.
+- No new dependencies.
 
-## Evidencia requerida
+## Required evidence
 
-- La salida de `npm run check` y de `npm run capabilities`.
-- La lista de tests nuevos.
-- Para CA3, la salida del test con la guarda quitada.
+- The output of `npm run check` and `npm run capabilities`.
+- The list of new tests.
+- For AC3, the test's output with the guard removed.
