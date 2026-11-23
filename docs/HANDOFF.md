@@ -1,4 +1,4 @@
-# Session handoff — 2026-11-23
+# Session handoff — 2026-11-23 (evening)
 
 The state of `model-meter`, to resume in a new session (Reviewer in the cloud, Builder local).
 
@@ -31,27 +31,27 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
   - Clean install from `main` checked (T-012 AC7, on #30).
 - **Repository security:** every Advanced Security feature is on (Dependabot alerts and security updates, secret scanning with push protection, private vulnerability reporting). The `main` ruleset and the `release tags` ruleset (id `27836653`) are active.
 
-## In progress
+## Done since v0.1.0
 
-- **Documentation in English:** every living document is in English. The task files T-000…T-010 are translated in this pull request; the spike results (`docs/spikes/`) follow in the next one.
+- **The whole repository's documentation is in English** (#28, #29, #31, #32 and this pull request, which translates `docs/spikes/`).
+- **Code-Review decision: A, accepted risk** (2026-11-23), recorded in `docs/REPO-SETTINGS.md` §6.
 
 ## Pending, in order
 
 | # | What | Who | Depends on |
 | --- | --- | --- | --- |
-| 1 | Translate the spike results (`docs/spikes/`) to English | Reviewer | — |
-| 2 | Enable **release immutability** (Settings → General → Releases), so published release assets cannot change | Maintainer | — |
-| 3 | Edit the v0.1.0 release notes: `&lt;version&gt;` shows escaped (the CHANGELOG avoids `<…>` placeholders from now on) | Maintainer | — |
-| 4 | Decision A/B on Code-Review (Scorecard) | Maintainer | — |
-| 5 | Delete the old branches (below) | Maintainer | — |
+| 1 | Delete the 10 old branches. They were checked one by one against their pull requests' heads (below); the cloud proxy refuses ref deletion, so the Maintainer runs the command | Maintainer | — |
+| 2 | Enable **release immutability** (Settings → General → Releases) | Maintainer | — |
 | — | **Phase 5, optional, later:** palettes and `showEffortMeter` (T-011, not specified) | Reviewer | Maintainer's call |
+
+The v0.1.0 release notes needed no fix: the stored body has `<version>`; only `gh release view` escaped it on the terminal.
 
 **Old branches.** There are 10 branches that were merged or replaced. Each head matches its pull request's, so nothing is lost:
 
 - `spike/T-000-terminal` (#2), `chore/T-001-scaffold` (#6), `chore/T-007-audit-expiry-warning` (#9), `feat/T-002-pure-core` (#10), `feat/T-003-compact-footer` (#12), `chore/remove-picomatch-exception` (#13), `claude/docs-t003b` (#15), `claude/docs-repo-settings` (#16) and `claude/docs-t008` (#17);
 - `claude/cool-euler-xg853i`: #14, closed, with the same content as #15.
 
-The Maintainer deletes them from the *Branches* tab. New branches are deleted on merge (*Automatically delete head branches*). The Dependabot branch of #8 went away when #8 was closed.
+The Maintainer deletes them with `git push origin --delete <the 10 branches>`, or from the *Branches* tab. New branches are deleted on merge (*Automatically delete head branches*). The Dependabot branch of #8 went away when #8 was closed.
 
 ## Backlog (no task yet)
 

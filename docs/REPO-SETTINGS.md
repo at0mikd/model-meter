@@ -132,5 +132,20 @@ Releases are cut from a tag `v*` (T-012, `release.yml`). Once a tag is published
 ## 5. How to check it
 
 1. A pull request with a red check shows **Merging is blocked**, and the merge button is disabled.
-2. The next Scorecard run on `main` raises Branch-Protection to 3/10 (Tier 1). Going further requires at least one approval from another identity (`docs/HANDOFF.md`, pending decision A/B).
+2. The next Scorecard run on `main` raises Branch-Protection to 3/10 (Tier 1). Going further requires at least one approval from another identity; see the accepted risk below.
 3. After section 4: pushing a commit onto an existing tag `v*`, or deleting it, is rejected.
+
+## 6. Accepted risk: no second reviewing identity (decision A, 2026-11-23)
+
+OpenSSF Scorecard's **Code-Review** and the higher tiers of **Branch-Protection** expect every change to be approved on GitHub by an identity other than its author. Here they score low, and the Maintainer **accepted that risk** on 2026-11-23 (decision A).
+
+- **Why it scores low.**
+  - The project has a single human maintainer, and the Builder opens pull requests through that same account.
+  - GitHub does not let anyone approve their own pull request, so the ruleset requires 0 approvals.
+- **What controls the change instead.**
+  - **Approval:** the Maintainer approves each pull request at a specific head SHA, in the conversation with the Reviewer (`docs/WORKFLOW.md` §6).
+  - **The record:** a comment on the pull request records that approval, and the merge is pinned to the approved SHA.
+  - **Separation of duties:** the Reviewer, a separate agent session, reviews every change against its task, with severities, and with mutation and security checks.
+  - **Technical gates:** 12 required checks, up to date with `main`, signed commits, linear history, and CodeQL code scanning.
+- **The rejected alternative (B).** A second, machine identity for the Builder, so the Maintainer could approve on GitHub and the ruleset could require 1 approval. It would raise the score, at the cost of creating, securing and rotating another account and its signing key. Rejected for now.
+- **When to revisit:** when a second human maintainer joins, or if the project starts publishing to a wider audience.

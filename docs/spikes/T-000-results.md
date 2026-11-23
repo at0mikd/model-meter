@@ -1,72 +1,83 @@
-# T-000 · Resultados del spike en terminal
+# T-000 · Terminal spike results
 
-- **Tarea:** [`docs/tasks/T-000-spike-terminal.md`](../tasks/T-000-spike-terminal.md)
-- **Fecha:** 2026-11-18
-- **Spike:** `spikes/wic-spike` tal como está en `main` (3eb881d), sin modificaciones.
+- **Task:** [`docs/tasks/T-000-spike-terminal.md`](../tasks/T-000-spike-terminal.md)
+- **Date:** 2026-11-18
+- **Spike:** `spikes/wic-spike` as it is on `main` (3eb881d), unmodified.
 
-## Entorno (CA5)
+## Environment (AC5)
 
-| Dato | Valor |
+| Item | Value |
 | --- | --- |
 | Claude Code | 2.1.327 |
-| Sistema operativo | Fedora Linux 44 Workstation (x86_64), GNOME sobre Wayland |
-| Emulador de terminal | Ghostty 1.4.0 (`TERM=xterm-ghostty`, truecolor), sin tmux |
-| Renderer por defecto | `fullscreen` (ajuste `tui` del usuario; `/tui` → `Current renderer: fullscreen`) |
-| Otros mods | `sub-meter@better-claude` |
+| Operating system | Fedora Linux 44 Workstation (x86_64), GNOME on Wayland |
+| Terminal emulator | Ghostty 1.4.0 (`TERM=xterm-ghostty`, truecolor), no tmux |
+| Default renderer | `fullscreen` (the user's `tui` setting; `/tui` → `Current renderer: fullscreen`) |
+| Other mods | `sub-meter@better-claude` |
 
-## Respuesta a cada criterio
+## Answer to each criterion
 
-| CA | Respuesta |
+| AC | Answer |
 | --- | --- |
-| **CA1** `/model` | **Sí hay evento antes del siguiente turno.** `/model` emite `command.run` y a continuación `config.set` con `{ key: "model", value: "sonnet", previous: "opus" }`, antes del siguiente `turn.step`. `value` es el alias, no el id; en el siguiente `prompt.submit`, `$.session.model()` ya devuelve el id nuevo (`claude-sonnet-5-5`). |
-| **CA2** `/effort` | **Solo `command.run`; no hay `config.set`.** `$.settings.read({ key: "effortLevel" })` **no cambia**: devuelve `"medium"` en las tres sesiones, mientras el esfuerzo efectivo de `turn.step` es `xhigh` al empezar la pasada A y `high` tras `/effort`. El nivel nuevo solo se conoce en el siguiente `turn.step`. |
-| **CA3** viewport | Media pantalla: **95 × 47**. Ventana maximizada: **191 × 47**. Mismos valores con y sin `sub-meter`. `AbovePrompt.bodyColumns` = `columns − 5` (90 / 186); `maxRows` = 47 con la sesión vacía y 18 después. Al maximizar se registra un render nuevo de `SessionMode` y `AbovePrompt` con el ancho nuevo. |
-| **CA4** `isFullscreen` | `true` con el renderer `fullscreen` (pasadas A y B), tanto a 95 como a 191 columnas. `false` con el renderer clásico (pasada C, `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1`). Confirma `docs/PLAN.md` §3.4: indica el modo de render, no si la ventana está maximizada. |
-| **CA5** entorno | Ver tabla anterior. |
+| **AC1** `/model` | **There is an event before the next turn.** `/model` emits `command.run` and then `config.set` with `{ key: "model", value: "sonnet", previous: "opus" }`, before the next `turn.step`. `value` is the alias, not the id. At the next `prompt.submit`, `$.session.model()` already returns the new id (`claude-sonnet-5-5`). |
+| **AC2** `/effort` | **Only `command.run`; no `config.set`.** `$.settings.read({ key: "effortLevel" })` **does not change**: it returns `"medium"` in all three sessions, while `turn.step`'s effective effort is `xhigh` when pass A starts and `high` after `/effort`. The new level is only known at the next `turn.step`. |
+| **AC3** viewport | Half screen: **95 × 47**. Maximized window: **191 × 47**. The same values with and without `sub-meter`. `AbovePrompt.bodyColumns` = `columns − 5` (90 / 186); `maxRows` = 47 with the session empty and 18 afterwards. Maximizing records a new render of `SessionMode` and `AbovePrompt` with the new width. |
+| **AC4** `isFullscreen` | `true` with the `fullscreen` renderer (passes A and B), at 95 as well as at 191 columns. `false` with the classic renderer (pass C, `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1`). This confirms `docs/PLAN.md` §3.4: it tells the render mode, not whether the window is maximized. |
+| **AC5** environment | See the table above. |
 
-## Procedimiento ejecutado
+## Procedure run
 
-Tres sesiones `claude --plugin-dir spikes/wic-spike`. Prompts triviales (`responde solo: hola`) para no generar datos.
+Three `claude --plugin-dir spikes/wic-spike` sessions, with trivial prompts (`responde solo: hola`, "answer only: hello") so as to generate no data.
 
-| Pasada | `sub-meter` | Renderer | Secuencia |
+| Pass | `sub-meter` | Renderer | Sequence |
 | --- | --- | --- | --- |
-| A | activo | fullscreen | `/tui` → prompt → `/model` (Opus 5.5 → Sonnet 5.5) → `/effort` (xhigh → high) → report → maximizar → prompt → report |
-| B | desactivado con `/plugin` | fullscreen | prompt → `/model` (Sonnet 5.5 → Opus 5.5) → `/effort` (high → high) → report → maximizar → prompt → report → reactivar `sub-meter` |
-| C | activo | clásico (`CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1`) | `/tui` (→ `classic`) → prompt → report |
+| A | on | fullscreen | `/tui` → prompt → `/model` (Opus 5.5 → Sonnet 5.5) → `/effort` (xhigh → high) → report → maximize → prompt → report |
+| B | disabled with `/plugin` | fullscreen | prompt → `/model` (Sonnet 5.5 → Opus 5.5) → `/effort` (high → high) → report → maximize → prompt → report → re-enable `sub-meter` |
+| C | on | classic (`CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1`) | `/tui` (→ `classic`) → prompt → report |
 
-Los `command.run` traen las claves `command`, `args`, `origin` y `presentation`. El spike solo registró los **nombres** de las claves (leía un campo `name` que no existe), así que su correspondencia con `/tui`, `/model` y `/effort` se deduce del orden y de la salida de cada comando en la sesión.
+The `command.run` events carry the keys `command`, `args`, `origin` and `presentation`. The spike only recorded the key **names**, because it read a `name` field that does not exist. So which one was `/tui`, `/model` or `/effort` is deduced from the order and from each command's output in the session.
 
-### Línea temporal de la pasada A (por `seq`)
+### Timeline of pass A (by `seq`)
 
-| seq | Evento | Datos relevantes |
+| seq | Event | Relevant data |
 | --- | --- | --- |
 | 0–1 | render `AbovePrompt` / `SessionMode` | 95 × 47, `isFullscreen: true` |
-| 2 | `session.start` | modelo `claude-opus-5-5`, `effortSetting: "medium"` |
+| 2 | `session.start` | model `claude-opus-5-5`, `effortSetting: "medium"` |
 | 3 | `command.run` | `/tui` |
-| 4–5 | `prompt.submit` → `turn.step` | `turn.step.effort: "xhigh"` (aunque el ajuste dice `medium`) |
+| 4–5 | `prompt.submit` → `turn.step` | `turn.step.effort: "xhigh"` (although the setting says `medium`) |
 | 6 | `command.run` | `/model` |
 | 7 | `config.set` | `model`: `opus` → `sonnet` |
-| 8 | `command.run` | `/effort`, **sin `config.set`** |
-| 9–10 | `prompt.submit` → `turn.step` | modelo `claude-sonnet-5-5`, `effort: "high"`; `effortSetting` sigue en `"medium"` |
-| 13–14 | render `AbovePrompt` / `SessionMode` | 191 × 47 tras maximizar |
+| 8 | `command.run` | `/effort`, **with no `config.set`** |
+| 9–10 | `prompt.submit` → `turn.step` | model `claude-sonnet-5-5`, `effort: "high"`; `effortSetting` still `"medium"` |
+| 13–14 | render `AbovePrompt` / `SessionMode` | 191 × 47 after maximizing |
 
-## Hallazgos para el Reviewer
+## Findings for the Reviewer
 
-Propuestas, no cambios: el plan lo actualiza el Reviewer (`T-000`, «No entra»).
+These are proposals, not changes: the Reviewer updates the plan (`T-000`, "Out").
 
-1. **`settings.effortLevel` no sirve como fuente del esfuerzo.** En este entorno el ajuste de usuario `effortLevel` vale `medium`, pero el esfuerzo efectivo al arrancar con Opus 5.5 era `xhigh`. `/effort high` dice «saved as your default for new sessions» y las sesiones B y C arrancan en `high`, pero `effortLevel` sigue en `medium`: `/effort` guarda el valor en otro sitio. La cascada de `docs/PLAN.md` §2.4 (`settings.effortLevel` → env → `$.store` → `?`) mostraría un valor **falso** antes del primer turno. Propuesta: antes del primer `turn.step`, último valor de `$.store` atenuado o `?`. `settings.effortLevel` como mucho como pista marcada incierta, o no usarlo.
-2. **Variables de entorno:** `CLAUDE_CODE_EFFORT_LEVEL` y `CLAUDE_EFFORT` vienen `undefined` en todas las lecturas (en el JSON no aparecen las claves `envEffort` y `envEffort2`).
-3. **`/model` permite refrescar sin esperar al turno:** en `config.set` con `key === "model"` basta llamar a `$.session.model()` (el `value` es el alias).
-4. **`/effort` no es observable hasta el siguiente turno**, salvo quizá por los valores de `command`/`args` de `command.run`, que este spike no registró. Con el selector interactivo (`/effort` sin argumentos) es probable que `args` venga vacío. Opciones: marcar el esfuerzo como «pendiente» (atenuado) tras un `command.run` de `/effort` hasta el siguiente `turn.step`, o hacer un mini-spike que registre `command` y `args` (incluido `/effort high` con argumento).
-5. **Ancho junto a `sub-meter`:** `SessionMode.props.modes` es `[]` en todas las pasadas, y el spike no mide el contenido que devuelve `next(e)`. Los datos solo dicen que el viewport es el mismo con y sin `sub-meter`, no cuántas columnas ocupa. Hay que medir el ancho de lo que devuelve `next(e)` (en el producto o en un mini-spike) antes de fijar los umbrales de degradación.
-6. **`turn.step`:** sin `agentId` en ningún caso (hilo principal). Un turno con herramienta produce `index` 0 y 1.
-7. **Efecto secundario de las pruebas:** `/model` y `/effort` guardan el valor como predeterminado para sesiones nuevas. Probar el mod con esos comandos cambia la configuración del usuario; conviene avisarlo en futuros spikes y en el README del mod.
+1. **`settings.effortLevel` does not work as the source of the effort.**
+   - **What was seen:**
+     - in this environment the user setting `effortLevel` is `medium`, but the effective effort when starting with Opus 5.5 was `xhigh`;
+     - `/effort high` says "saved as your default for new sessions", and sessions B and C start at `high`, yet `effortLevel` stays `medium`, so `/effort` saves the value elsewhere.
+   - **Consequence:** the cascade of `docs/PLAN.md` §2.4 (`settings.effortLevel` → env → `$.store` → `?`) would show a **false** value before the first turn.
+   - **Proposal:** before the first `turn.step`, show the last `$.store` value dimmed, or `?`. Use `settings.effortLevel` at most as a hint marked uncertain, or not at all.
+2. **Environment variables:** `CLAUDE_CODE_EFFORT_LEVEL` and `CLAUDE_EFFORT` are `undefined` in every read (the keys `envEffort` and `envEffort2` do not appear in the JSON).
+3. **`/model` allows refreshing without waiting for the turn:** on `config.set` with `key === "model"`, calling `$.session.model()` is enough (`value` is the alias).
+4. **`/effort` is not observable until the next turn,** except perhaps through the `command`/`args` values of `command.run`, which this spike did not record. With the interactive picker (`/effort` without arguments), `args` is probably empty. Options:
+   - mark the effort as "pending" (dimmed) after a `command.run` of `/effort`, until the next `turn.step`;
+   - or run a mini-spike that records `command` and `args`, including `/effort high` with an argument.
+5. **Width next to `sub-meter`:** `SessionMode.props.modes` is `[]` in every pass, and the spike does not measure what `next(e)` returns. The data only say that the viewport is the same with and without `sub-meter`, not how many columns it takes. The width of what `next(e)` returns must be measured (in the product or in a mini-spike) before setting the degradation thresholds.
+6. **`turn.step`:** no `agentId` in any case (main thread). A turn with a tool produces `index` 0 and 1.
+7. **A side effect of testing:** `/model` and `/effort` save the value as the default for new sessions. Testing the mod with those commands changes the user's settings; future spikes and the mod's README should warn about it.
 
-## Informes (saneados)
+## Reports (sanitized)
 
-Solo contienen nombres de modelo, niveles de esfuerzo, nombres de eventos y tamaños; sin rutas, prompts ni datos personales. `seq` es el orden global de los eventos. `JSON.stringify` omite los campos `undefined` (`envEffort`, `envEffort2`, `agentId`, `name`). El primer informe de las pasadas A y B es un prefijo exacto del segundo (comprobado), así que se incluye solo el informe final de cada pasada.
+- **What they contain:** only model names, effort levels, event names and sizes; no paths, prompts or personal data.
+- **How to read them:**
+  - `seq` is the global order of the events;
+  - `JSON.stringify` omits `undefined` fields (`envEffort`, `envEffort2`, `agentId`, `name`).
+- **Why there is one report per pass:** the first report of passes A and B is an exact prefix of the second (checked), so only each pass's final report is included.
 
-### Pasada A — con `sub-meter`, renderer fullscreen
+### Pass A — with `sub-meter`, fullscreen renderer
 
 ```json
 {
@@ -109,7 +120,7 @@ Solo contienen nombres de modelo, niveles de esfuerzo, nombres de eventos y tama
 }
 ```
 
-### Pasada B — sin `sub-meter`, renderer fullscreen
+### Pass B — without `sub-meter`, fullscreen renderer
 
 ```json
 {
@@ -152,7 +163,7 @@ Solo contienen nombres de modelo, niveles de esfuerzo, nombres de eventos y tama
 }
 ```
 
-### Pasada C — renderer clásico
+### Pass C — classic renderer
 
 ```json
 {
