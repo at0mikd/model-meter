@@ -1,100 +1,104 @@
-# T-003b · Resultados de la medición (fase 1)
+# T-003b · Measurement results (phase 1)
 
-- **Tarea:** [`docs/tasks/T-003b-footer-room.md`](../tasks/T-003b-footer-room.md)
-- **Fecha:** 2026-11-19
-- **Spike:** `spikes/wic-spike` con las observaciones de T-003b (54e129a). No llama a nada nuevo en `$`.
+- **Task:** [`docs/tasks/T-003b-footer-room.md`](../tasks/T-003b-footer-room.md)
+- **Date:** 2026-11-19
+- **Spike:** `spikes/wic-spike` with T-003b's observations (54e129a). It calls nothing new on `$`.
 
-## Entorno
+## Environment
 
-| Dato | Valor |
+| Item | Value |
 | --- | --- |
 | Claude Code | 2.1.328 |
-| Sistema operativo | Fedora Linux 44 (x86_64) |
-| Terminal | tmux 3.8 con servidor propio, ventana fijada a **95 × 47** y **191 × 47** |
+| Operating system | Fedora Linux 44 (x86_64) |
+| Terminal | tmux 3.8 with its own server, window fixed at **95 × 47** and **191 × 47** |
 | Renderer | `fullscreen` |
-| Otros mods | `sub-meter` 0.4.4, `context-meter` 0.1.0, `quick-peek` 0.2.0 e `image-preview` 0.2.2 (`better-claude`) |
-| Modelo y esfuerzo | Opus 5.5, `xhigh` |
+| Other mods | `sub-meter` 0.4.4, `context-meter` 0.1.0, `quick-peek` 0.2.0 and `image-preview` 0.2.2 (`better-claude`) |
+| Model and effort | Opus 5.5, `xhigh` |
 
-## Método
+## Method
 
-- **Sesiones:** el Builder las dirige en tmux con `claude --plugin-dir spikes/wic-spike [--plugin-dir plugins/model-meter]`, sin las variables de entorno de su propia sesión. Solo envía prompts triviales.
-- **Pie:** se lee como texto con `tmux capture-pane`, columna a columna.
-- **Informe del spike:** su herramienta `report`, leída del `toolUseResult` del transcript de esa sesión.
-- **Pasadas:**
+- **Sessions:** the Builder drives them in tmux with `claude --plugin-dir spikes/wic-spike [--plugin-dir plugins/model-meter]`, without its own session's environment variables. It only sends trivial prompts.
+- **Footer:** read as text with `tmux capture-pane`, column by column.
+- **The spike's report:** its `report` tool, read from the `toolUseResult` in that session's transcript.
+- **Passes:**
 
-| Pasada | Carga de model-meter | Qué se hizo |
+| Pass | How model-meter is loaded | What was done |
 | --- | --- | --- |
-| A | `--plugin-dir` | reposo, un turno, 8 shift+tab, escribiendo, shell en segundo plano, `report` |
-| C | `--plugin-dir` | un prompt en cada modo; `dontAsk` con `--permission-mode` |
-| B | marketplace del clon local | reposo, ciclo, 191 columnas, `/reload-plugins`, `prependPlugins` con `--settings` |
-| P4 | build local en una carpeta temporal, fuera del repo | badge forzado a sobrar |
+| A | `--plugin-dir` | at rest, one turn, 8 × shift+tab, typing, background shell, `report` |
+| C | `--plugin-dir` | one prompt in each mode; `dontAsk` with `--permission-mode` |
+| B | the local clone's marketplace | at rest, the cycle, 191 columns, `/reload-plugins`, `prependPlugins` with `--settings` |
+| P4 | a local build in a temporary folder, outside the repo | the badge forced to overflow |
 
-## P1 · Qué ve el hook de `PromptHint` y qué devuelve `next(e)`
+## P1 · What the `PromptHint` hook sees and what `next(e)` returns
 
-Pasada A: model-meter queda por fuera de `sub-meter`.
+Pass A: model-meter sits outside `sub-meter`.
 
-| Momento | `e.props.hint` que recibe model-meter | Lo que recibe el motor (se dibuja) |
+| Moment | `e.props.hint` model-meter receives | What the engine receives (what is drawn) |
 | --- | --- | --- |
-| arranque | `(shift+tab to cycle) · ← for agents` (35) | `← for agents` (12) |
-| reposo, auto | `(shift+tab to cycle)` (20) | `''` (0) |
-| trabajando | `(shift+tab to cycle) · esc to interrupt` | `''` |
-| modo manual | `? for shortcuts` (15) | `? for shortcuts` (15) |
-| shell en segundo plano | `1 shell · ↓ to manage` (21) | igual |
-| shell y trabajando | `1 shell · esc to interrupt · ↓ to manage` (40) | `1 shell · ↓ to manage` (21) |
+| start-up | `(shift+tab to cycle) · ← for agents` (35) | `← for agents` (12) |
+| at rest, auto | `(shift+tab to cycle)` (20) | `''` (0) |
+| working | `(shift+tab to cycle) · esc to interrupt` | `''` |
+| manual mode | `? for shortcuts` (15) | `? for shortcuts` (15) |
+| background shell | `1 shell · ↓ to manage` (21) | the same |
+| shell and working | `1 shell · esc to interrupt · ↓ to manage` (40) | `1 shell · ↓ to manage` (21) |
 
-- **Recibe la pista cruda.** Por eso reserva de más. `sub-meter` (eslabón 4) quita `(shift+tab to cycle)` y `esc to interrupt`, y `context-meter` ya recibe la pista recortada.
-- **`next(e)` en `PromptHint` es opaco:** `{ type: 'engine', ref }`.
-- **`next.trace` sí da lo que se dibuja.** Tras `await next(e)` lista los eslabones de debajo, el motor el último, y el `received.props.hint` del motor es la pista tal como se dibuja. Esto vale tanto si model-meter queda por encima de `sub-meter` como por debajo.
-- **Hipótesis confirmada:** en reposo, `hint` **no** incluye la etiqueta de modo; el motor la dibuja aparte, seguida de ` · `.
-- **Excepción transitoria:** justo después de un shift+tab llega un render cuya pista lleva el nombre del modo **anterior**, por ejemplo `auto mode on (shift+tab to cycle)` o `manual mode on · ? for shortcuts`. En seguida vuelve a la pista normal.
+- **It receives the raw hint,** which is why it reserves too much. `sub-meter` (link 4) removes `(shift+tab to cycle)` and `esc to interrupt`, so `context-meter` already receives the trimmed hint.
+- **`next(e)` in `PromptHint` is opaque:** `{ type: 'engine', ref }`.
+- **`next.trace` does give what is drawn.**
+  - After `await next(e)` it lists the links beneath, with the engine last.
+  - The engine's `received.props.hint` is the hint as drawn.
+  - This holds whether model-meter sits above `sub-meter` or beneath it.
+- **Hypothesis confirmed:** at rest, `hint` does **not** include the mode label; the engine draws it separately, followed by ` · `.
+- **A transient exception:** right after a shift+tab, one render arrives whose hint carries the **previous** mode's name, for example `auto mode on (shift+tab to cycle)` or `manual mode on · ? for shortcuts`. It goes back to the normal hint right away.
 
-## P2 · Orden de los hooks entre plugins
+## P2 · The order of hooks across plugins
 
-| Carga | Orden (`next.trace`, 0 = el de fuera) | Insignia | Pista que recibe model-meter |
+| Loading | Order (`next.trace`, 0 = the outermost) | Badge | Hint model-meter receives |
 | --- | --- | --- | --- |
-| `--plugin-dir` (CA7) | 0 wic-spike, 1 model-meter, 2 quick-peek, 3 image-preview, 4 sub-meter, 5 context-meter, 6 engine | a la izquierda de `sub-meter` | cruda |
-| marketplace | …, sub-meter, context-meter, **model-meter**, engine | **a la derecha** de `sub-meter` | recortada |
+| `--plugin-dir` (AC7) | 0 wic-spike, 1 model-meter, 2 quick-peek, 3 image-preview, 4 sub-meter, 5 context-meter, 6 engine | left of `sub-meter` | raw |
+| marketplace | …, sub-meter, context-meter, **model-meter**, engine | **right** of `sub-meter` | trimmed |
 
-- **Todos en el tier `user`.** Primero van los `--plugin-dir`, en el orden de los flags. Después, los instalados, en el orden de `enabledPlugins`: al instalar, model-meter se añadió al final de esa lista.
-- **Estabilidad:** el orden se mantiene tras `/reload-plugins` y entre sesiones, porque el orden de `enabledPlugins` es persistente. No se probó a reinstalar; lo esperable es que vuelva al final.
+- **All in the `user` tier.** The `--plugin-dir` plugins come first, in the order of the flags. Then the installed ones, in the order of `enabledPlugins`: on install, model-meter was appended to the end of that list.
+- **Stability:** the order holds after `/reload-plugins` and across sessions, because the order of `enabledPlugins` persists. Reinstalling was not tried; it would most likely go back to the end.
 - **`prependPlugins`:**
-  - con `--settings` no tiene efecto;
-  - en los ajustes de usuario no se probó, porque cambiaría los ajustes del Maintainer. Según la referencia de mods, mueve el plugin al tier `prepend`.
-- **Instalado desde el marketplace**, model-meter no ve a `sub-meter`: la deja encima.
-  - Elige la variante sin contar con ella.
-  - `sub-meter`, que sí mide lo que tiene debajo, se adapta: en modo manual a 95 columnas quitó su barra (`week 19% ↻ 6d 4h`).
-  - El pie no se parte, pero la insignia gana el espacio.
-  - El relleno a la izquierda del hueco se ve como un espacio tras el separador: `98% ↻ 1h 8m ·     ◆ Opus 5.5 ░░░░░ ---`.
+  - with `--settings` it has no effect;
+  - it was not tried in the user settings, because that would change the Maintainer's settings. According to the mod reference, it moves the plugin to the `prepend` tier.
+- **Installed from the marketplace,** model-meter does not see `sub-meter`: it leaves it above.
+  - It picks its variant without counting it.
+  - `sub-meter`, which does measure what is beneath it, adapts: in manual mode at 95 columns it dropped its bar (`week 19% ↻ 6d 4h`).
+  - The footer does not wrap, but the badge wins the room.
+  - The padding on the left of the slot shows as a gap after the separator: `98% ↻ 1h 8m ·     ◆ Opus 5.5 ░░░░░ ---`.
 
 ## P3 · `permission_mode`
 
-- **Lo traen:** `UserPromptSubmit`, `Stop`, `PostToolUse`, `PostToolBatch` y `SubagentStop`.
-- **No lo traen:** `SessionStart`, `InstructionsLoaded`, `PreToolUse` y `MessageDisplay`.
-- **shift+tab no produce ningún evento**, ni clásico ni de mod: solo renders de `PromptHint` y `SessionMode`.
-- **Ciclo real**, sin flag de bypass: `auto` → `default` («manual mode on») → `acceptEdits` → `plan` → `auto`.
-  - `dontAsk` solo se alcanza con `--permission-mode` y sale del ciclo con el primer shift+tab.
-  - **bypass no se midió en vivo.** `--allow-dangerously-skip-permissions` pide aceptar un aviso que se guarda en la configuración global del Maintainer, así que no se aceptó.
-- **Valor de cada modo**, por el `permissionMode` del transcript en cada prompt: `auto`, `default`, `acceptEdits`, `plan`.
+- **Carried by:** `UserPromptSubmit`, `Stop`, `PostToolUse`, `PostToolBatch` and `SubagentStop`.
+- **Not carried by:** `SessionStart`, `InstructionsLoaded`, `PreToolUse` and `MessageDisplay`.
+- **shift+tab produces no event,** neither classic nor mod: only renders of `PromptHint` and `SessionMode`.
+- **The real cycle,** with no bypass flag: `auto` → `default` ("manual mode on") → `acceptEdits` → `plan` → `auto`.
+  - `dontAsk` is only reached with `--permission-mode`, and leaves the cycle at the first shift+tab.
+  - **bypass was not measured live:** `--allow-dangerously-skip-permissions` asks to accept a warning that is saved in the Maintainer's global settings, so it was not accepted.
+- **Each mode's value,** from the transcript's `permissionMode` at each prompt: `auto`, `default`, `acceptEdits`, `plan`.
 
-| `permission_mode` | Etiqueta (con ` ·`) | Columnas |
+| `permission_mode` | Label (with ` ·`) | Columns |
 | --- | --- | --- |
 | `auto` | `⏵⏵ auto mode on ·` | 17 |
 | `default` | `⏸ manual mode on ·` | 18 |
 | `acceptEdits` | `⏵⏵ accept edits on ·` | 20 |
 | `plan` | `⏸ plan mode on ·` | 16 |
 | `dontAsk` | `⏵⏵ don't ask on ·` | 17 |
-| `bypassPermissions` | `⏵⏵ bypass permissions on ·` | 26 (de T-003, sin medir en vivo) |
+| `bypassPermissions` | `⏵⏵ bypass permissions on ·` | 26 (from T-003, not measured live) |
 
-Los anchos coinciden con `widthOf` del mod y con lo que se ve en pantalla.
+The widths match the mod's `widthOf` and what shows on screen.
 
-## P4 · Desbordamiento
+## P4 · Overflow
 
-Probado con un build local que dibuja siempre `full` más 40 columnas de relleno. **El motor parte el pie:**
-- la pista se queda en su fila;
-- el árbol de `SessionMode` baja a una fila propia;
-- si tampoco cabe ahí, el texto continúa en una tercera fila.
+Tested with a local build that always draws `full` plus 40 columns of padding. **The engine wraps the footer:**
 
-No recorta ni la pista ni el árbol, así que no hay margen para un cálculo menos pesimista que se apoye en que el motor recorte.
+- the hint stays on its row;
+- `SessionMode`'s tree moves down to a row of its own;
+- if it does not fit there either, the text continues on a third row.
+
+It trims neither the hint nor the tree, so there is no room for a less pessimistic computation that relies on the engine trimming.
 
 ```text
   ⏵⏵ auto mode on · ← for agents
@@ -102,19 +106,19 @@ No recorta ni la pista ni el árbol, así que no hay margen para un cálculo men
                           #
 ```
 
-## La fórmula actual predice lo observado
+## The current formula predicts what was observed
 
-La reserva es `4 + 26 + (1 + pista) + 2 + (3 + debajo)`, y lo que queda se compara con los huecos de 24 (`full`), 18 (`noMeter`) y 12 (`modelOnly`). A 95 columnas, con `sub-meter` (26 o 27 columnas) debajo:
+The reservation is `4 + 26 + (1 + hint) + 2 + (3 + beneath)`. What is left is compared with the slots of 24 (`full`), 18 (`noMeter`) and 12 (`modelOnly`). At 95 columns, with `sub-meter` (26 or 27 columns) beneath:
 
-| Caso | Pista medida hoy | Queda hoy | Observado | Con la pista dibujada | Con etiqueta exacta |
+| Case | Hint measured today | Left today | Observed | With the drawn hint | With the exact label |
 | --- | --- | --- | --- | --- | --- |
-| reposo, auto | 20 | 12 | `modelOnly` | 33: `full` | 42: `full` |
-| modo manual | 15 | 17–18 | `modelOnly` / `noMeter` | igual | 25–26: `full` |
+| at rest, auto | 20 | 12 | `modelOnly` | 33: `full` | 42: `full` |
+| manual mode | 15 | 17–18 | `modelOnly` / `noMeter` | the same | 25–26: `full` |
 | shell, auto | 21 | 12 | `modelOnly` | 12: `modelOnly` | 21: `noMeter` |
 
-## Informe (extracto saneado, pasada A)
+## Report (sanitized excerpt, pass A)
 
-Contiene solo plugins, tiers, pistas y tamaños, sin rutas, prompts ni datos personales.
+It contains only plugins, tiers, hints and sizes; no paths, prompts or personal data.
 
 ```json
 {
@@ -478,27 +482,27 @@ Contiene solo plugins, tiers, pistas y tamaños, sin rutas, prompts ni datos per
 }
 ```
 
-## Comprobación tras la fase 2
+## Check after phase 2
 
-Hecha a 95 columnas con `sub-meter`, sin turnos de modelo, y con esfuerzo `xhigh` guardado. La insignia se ve en este estado:
+Done at 95 columns with `sub-meter`, with no model turns and with `xhigh` effort stored. The badge shows in this state:
 
-| Modo | Instalado desde el marketplace (model-meter por debajo) | Con `--plugin-dir` (por encima, el caso de CA7) |
+| Mode | Installed from the marketplace (model-meter beneath) | With `--plugin-dir` (above, the AC7 case) |
 | --- | --- | --- |
-| auto, en reposo | `full` | `full` (antes, `modelOnly` o nada) |
-| manual | `full` (`sub-meter` se reduce a `5h 13%`) | `modelOnly` |
+| auto, at rest | `full` | `full` (before: `modelOnly` or nothing) |
+| manual | `full` (`sub-meter` shrinks to `5h 13%`) | `modelOnly` |
 | accept edits | `full` | `full` |
 | plan | `full` | `full` |
 
-- Las filas son del pie leído tal cual; nunca se parte ni se pisa.
-- En la variante `--plugin-dir`, model-meter instalado se desactivó solo para esa sesión con `--settings`.
-- En los primeros segundos de una sesión, mientras se ve la píldora `← for agents`, la insignia puede ser más pequeña o no salir, porque esa píldora también se mide.
+- The rows are the footer as read; it never wraps or overlaps.
+- In the `--plugin-dir` variant, the installed model-meter was disabled for that session only, with `--settings`.
+- In a session's first seconds, while the `← for agents` pill shows, the badge may be smaller or not show, because that pill is measured too.
 
 ```text
   ⏵⏵ auto mode on ·                         ◆ Opus 5.5 ▮▮▮▮▯ xhi · 5h ━━━─────── 29% ↻ 4h 42m
   ⏵⏵ auto mode on · ← for agents        5h ━───────── 13% ↻ 4h 43m ·     ◆ Opus 5.5 ▮▮▮▮▯ xhi
 ```
 
-Con el relleno al final de la fila cuando la insignia no tiene nada debajo (decisión del Reviewer), la segunda fila pasa a ser:
+With the padding at the end of the row when the badge has nothing beneath it (the Reviewer's decision), the second row becomes:
 
 ```text
   ⏵⏵ auto mode on ·                    week ━━──────── 24% ↻ 5d 9h · ◆ Opus 5.5 ▮▮▮▮▯ xhi
