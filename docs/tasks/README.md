@@ -16,7 +16,7 @@ The backlog of the Reviewer–Builder workflow (`docs/WORKFLOW.md`). The Reviewe
 | [T-010](T-010-sprites-mythos.md) | High-quality 8-bit sprites (12×12, three colors) and the Mythos family | 4 | Done |
 | T-011 | Palettes (`classic`, `gameboy`, `mono`) and `showEffortMeter` | 5 | Optional, later (not specified yet) |
 | [T-012](T-012-hardening-release.md) | Hardening and the v0.1.0 release | 6 | Done |
-| [T-013](T-013-security-audit.md) | Full security audit with Cloudflare's `security-audit` skill | 6 | Ready |
+| [T-013](T-013-security-audit.md) | Full security audit with Cloudflare's `security-audit` skill | 6 | In progress |
 
 ## Task format
 

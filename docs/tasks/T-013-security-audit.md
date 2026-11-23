@@ -1,6 +1,6 @@
 # T-013 · Full security audit with Cloudflare's `security-audit` skill
 
-- **Status:** Ready
+- **Status:** In progress
 - **Branch:** `chore/T-013-security-audit`
 - **Plan:** `docs/PLAN.md` §5 (threat model), §6; the Maintainer's request of 2026-11-23: a closing security audit of v0.1.0 with [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)
 
