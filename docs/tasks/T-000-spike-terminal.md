@@ -1,43 +1,53 @@
-# T-000 · Spike en terminal: `/model`, `/effort` y ancho del pie
+# T-000 · Terminal spike: `/model`, `/effort` and the footer's width
 
-- **Estado:** Done ([#2](https://github.com/at0mikd/who-is-claude/pull/2))
-- **Rama:** `spike/T-000-terminal`
+- **Status:** Done ([#2](https://github.com/at0mikd/model-meter/pull/2))
+- **Branch:** `spike/T-000-terminal`
 - **Plan:** `docs/PLAN.md` §2.4
 
-## Objetivo
+## Goal
 
-Responder con datos reales de una terminal las dos incógnitas que la sesión cloud no puede observar: si un cambio con `/model` o `/effort` llega al mod antes del siguiente turno, y cuánto ancho queda en el pie (`SessionMode`) junto a otros mods como `sub-meter`.
+Answer, with real data from a terminal, the two unknowns the cloud session cannot observe:
 
-## Alcance
+- whether a change with `/model` or `/effort` reaches the mod before the next turn;
+- how much width is left in the footer (`SessionMode`) next to other mods such as `sub-meter`.
 
-**Entra:** ejecutar el spike `spikes/wic-spike` en local, recoger su informe y documentarlo.
-**No entra:** código de producto, cambios en el plan (los propone el Reviewer tras leer los datos). Solo se puede tocar el spike para añadir observaciones, nunca capacidades nuevas fuera de las que ya usa.
+## Scope
 
-## Procedimiento
+**In:** run the `spikes/wic-spike` spike locally, collect its report and document it.
 
-1. `claude --plugin-dir spikes/wic-spike` en una terminal **a media pantalla**, con `sub-meter` activo.
-2. Envía un prompt cualquiera y espera la respuesta.
-3. Ejecuta `/model` y cambia de modelo; luego `/effort` y cambia de nivel. **No envíes prompt todavía.**
-4. Pide: «llama a la herramienta report de wic-spike» (esto es un turno: anota que el informe incluye los eventos previos a él).
-5. Maximiza la terminal a **pantalla completa**, envía otro prompt y vuelve a pedir el informe.
-6. Para la pasada **sin** `sub-meter`: `/plugin` → desactívalo temporalmente, repite los pasos 1–5 y vuelve a activarlo al terminar.
-7. Modo de pantalla completa de Claude Code: búscalo en `/config` o en la documentación de tu versión. Si existe, repite el paso 1 en ese modo y anota `viewport.isFullscreen`; si no lo encuentras en 10 minutos, marca CA4 como N/A con lo que buscaste.
+**Out:**
 
-El informe (`report`) devuelve JSON completo y parseable, agrupado por tipo de evento (hasta 40 entradas por tipo; los renders solo se registran cuando cambian), así que los eventos de `/model` y `/effort` no se pierden entre redibujados.
+- product code;
+- changes to the plan, which the Reviewer proposes after reading the data;
+- new capabilities: the spike may only be touched to add observations, never capabilities beyond those it already uses.
 
-## Criterios de aceptación
+## Procedure
 
-- **CA1** — Se sabe si `/model` produce algún evento (`config.set`, `command.run`, `prompt.submit`, render) antes del siguiente `turn.step`, y con qué datos.
-- **CA2** — Igual para `/effort`, incluido si `$.settings.read({ key: 'effortLevel' })` cambia tras usarlo.
-- **CA3** — `viewport.columns` y `rows` registrados en media pantalla y pantalla completa, con y sin `sub-meter`.
-- **CA4** — Valor de `viewport.isFullscreen` en terminal normal y en el modo de pantalla completa de Claude Code.
-- **CA5** — Versión de Claude Code y sistema operativo / emulador de terminal anotados.
+1. Run `claude --plugin-dir spikes/wic-spike` in a terminal **at half screen**, with `sub-meter` active.
+2. Send any prompt and wait for the answer.
+3. Run `/model` and change the model, then `/effort` and change the level. **Do not send a prompt yet.**
+4. Ask "call the report tool of wic-spike". That is a turn, so note that the report includes the events before it.
+5. Maximize the terminal to **full screen**, send another prompt, and ask for the report again.
+6. For the pass **without** `sub-meter`, disable it temporarily in `/plugin`, repeat steps 1–5, and enable it again afterwards.
+7. Claude Code's fullscreen mode: look for it in `/config` or in your version's documentation.
+   - If it exists, repeat step 1 in that mode and note `viewport.isFullscreen`.
+   - If you cannot find it within 10 minutes, mark AC4 as N/A with what you searched.
 
-## Restricciones de seguridad
+The report (`report`) returns complete, parseable JSON, grouped by event type: up to 40 entries per type, and renders are recorded only when they change. So the `/model` and `/effort` events are not lost among redraws.
 
-- Revisa el informe antes de publicarlo: solo nombres de modelo, niveles, eventos y tamaños. Elimina cualquier ruta, nombre de usuario, prompt o dato personal.
-- El spike no se publica ni se importa desde el producto.
+## Acceptance criteria
 
-## Evidencia requerida
+- **AC1** — It is known whether `/model` produces any event (`config.set`, `command.run`, `prompt.submit`, a render) before the next `turn.step`, and with which data.
+- **AC2** — The same for `/effort`, including whether `$.settings.read({ key: 'effortLevel' })` changes after using it.
+- **AC3** — `viewport.columns` and `rows` recorded at half screen and at full screen, with and without `sub-meter`.
+- **AC4** — The value of `viewport.isFullscreen` in a normal terminal and in Claude Code's fullscreen mode.
+- **AC5** — Claude Code's version and the operating system and terminal emulator recorded.
 
-PR con `docs/spikes/T-000-results.md` que contenga los informes JSON (saneados) y una tabla con la respuesta a cada CA.
+## Security constraints
+
+- Review the report before publishing it: it may contain only model names, levels, events and sizes. Remove any path, user name, prompt or personal data.
+- The spike is never published or imported by the product.
+
+## Required evidence
+
+A pull request with `docs/spikes/T-000-results.md`, containing the sanitized JSON reports and a table with the answer to each AC.

@@ -1,59 +1,65 @@
-# T-008 · CI: commits de Dependabot y nombre estable del job del mod
+# T-008 · CI: Dependabot commits and a stable name for the mod job
 
-- **Estado:** Done ([#20](https://github.com/at0mikd/model-meter/pull/20), `826fd97`)
-- **Rama:** `chore/T-008-ci-dependabot-names`
-- **Plan:** `docs/PLAN.md` §6; `docs/REPO-SETTINGS.md` §0 (paso 2 del ruleset)
+- **Status:** Done ([#20](https://github.com/at0mikd/model-meter/pull/20), `826fd97`)
+- **Branch:** `chore/T-008-ci-dependabot-names`
+- **Plan:** `docs/PLAN.md` §6; `docs/REPO-SETTINGS.md` §0 (ruleset step 2)
 
-## Objetivo
+## Goal
 
-Que los checks se puedan exigir en el ruleset de `main` (paso 2 de `docs/REPO-SETTINGS.md` §0) sin bloquear a Dependabot ni depender de la versión de la CLI.
+The checks can be required in the `main` ruleset (step 2 of `docs/REPO-SETTINGS.md` §0) without blocking Dependabot or depending on the CLI's version.
 
-## Datos de partida
+## Starting data
 
-- **Dependabot escribe siempre «Bump» con mayúscula**, y commitlint lo rechaza por `subject-case`. Verificado en `3b10c21` (PR #8): `chore(deps-dev): Bump @types/node` → «subject must not be sentence-case». Prefijos reales según `.github/dependabot.yml`: `chore(deps)` y `chore(deps-dev)` para npm, y `ci(deps)` para GitHub Actions y para `tools/claude-cli`. Los commits llevan el trailer `Signed-off-by: dependabot[bot] <support@github.com>`.
-- **El job del mod se llama `validate, test:mod, capabilities (claude CLI 2.1.327)`.** Cuando Dependabot actualice la CLI cambiará el nombre, y un check obligatorio con el nombre antiguo no llegaría nunca.
+- **Dependabot always writes "Bump" capitalized,** and commitlint rejects it under `subject-case`.
+  - Verified on `3b10c21` (pull request #8): `chore(deps-dev): Bump @types/node` → "subject must not be sentence-case".
+  - The real prefixes, from `.github/dependabot.yml`: `chore(deps)` and `chore(deps-dev)` for npm, and `ci(deps)` for GitHub Actions and for `tools/claude-cli`.
+  - The commits carry the trailer `Signed-off-by: dependabot[bot] <support@github.com>`.
+- **The mod job is called `validate, test:mod, capabilities (claude CLI 2.1.327)`.** When Dependabot updates the CLI, the name will change, and a required check with the old name would never arrive.
 
-## Alcance
+## Scope
 
-**Entra:**
+**In:**
 
-1. **`scripts/commitlint-ignores.mjs`** (nuevo, sin dependencias), con una función pura `isDependabotBump(message: string): boolean` que devuelve `true` **solo** si se cumplen las dos condiciones:
-   - la primera línea casa con `^(chore|ci)\((deps|deps-dev)\): Bump \S` (anclada; sin cuantificadores anidados);
-   - el mensaje contiene la línea exacta `Signed-off-by: dependabot[bot] <support@github.com>`.
+1. **`scripts/commitlint-ignores.mjs`** (new, no dependencies). It has a pure function, `isDependabotBump(message: string): boolean`, that returns `true` **only** when both conditions hold:
+   - the first line matches `^(chore|ci)\((deps|deps-dev)\): Bump \S` (anchored, no nested quantifiers);
+   - the message contains the exact line `Signed-off-by: dependabot[bot] <support@github.com>`.
 
-   `commitlint.config.js` la usa en `ignores: [isDependabotBump]`. Las demás reglas no cambian: cualquier otro commit sigue pasando por `subject-case`.
-2. **Tests** en `scripts/commitlint-ignores.test.mjs`. Cobertura de `scripts/` ≥ 95 %.
-   - **Positivos:** bump suelto de npm (`deps-dev`), bump agrupado (`Bump the dev-dependencies group …`), GitHub Actions (`ci(deps)`) y `tools/claude-cli` (`ci(deps)`). Todos con el trailer.
-   - **Negativos:**
-     - el asunto de Dependabot sin el trailer;
-     - el trailer con otro asunto (`docs: Update readme`);
-     - otro tipo (`feat(deps): Bump x`);
-     - otro scope (`chore(deps-prod): Bump x`);
-     - `Bump` sin nada detrás;
-     - el trailer con otro correo o con `dependabot` sin `[bot]`;
-     - un mensaje vacío.
-   - **Integración:** el mensaje real de `3b10c21` como fixture → `true`.
-3. **`.github/workflows/ci.yml`:** el job del mod pasa a llamarse **`mod (validate, test:mod, capabilities)`**, sin versión. La versión sigue visible en el log (paso `claude --version`). No cambia nada más del workflow.
-4. **`docs/REPO-SETTINGS.md`:** en la tabla de checks obligatorios, el nombre nuevo del job del mod, y se quita el aviso de la versión.
-5. **`SECURITY.md`:** una línea en «Para que una caducidad no pille por sorpresa». GitHub desactiva los workflows programados de un repositorio público tras 60 días sin actividad, y se reactivan desde la pestaña Actions.
+   `commitlint.config.js` uses it in `ignores: [isDependabotBump]`. The other rules do not change: any other commit still goes through `subject-case`.
+2. **Tests** in `scripts/commitlint-ignores.test.mjs`, with coverage of `scripts/` ≥ 95%.
+   - **Positive:** a single npm bump (`deps-dev`), a grouped bump (`Bump the dev-dependencies group …`), GitHub Actions (`ci(deps)`) and `tools/claude-cli` (`ci(deps)`), all with the trailer.
+   - **Negative:**
+     - Dependabot's subject without the trailer;
+     - the trailer with another subject (`docs: Update readme`);
+     - another type (`feat(deps): Bump x`);
+     - another scope (`chore(deps-prod): Bump x`);
+     - `Bump` with nothing after it;
+     - the trailer with another email, or with `dependabot` without `[bot]`;
+     - an empty message.
+   - **Integration:** the real message of `3b10c21` as a fixture → `true`.
+3. **`.github/workflows/ci.yml`:** the mod job is renamed **`mod (validate, test:mod, capabilities)`**, with no version. The version stays visible in the log (the `claude --version` step). Nothing else in the workflow changes.
+4. **`docs/REPO-SETTINGS.md`:** the mod job's new name in the table of required checks, and the version warning removed.
+5. **`SECURITY.md`:** a line under "So that an expiry never comes as a surprise". GitHub disables scheduled workflows in a public repository after 60 days without activity, and they are re-enabled from the Actions tab.
 
-**No entra:** cambiar `dependabot.yml`, relajar `subject-case` para el resto de commits, ni tocar el ruleset (lo aplica el Maintainer).
+**Out:** changing `dependabot.yml`, relaxing `subject-case` for other commits, or touching the ruleset, which the Maintainer applies.
 
-## Criterios de aceptación
+## Acceptance criteria
 
-- **CA1** — `npx commitlint --from <padre de 3b10c21> --to 3b10c21` pasa con la configuración nueva (o, si la rama de Dependabot ya no existe, el test con el mensaje real como fixture).
-- **CA2** — Todos los tests positivos y negativos pasan; cobertura de `scripts/` ≥ 95 %.
-- **CA3** — En la CI del PR, el job del mod aparece como `mod (validate, test:mod, capabilities)`.
-- **CA4** — `npm run check` en verde; actionlint y zizmor sin hallazgos.
+- **AC1** — `npx commitlint --from <parent of 3b10c21> --to 3b10c21` passes with the new configuration (or, if Dependabot's branch no longer exists, the test with the real message as a fixture).
+- **AC2** — Every positive and negative test passes; coverage of `scripts/` ≥ 95%.
+- **AC3** — In the pull request's CI, the mod job shows as `mod (validate, test:mod, capabilities)`.
+- **AC4** — `npm run check` green; actionlint and zizmor with no findings.
 
-## Después de fusionar (Reviewer y Maintainer)
+## After the merge (Reviewer and Maintainer)
 
-1. ✅ El Maintainer aplica el **paso 2** del ruleset (checks obligatorios con el nombre nuevo). Aplicado y verificado el 2026-11-20 (`docs/REPO-SETTINGS.md`).
-2. El Maintainer escribe `@dependabot rebase` en #8 para que su CI corra con la configuración nueva. Si pasa, se revisa y se fusiona como cualquier PR.
-   - Al principio lo iba a pedir el Reviewer, pero su herramienta de GitHub metió separadores en el comentario (`·@·d·ependabot r·ebase`) y Dependabot no lo reconoció (#8, 2026-11-20). Los comandos a bots los escribe el Maintainer (`docs/WORKFLOW.md` §7).
+1. ✅ The Maintainer applies **step 2** of the ruleset (required checks, with the new name). Applied and verified on 2026-11-20 (`docs/REPO-SETTINGS.md`).
+2. The Maintainer writes `@dependabot rebase` on #8, so its CI runs with the new configuration. If it passes, it is reviewed and merged like any pull request.
+   - The Reviewer was going to ask for it at first, but its GitHub tool inserted separators into the comment (`·@·d·ependabot r·ebase`) and Dependabot did not recognize it (#8, 2026-11-20). Bot commands are written by the Maintainer (`docs/WORKFLOW.md` §7).
+   - **Outcome:** #8 (`@types/node` 22 → 26) passed CI but was closed by the Maintainer's decision. The types follow the oldest supported Node, and Dependabot now ignores major updates of `@types/node` (#26).
 
-## Restricciones de seguridad
+## Security constraints
 
-- commitlint es un control de estilo, no de seguridad: un humano podría copiar el trailer de Dependabot. Por eso la excepción exige **a la vez** el patrón exacto y el trailer.
-- **Aclaración del Reviewer en #20:** `ignores` deja fuera el commit entero, no solo `subject-case`. Se acepta así, porque un bump puede romper también otras reglas; por ejemplo, un asunto largo rompe `header-max-length`. La condición doble mantiene el alcance acotado.
-- Sin dependencias nuevas; regex anclada y sin cuantificadores anidados.
+- commitlint is a style control, not a security one: a person could copy Dependabot's trailer. That is why the exception requires **both** the exact pattern and the trailer.
+- **Reviewer's clarification on #20:** `ignores` skips the whole commit, not just `subject-case`.
+  - **Why it is accepted:** a bump can also break other rules; for example, a long subject breaks `header-max-length`.
+  - **What keeps it narrow:** the double condition.
+- No new dependencies; the regular expression is anchored, with no nested quantifiers.

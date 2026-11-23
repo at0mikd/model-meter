@@ -1,70 +1,71 @@
-# T-010 · Sprites 8-bit de alta calidad y familia Mythos
+# T-010 · High-quality 8-bit sprites and the Mythos family
 
-- **Estado:** Done ([#27](https://github.com/at0mikd/model-meter/pull/27), `71d4031`)
-- **Rama:** `feat/T-010-sprites-mythos`
-- **Plan:** `docs/PLAN.md` §3.2; decisiones del Maintainer sobre los sprites de T-004 (2026-11-21)
+- **Status:** Done ([#27](https://github.com/at0mikd/model-meter/pull/27), `71d4031`)
+- **Branch:** `feat/T-010-sprites-mythos`
+- **Plan:** `docs/PLAN.md` §3.2; the Maintainer's decisions on T-004's sprites (2026-11-21)
 
-## Objetivo
+## Goal
 
-Sustituir los sprites de T-004 (4×8, de un color) por sprites 8-bit de **12×12 píxeles con 3 colores y transparencia**, al estilo de los sprites de la NES. Además, reconocer la familia **Mythos** en el pie y en la banda.
+Replace T-004's sprites (4×8, one color) with 8-bit sprites of **12×12 pixels with 3 colors and transparency**, in the style of NES sprites. Also, recognize the **Mythos** family in the footer and the band.
 
-**Decisiones del Maintainer (2026-11-21):**
-- Tamaño de 12×12 (6 filas en la terminal), elegido frente al de 16×16 para que la banda ocupe menos alto.
-- Opus pasa de una corona a un **cáliz** con un **rubí** rojo engastado en oro.
-- Fable pasa de un libro a un **rollo de papiro griego**, como las fábulas de Esopo.
-- El rótulo de la banda dice `model Opus 5.5` en vez de `player Opus 5.5`; `power` no cambia.
-- Se añade **Mythos**, con un sprite inspirado en la mitología: un **casco alado**.
-- La calidad debe estar al nivel de la mascota de Claude, pero **sin copiarla ni parecerse a ella**: los diseños son originales.
+**The Maintainer's decisions (2026-11-21):**
 
-## Datos de partida
+- A size of 12×12 (6 terminal rows), chosen over 16×16 so the band takes less height.
+- Opus goes from a crown to a **chalice** with a red **ruby** set in gold.
+- Fable goes from a book to a **Greek papyrus scroll**, as Aesop's fables were.
+- The band's label reads `model Opus 5.5` instead of `player Opus 5.5`; `power` does not change.
+- **Mythos** is added, with a sprite inspired by mythology: a **winged helmet**.
+- The quality must match that of Claude's mascot, **without copying it or resembling it**: the designs are original.
 
-- **Media celda con dos colores.** Una celda de la terminal es `▀` con `color` (píxel de arriba) y `backgroundColor` (píxel de abajo). `Text` admite las dos props, según los tipos de la CLI 2.1.327. Una celda con un solo píxel usa `▀` o `▄` sin fondo; una vacía, un espacio.
-- **Colores:** colores de identidad fijos (hex) y detalle claro con la clave `text`, por decisión del Maintainer del 2026-11-21: en temas que siguen la paleta ANSI, las claves colisionaban.
-  - `text` es claro en el tema oscuro y oscuro en el claro. Por eso los diseños lo usan solo en **detalles finos**: brillos, la nieve, las líneas del libro, el filo del casco.
-  - Las superficies grandes van en el color de la familia o en el de acento.
-  - Vista previa con los dos temas: [`docs/assets/sprites-v2-preview.png`](../assets/sprites-v2-preview.png).
-- **Mythos.** IDs de modelo según la documentación de Anthropic:
-  - `claude-mythos-5`, la [vista general de Mythos 5](https://platform.claude.com/docs/en/models/mythos-5/overview);
-  - `claude-mythos-5-1`, la [vista general de Mythos 5.1](https://platform.claude.com/docs/en/models/mythos-5-1/overview);
-  - en Bedrock existe también `claude-mythos-preview` ([ficha de modelo](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-mythos-preview.html)).
+## Starting data
 
-## Alcance
+- **A half cell with two colors.** A terminal cell is `▀` with `color` (the top pixel) and `backgroundColor` (the bottom pixel). `Text` takes both props, according to the CLI 2.1.327 types. A cell with a single pixel uses `▀` or `▄` with no background; an empty one, a space.
+- **Colors:** fixed identity colors (hex), and the light detail with the key `text`. The Maintainer decided this on 2026-11-21, because in themes that follow the ANSI palette the theme keys collided.
+  - `text` is light on the dark theme and dark on the light one. So the designs use it only for **fine details**: highlights, the snow, the scroll's writing, the helmet's brow.
+  - Large surfaces use the family's color or the accent.
+  - Preview with both themes: [`docs/assets/sprites-v2-preview.png`](../assets/sprites-v2-preview.png).
+- **Mythos.** Model IDs according to Anthropic's documentation:
+  - `claude-mythos-5`, the [Mythos 5 overview](https://platform.claude.com/docs/en/models/mythos-5/overview);
+  - `claude-mythos-5-1`, the [Mythos 5.1 overview](https://platform.claude.com/docs/en/models/mythos-5-1/overview);
+  - on Bedrock there is also `claude-mythos-preview` ([model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-mythos-preview.html)).
 
-**Entra:**
+## Scope
 
-1. **Familia `mythos`** en el núcleo (`model.ts`):
-   - `claude-mythos-5` → `Mythos 5` y `claude-mythos-5-1` → `Mythos 5.1`;
-   - `claude-mythos-preview` → `Mythos preview`, en minúscula salvo el nombre;
-   - color de familia `planMode`;
-   - glifo `◆`, como las demás.
-2. **Sprites** en `sprite.ts`, con las cuadrículas de abajo **tal cual**. Cada cuadrícula tiene 12 filas de 12 caracteres:
-   - `.` es transparente;
-   - `1`, `2` y `3` son las ranuras de color de la tabla.
-3. **Paso de píxeles a celdas** como función pura: dos filas de píxeles dan una fila de celdas, cada una con su carácter, color y fondo. El hook solo pinta.
-4. **Rótulo:** `model` en vez de `player`. Las dos etiquetas, `model ` y `power `, tienen el mismo ancho (6), así que los valores quedan alineados.
-5. **Banda** de 6 filas por 12 columnas:
-   - `BAND_MIN_ROWS` sigue en 6, la altura del sprite;
-   - el rótulo va junto a las dos filas centrales;
-   - el resto de T-004 (opciones, histéresis y orden de ajuste) no cambia.
+**In:**
 
-**No entra:** paletas configurables, animaciones y cambios en el pie, salvo reconocer Mythos.
+1. **The `mythos` family** in the core (`model.ts`):
+   - `claude-mythos-5` → `Mythos 5` and `claude-mythos-5-1` → `Mythos 5.1`;
+   - `claude-mythos-preview` → `Mythos preview`, lowercase except the name;
+   - the family color `planMode`;
+   - the glyph `◆`, like the others.
+2. **Sprites** in `sprite.ts`, with the grids below copied **verbatim**. Each grid has 12 rows of 12 characters:
+   - `.` is transparent;
+   - `1`, `2` and `3` are the color slots of the table.
+3. **From pixels to cells,** as a pure function: two rows of pixels give one row of cells, each with its character, color and background. The hook only paints.
+4. **Label:** `model` instead of `player`. Both labels, `model ` and `power `, have the same width (6), so the values line up.
+5. **A band** of 6 rows by 12 columns:
+   - `BAND_MIN_ROWS` stays at 6, the sprite's height;
+   - the label goes beside the two middle rows;
+   - the rest of T-004 (options, hysteresis and the order of the fit) does not change.
 
-### Paleta por sprite (colores fijos y `text`)
+**Out:** configurable palettes, animations, and changes to the footer other than recognizing Mythos.
 
-Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identidad son hex fijos, en minúscula y con el formato `#rrggbb`. La ranura 3 sigue siendo la clave `text`, salvo el rubí de Opus.
+### Palette per sprite (fixed colors and `text`)
 
-| Familia | Motivo | `1` | `2` | `3` |
+The review of #27 (the Maintainer's decision, 2026-11-21): the identity colors are fixed hex values, lowercase, in the form `#rrggbb`. Slot 3 stays the key `text`, except for Opus's ruby.
+
+| Family | Motif | `1` | `2` | `3` |
 | --- | --- | --- | --- | --- |
-| Opus | cáliz con rubí | `#d77757` (copa) | `#f2c94c` (oro) | `#e0115f` (el rubí) |
-| Sonnet | pluma | `#b1b9f9` | `#f2c94c` | `text` |
-| Haiku | montaña con sol | `#4eba65` | `#f2c94c` | `text` |
-| Fable | rollo de papiro griego | `#af87ff` (papiro) | `#d77757` (rodillos) | `text` (texto y brillo de los rodillos) |
-| Mythos | casco alado | `#48968c` | `#f2c94c` | `text` |
-| desconocido | cartucho vacío | atenuado | atenuado | atenuado |
+| Opus | chalice with a ruby | `#d77757` (cup) | `#f2c94c` (gold) | `#e0115f` (the ruby) |
+| Sonnet | quill | `#b1b9f9` | `#f2c94c` | `text` |
+| Haiku | mountain under the sun | `#4eba65` | `#f2c94c` | `text` |
+| Fable | Greek papyrus scroll | `#af87ff` (papyrus) | `#d77757` (rollers) | `text` (writing and the rollers' shine) |
+| Mythos | winged helmet | `#48968c` | `#f2c94c` | `text` |
+| Unknown | empty cartridge | dimmed | dimmed | dimmed |
 
-### Cuadrículas
+### Grids
 
-**Opus — cáliz con rubí**
+**Opus — chalice with a ruby**
 
 ```text
 ............
@@ -81,7 +82,7 @@ Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identid
 ..22222222..
 ```
 
-**Sonnet — pluma**
+**Sonnet — quill**
 
 ```text
 ........111.
@@ -98,7 +99,7 @@ Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identid
 .2..........
 ```
 
-**Haiku — montaña con sol**
+**Haiku — mountain under the sun**
 
 ```text
 ......2..2..
@@ -115,7 +116,7 @@ Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identid
 111111111111
 ```
 
-**Fable — rollo de papiro griego**
+**Fable — Greek papyrus scroll**
 
 ```text
 ............
@@ -132,7 +133,7 @@ Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identid
 ............
 ```
 
-**Mythos — casco alado**
+**Mythos — winged helmet**
 
 ```text
 ....2222....
@@ -149,7 +150,7 @@ Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identid
 ............
 ```
 
-**desconocido — cartucho vacío**
+**Unknown — empty cartridge**
 
 ```text
 ............
@@ -166,36 +167,36 @@ Revisión del #27 (decisión del Maintainer, 2026-11-21): los colores de identid
 ............
 ```
 
-## Criterios de aceptación
+## Acceptance criteria
 
-- **CA1** — Tests de núcleo de Mythos:
-  - los tres IDs con su etiqueta;
-  - el color de familia;
-  - un ID parecido pero no válido sigue siendo desconocido, por ejemplo `claude-mythos-x`.
-- **CA2** — Tests de núcleo de los sprites:
+- **AC1** — Core tests of Mythos:
+  - the three IDs with their labels;
+  - the family color;
+  - a similar but invalid ID stays unknown, for example `claude-mythos-x`.
+- **AC2** — Core tests of the sprites:
   - 12×12;
-  - como mucho 3 ranuras, más la transparencia;
-  - las seis cuadrículas distintas e idénticas a las de esta tarea;
-  - el desconocido, atenuado.
-- **CA3** — Tests de núcleo del paso a celdas: las cuatro combinaciones de dos píxeles (vacío/vacío, color/vacío, vacío/color y color/color) dan el carácter, el color y el fondo esperados.
-- **CA4** — Tests de mod:
-  - la banda dibuja 6 filas;
-  - con `maxRows` 5 no sale y con 6 sí;
-  - con Mythos, el pie dice `Mythos 5.1` en `planMode`;
-  - el rótulo dice `model Opus 5.5` y `power ▮▮▮▯▯ high`;
-  - los tests de T-004 y del pie siguen en verde.
-- **CA5** — `capabilities` en verde, con las mismas llamadas a `$`. `npm run check` en verde.
-- **CA6** — PLAN §3.2, el README del mod y el CHANGELOG al día.
-- **CA7** — Capturas del Maintainer con la banda, a pantalla completa, de al menos Opus y Fable. Mythos solo si tiene acceso. El Maintainer da el visto bueno final al aspecto.
+  - at most 3 slots, plus transparency;
+  - the six grids all different, and identical to this task's;
+  - the unknown one, dimmed.
+- **AC3** — Core tests of the conversion to cells: the four combinations of two pixels (empty/empty, color/empty, empty/color and color/color) give the expected character, color and background.
+- **AC4** — Mod tests:
+  - the band draws 6 rows;
+  - with `maxRows` 5 it does not show, and with 6 it does;
+  - with Mythos, the footer reads `Mythos 5.1` in `planMode`;
+  - the label reads `model Opus 5.5` and `power ▮▮▮▯▯ high`;
+  - T-004's tests and the footer's stay green.
+- **AC5** — `capabilities` green, with the same `$` calls. `npm run check` green.
+- **AC6** — PLAN §3.2, the mod's README and the CHANGELOG up to date.
+- **AC7** — Screenshots by the Maintainer of the band at full screen, of at least Opus and Fable (Mythos only with access to it). The Maintainer gives the final approval of the look.
 
-## Restricciones de seguridad
+## Security constraints
 
-- Los sprites y la paleta son constantes del código: hex fijos y la clave `text`, que el motor traduce a la terminal. Nunca se escriben secuencias de escape propias, y ningún color depende de una entrada.
-- No hay llamadas nuevas a `$` ni dependencias nuevas.
-- Mythos se reconoce con la misma validación estricta de IDs que las demás familias: cualquier otro texto sigue siendo desconocido y se sanitiza igual.
+- The sprites and the palette are constants in the code: fixed hex values and the key `text`, which the engine translates for the terminal. No escape sequences of our own are ever written, and no color depends on any input.
+- No new `$` calls and no new dependencies.
+- Mythos is recognized with the same strict ID validation as the other families: any other text stays unknown and is sanitized the same way.
 
-## Evidencia requerida
+## Required evidence
 
-- La salida de `npm run check` y de `npm run capabilities`.
-- Una muestra en texto de la banda.
-- Las capturas de CA7.
+- The output of `npm run check` and `npm run capabilities`.
+- A text sample of the band.
+- The AC7 screenshots.

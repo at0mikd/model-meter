@@ -1,4 +1,4 @@
-# Session handoff — 2026-11-21
+# Session handoff — 2026-11-23
 
 The state of `model-meter`, to resume in a new session (Reviewer in the cloud, Builder local).
 
@@ -18,26 +18,32 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 | #25 | T-010 specified: 12×12 three-color sprites, Mythos family, `model` label (`c3b8688`) |
 | #26 | Dependabot ignores major updates of `@types/node`, which stays on the oldest supported Node, 22 (`1c93ce3`); #8 closed |
 | #27 | T-010: 12×12 three-color sprites (chalice with a ruby, quill, mountain, papyrus scroll, winged helmet, cartridge) in fixed hex identity colors, the Mythos family and the `model` label (`71d4031`) |
+| #28 | Professional English documentation (README, CONTRIBUTING, SECURITY, Code of Conduct, issue forms), T-012 specified (`99d809b`) |
+| #29 | WORKFLOW and REPO-SETTINGS in English; tag ruleset documented; the Builder may not push tags or run `gh release` (`244f521`) |
+| #30 | T-012: release workflow (signed, verified tag on `main`; full CI; deterministic package; build provenance), v0.1.0, security review, RELEASING (`d87bc8e`) |
+| #31 | PLAN in English and up to date (`e844730`) |
+
+## Released
+
+- **v0.1.0** — 2026-11-22, tag `v0.1.0` on `e844730`, [GitHub Release](https://github.com/at0mikd/model-meter/releases/tag/v0.1.0).
+  - The workflow `Release` (run 45011714546) was green: version check, tag on `main`, signed tag verified by GitHub, full CI, package, attestation, release.
+  - Verified after publishing: `sha256sum --check` OK, `gh attestation verify` OK (SLSA provenance v1, signer `release.yml@refs/tags/v0.1.0`, source `e844730`), 17 files as listed.
+  - Clean install from `main` checked (T-012 AC7, on #30).
+- **Repository security:** every Advanced Security feature is on (Dependabot alerts and security updates, secret scanning with push protection, private vulnerability reporting). The `main` ruleset and the `release tags` ruleset (id `27836653`) are active.
 
 ## In progress
 
-- **T-012** (Ready, Builder): hardening and the v0.1.0 release.
-- **Documentation in English** (Maintainer's decision, 2026-11-21):
-  - public documents translated (README, CONTRIBUTING, SECURITY, Code of Conduct, issue and pull request templates, `CLAUDE.md`);
-  - the Builder translates the mod's README and the changelog in T-010/T-012;
-  - the Reviewer translates PLAN, WORKFLOW, REPO-SETTINGS, the task files and the spike results in follow-up pull requests.
-- **Ruleset of `main`:** complete since 2026-11-20 (steps 1 and 2, `REPO-SETTINGS.md`). Every pull request needs its 12 checks green and must be up to date with `main`.
+- **Documentation in English:** every living document is in English. The task files T-000…T-010 are translated in this pull request; the spike results (`docs/spikes/`) follow in the next one.
 
 ## Pending, in order
 
 | # | What | Who | Depends on |
 | --- | --- | --- | --- |
-| 1 | **T-012:** hardening and the v0.1.0 release | Builder | — |
-| 2 | Translate the internal documentation to English | Reviewer | — |
-| 3 | Enable Dependabot security updates, Secret Protection with push protection, and private vulnerability reporting (`REPO-SETTINGS.md` §3), before the release | Maintainer | — |
-| 4 | After T-012: tag ruleset for `v*`, then the signed tag `v0.1.0` | Maintainer | T-012 |
-| 5 | Decision A/B on Code-Review (Scorecard) | Maintainer | — |
-| 6 | Delete the old branches (below) | Maintainer | — |
+| 1 | Translate the spike results (`docs/spikes/`) to English | Reviewer | — |
+| 2 | Enable **release immutability** (Settings → General → Releases), so published release assets cannot change | Maintainer | — |
+| 3 | Edit the v0.1.0 release notes: `&lt;version&gt;` shows escaped (the CHANGELOG avoids `<…>` placeholders from now on) | Maintainer | — |
+| 4 | Decision A/B on Code-Review (Scorecard) | Maintainer | — |
+| 5 | Delete the old branches (below) | Maintainer | — |
 | — | **Phase 5, optional, later:** palettes and `showEffortMeter` (T-011, not specified) | Reviewer | Maintainer's call |
 
 **Old branches.** There are 10 branches that were merged or replaced. Each head matches its pull request's, so nothing is lost:
