@@ -148,13 +148,15 @@ What remains are **leads**. Each one depends on a fact that source cannot show: 
 
 These five concern how the Builder and Reviewer agents and the Maintainer work, not the published mod. As the Maintainer decided, their traces, blockers and validation steps stay in the private audit run and go to the Reviewer, and only titles and fix directions are public here.
 
-| # | Lead | Fix direction |
-| --- | --- | --- |
-| N5 | The Builder's allow rules pre-approve broader effects than intended | Replace argument-unbounded allow prefixes with exact commands, so these effects need a prompt |
-| N6 | The merge approval is bound to an abbreviated head SHA | Require the full 40-hex SHA in the approval and the record, and compare it exactly |
-| N7 | The "update keeps the approval" check can run against a stale base | Fetch and pin the current `main` SHA before the check, and require exact parents |
-| N8 | The cloud Reviewer's checks on lower-trust PR heads run beside its push credential | Judge fork and Dependabot heads from the diff and CI, or run them only without credentials |
-| N9 | The Reviewer's non-merge GitHub writes have no deterministic scope | Record and narrow the session credential's permissions, and add deterministic deny rules for write APIs |
+| # | Lead | Class | Fix direction | Details |
+| --- | --- | --- | --- | --- |
+| N5 | The Builder's allow rules pre-approve broader effects than intended | Excessive agency | Replace argument-unbounded allow prefixes with exact commands, so these effects need a prompt | Withheld until mitigated |
+| N6 | The merge approval is bound to an abbreviated head SHA | Approval binding | Require the full 40-hex SHA in the approval and the record, and compare it exactly | Withheld until mitigated |
+| N7 | The "update keeps the approval" check can run against a stale base | Approval binding | Fetch and pin the current `main` SHA before the check, and require exact parents | Withheld until mitigated |
+| N8 | The cloud Reviewer's checks on lower-trust PR heads run beside its push credential | Excessive agency | Judge fork and Dependabot heads from the diff and CI, or run them only without credentials | Withheld until mitigated |
+| N9 | The Reviewer's non-merge GitHub writes have no deterministic scope | Excessive agency | Record and narrow the session credential's permissions, and add deterministic deny rules for write APIs | Withheld until mitigated |
+
+Each of these becomes its own task. Their full details are published in an update of this report once they are mitigated.
 
 ## Rejected candidates
 
