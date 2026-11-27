@@ -12,8 +12,13 @@ updates:
     # The Node types follow the oldest Node the project supports (engines:
     # >=22.15), so the compiler never accepts an API Node 22 lacks; minor and
     # patch updates of 22.x still come.
+    # TypeScript stays on 6.x while typescript-eslint's peer range stops below
+    # 6.1 (8.73.0: >=4.8.4 <6.1.0): the 7.0 bump fails `npm ci` with ERESOLVE
+    # (#42). Lift this when typescript-eslint supports 7.
     ignore:
       - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
     groups:
       dev-dependencies:

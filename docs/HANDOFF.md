@@ -74,7 +74,7 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 | 4 | **T-015 AC5:** `gh release download v0.1.0 --repo at0mikd/model-meter --pattern 'model-meter-0.1.0.tar.gz'`, then the pinned `gh attestation verify` of `docs/RELEASING.md` §5 | Maintainer, on their own machine | The cloud session cannot initialize the Sigstore verifier |
 | 5 | The Builder's final yes/no per lead (N1–N9), over the private channel | Builder | After 1–3 |
 | 6 | **T-013 report update:** publish the details of every mitigated lead with its mitigation; N9 stays withheld while open | Reviewer | T-016 scope item 4 |
-| 7 | **Dependabot #35** (TypeScript 6.0.3 → 7.0.2, a major version): judged from the diff, the changelog and CI only; recommend merging, waiting, or ignoring that major version | Reviewer | — |
+| 7 | **TypeScript 7** (Dependabot #35, superseded by #42): `npm ci` fails with ERESOLVE, because `typescript-eslint` 8.73.0 accepts only `typescript` below 6.1. Dependabot now ignores TypeScript's major updates (#45); the Maintainer closes #42 with `@dependabot close` if it does not close itself, and the regenerated group brings only `fast-check` 4.10.3. Lift the ignore when `typescript-eslint` supports 7 | Reviewer, Maintainer | — |
 | 8 | **Optional:** add `package (dry run)` and `package (digest across jobs)` to the `main` ruleset's required checks | Maintainer | Recommended by the Reviewer |
 
 The Builder keeps its private audit run until item 6 is merged.
