@@ -480,17 +480,27 @@ describe('findViolations: provides, every component the plugin declares (T-014, 
       { path: 'hooks/extra.tsx' },
     ])
     assert.deepEqual(findViolations(report), [
-      'provides.modules: must be exactly hooks/register.tsx, found hooks/register.tsx, hooks/extra.tsx',
+      'provides.modules: must be exactly hooks/register.tsx, found "hooks/register.tsx", "hooks/extra.tsx"',
     ])
   })
 
   test('another module, or none, fails', () => {
     assert.deepEqual(findViolations(providing('modules', [{ path: 'hooks/other.tsx' }])), [
-      'provides.modules: must be exactly hooks/register.tsx, found hooks/other.tsx',
+      'provides.modules: must be exactly hooks/register.tsx, found "hooks/other.tsx"',
     ])
     assert.deepEqual(findViolations(providing('modules', [])), [
       'provides.modules: must be exactly hooks/register.tsx, found none',
     ])
+  })
+
+  test('a module path cannot add a line or an escape sequence to the log', () => {
+    const forged = 'x\n::error title=forged::looks like CI\u001b[31m'
+    const problems = findViolations(providing('modules', [{ path: forged }]))
+    assert.deepEqual(problems, [
+      'provides.modules: must be exactly hooks/register.tsx, found "x\\n::error title=forged::looks like CI\\u001b[31m"',
+    ])
+    assert.ok(!problems.join('').includes('\n'))
+    assert.ok(!problems.join('').includes('\u001b'))
   })
 
   test('a report with no provides block fails closed', () => {

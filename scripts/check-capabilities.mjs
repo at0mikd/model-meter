@@ -152,7 +152,8 @@ function isProvides(provides) {
 
 /**
  * What the plugin declares beyond its one hooks module, one line per list. Names
- * only the list and a count, never what an entry points at.
+ * only the list and a count, never what an entry points at; module paths come
+ * from a file under review, so they are quoted with JSON.stringify.
  *
  * @param {Record<string, unknown[]> & { modules: { path: string }[] }} provides
  * @returns {string[]}
@@ -163,7 +164,7 @@ function providesProblems(provides) {
   const paths = provides.modules.map((m) => m.path)
   const exact = JSON.stringify(paths) === JSON.stringify(ALLOWED_MODULES)
   if (!exact) {
-    const found = paths.length === 0 ? 'none' : paths.join(', ')
+    const found = paths.length === 0 ? 'none' : paths.map((p) => JSON.stringify(p)).join(', ')
     problems.push(`provides.modules: must be exactly ${ALLOWED_MODULES.join(', ')}, found ${found}`)
   }
   for (const [list, items] of Object.entries(provides)) {

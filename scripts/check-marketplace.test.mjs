@@ -74,8 +74,8 @@ describe('marketplaceProblems (T-014, N2)', () => {
     }
     entry(marketplace).mcpServers = { placeholder: { command: 'echo' } }
     assert.deepEqual(problemsOf(marketplace), [
-      'plugins[0]: key not allowed: hooks',
-      'plugins[0]: key not allowed: mcpServers',
+      'plugins[0]: key not allowed: "hooks"',
+      'plugins[0]: key not allowed: "mcpServers"',
     ])
   })
 
@@ -84,7 +84,7 @@ describe('marketplaceProblems (T-014, N2)', () => {
     marketplace.plugins.push({ name: 'wic-spike', source: './spikes/wic-spike', strict: false })
     assert.deepEqual(problemsOf(marketplace), [
       'plugins: must hold exactly one entry, found 2',
-      'plugins[1]: key not allowed: strict',
+      'plugins[1]: key not allowed: "strict"',
       'plugins[1].name: must be "model-meter"',
       'plugins[1].source: must be "./plugins/model-meter"',
       "plugins[1].version: must equal plugin.json's version",
@@ -102,27 +102,27 @@ describe('marketplaceProblems (T-014, N2)', () => {
   test('variant E: a metadata.pluginRoot shadow fails', () => {
     const marketplace = realMarketplace()
     marketplace.metadata.pluginRoot = './spikes/shadow'
-    assert.deepEqual(problemsOf(marketplace), ['metadata: key not allowed: pluginRoot'])
+    assert.deepEqual(problemsOf(marketplace), ['metadata: key not allowed: "pluginRoot"'])
   })
 
   test('strict: false on the one entry fails', () => {
     const marketplace = realMarketplace()
     entry(marketplace).strict = false
-    assert.deepEqual(problemsOf(marketplace), ['plugins[0]: key not allowed: strict'])
+    assert.deepEqual(problemsOf(marketplace), ['plugins[0]: key not allowed: "strict"'])
   })
 
   test('an unknown key on the entry fails', () => {
     for (const key of ['commands', 'agents', 'lspServers', 'skills', 'whatever']) {
       const marketplace = realMarketplace()
       marketplace.plugins = [{ ...entry(marketplace), [key]: [] }]
-      assert.deepEqual(problemsOf(marketplace), [`plugins[0]: key not allowed: ${key}`], key)
+      assert.deepEqual(problemsOf(marketplace), [`plugins[0]: key not allowed: "${key}"`], key)
     }
   })
 
   test('an unknown top-level key fails', () => {
     const marketplace = realMarketplace()
     marketplace.pluginRoot = './elsewhere'
-    assert.deepEqual(problemsOf(marketplace), ['top level: key not allowed: pluginRoot'])
+    assert.deepEqual(problemsOf(marketplace), ['top level: key not allowed: "pluginRoot"'])
   })
 
   test("a version that differs from plugin.json's fails", () => {
@@ -169,6 +169,22 @@ describe('marketplaceProblems (T-014, N2)', () => {
     assert.deepEqual(marketplaceProblems(realMarketplace(), undefined), [
       'plugin.json declares no version',
     ])
+  })
+
+  test('a rejected key cannot add a line or an escape sequence to the log', () => {
+    const forged = 'x\n::error title=forged::looks like CI\u001b[31m'
+    const marketplace = realMarketplace()
+    marketplace.plugins = [{ ...entry(marketplace), [forged]: 1 }]
+    marketplace.metadata = { ...marketplace.metadata, [forged]: 1 }
+    const problems = problemsOf(marketplace)
+    assert.deepEqual(problems, [
+      'metadata: key not allowed: "x\\n::error title=forged::looks like CI\\u001b[31m"',
+      'plugins[0]: key not allowed: "x\\n::error title=forged::looks like CI\\u001b[31m"',
+    ])
+    for (const problem of problems) {
+      assert.ok(!problem.includes('\n'), 'no newline')
+      assert.ok(!problem.includes('\u001b'), 'no escape character')
+    }
   })
 
   test('a marketplace without metadata is fine', () => {
@@ -218,7 +234,7 @@ describe('main', () => {
     assert.equal(
       out,
       'marketplace: 2 problem(s) in .claude-plugin/marketplace.json\n' +
-        '  - plugins[0]: key not allowed: hooks\n' +
+        '  - plugins[0]: key not allowed: "hooks"\n' +
         '  - plugins[0].source: must be "./plugins/model-meter"\n',
     )
   })
@@ -228,7 +244,7 @@ describe('main', () => {
     assert.equal(missing.code, 1)
     assert.equal(
       missing.out,
-      'marketplace: could not read .claude-plugin/marketplace.json: ENOENT\n',
+      'marketplace: could not read .claude-plugin/marketplace.json: "ENOENT"\n',
     )
     const broken = capture({ plugin: '{' })
     assert.equal(broken.code, 1)
@@ -236,6 +252,10 @@ describe('main', () => {
       broken.out,
       /^marketplace: could not read plugins\/model-meter\/\.claude-plugin\/plugin\.json: /,
     )
+    const forged = capture({ marketplace: '{"a":\n::error title=forged::x\u001b[31m' })
+    assert.equal(forged.code, 1)
+    assert.equal(forged.out.split('\n').length, 2, 'one line, then the final newline')
+    assert.ok(!forged.out.includes('\u001b'))
     const notAnObject = capture({ plugin: '[]' })
     assert.equal(notAnObject.code, 1)
     assert.match(notAnObject.out, /plugin\.json declares no version/)
@@ -251,7 +271,7 @@ describe('main', () => {
       write: (text) => (out += text),
     })
     assert.equal(code, 1)
-    assert.equal(out, 'marketplace: could not read .claude-plugin/marketplace.json: denied\n')
+    assert.equal(out, 'marketplace: could not read .claude-plugin/marketplace.json: "denied"\n')
   })
 
   test('writes to stdout and reads from disk by default', (t) => {

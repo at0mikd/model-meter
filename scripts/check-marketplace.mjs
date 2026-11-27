@@ -7,7 +7,9 @@
 // allows it here.
 //
 // Pure: it reads two files and runs no CLI and no network. Messages never echo
-// the values it rejects.
+// the values it rejects; a rejected key, or a read error, is quoted with
+// JSON.stringify, so it cannot add lines (a forged `::error`) or escape
+// sequences to the CI log.
 
 import { readFileSync } from 'node:fs'
 import process from 'node:process'
@@ -43,7 +45,7 @@ const isRecord = (value) => typeof value === 'object' && value !== null && !Arra
 const keyProblems = (where, object, allowed) =>
   Object.keys(object)
     .filter((key) => !allowed.includes(key))
-    .map((key) => `${where}: key not allowed: ${key}`)
+    .map((key) => `${where}: key not allowed: ${JSON.stringify(key)}`)
 
 /**
  * Everything in a parsed marketplace.json that strays from the one entry the
@@ -104,12 +106,14 @@ export function main({
 } = {}) {
   const marketplace = readJson(readMarketplace)
   if (!marketplace.ok) {
-    write(`marketplace: could not read ${FILES.marketplace}: ${marketplace.reason}\n`)
+    write(
+      `marketplace: could not read ${FILES.marketplace}: ${JSON.stringify(marketplace.reason)}\n`,
+    )
     return 1
   }
   const plugin = readJson(readPlugin)
   if (!plugin.ok) {
-    write(`marketplace: could not read ${FILES.plugin}: ${plugin.reason}\n`)
+    write(`marketplace: could not read ${FILES.plugin}: ${JSON.stringify(plugin.reason)}\n`)
     return 1
   }
   const version = isRecord(plugin.value) ? plugin.value.version : undefined
