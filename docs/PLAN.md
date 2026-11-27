@@ -278,7 +278,7 @@ Principles: a **pure, testable core** (no `$`), thin hooks, and no runtime depen
 | *Tampering* | A hook that rewrites `model`/`effort`, or blocks a command | The mod **only observes**: always `next(e)` untouched; gating hooks carry a `.catch` that lets the event through. Tests prove it, and `check-capabilities` enforces the `.catch`. |
 | *Spoofing / injection* in the UI | A model string with control or ANSI sequences, or a very long one | `sanitize.ts`: an allowlist `[A-Za-z0-9.\-\[\] ]`, length ≤ 32, property tests with `fast-check`. The options are validated with closed lists and ranges, and never drawn verbatim. |
 | *Information disclosure* | Persisting sensitive data | Only the **last effort level** is stored (`$.store`). No paths, prompts, tokens or model ids. |
-| *Elevation of privilege* | Use of `$.fs`, `$.process`, `$.model`, the network, `$.tool.register` | Forbidden. CI parses the output of `claude plugin validate` (which lists what the module calls) against an **allowlist**. |
+| *Elevation of privilege* | Use of `$.fs`, `$.process`, `$.model`, the network, `$.tool.register`; or a component beside the hooks module (classic command hooks, MCP or LSP servers, `bin`), or a marketplace entry that points installers elsewhere | Forbidden. CI parses the output of `claude plugin validate` (what the module calls, and every component the plugin declares) against an **allowlist**. `check-marketplace` ties the marketplace entry, which installers read, to the folder those checks cover (T-014). |
 | *DoS* | Timers or costly renders | No timers; O(1) per render; redraws only when a measured width changes. |
 | Supply chain | Compromised dependencies or actions | No runtime dependencies; development dependencies pinned by the lockfile; actions pinned by **SHA**; Dependabot; `npm ci --ignore-scripts`; releases with build provenance (T-012). |
 
@@ -292,6 +292,7 @@ Every change enters `main` through a **pull request** under the `main` ruleset; 
 | --- | --- | --- |
 | Mod validation | `claude plugin validate` (CLI pinned to a version) | 0 errors |
 | Capability allowlist | A script that parses `claude plugin validate --json` | See below |
+| Marketplace entry | `scripts/check-marketplace.mjs`, in `check:core`: no CLI, no network | Exactly one entry, `model-meter` from `./plugins/model-meter`, with `plugin.json`'s version; closed lists of keys, so no entry-level components, `strict` or `pluginRoot` |
 | Types | Pure core: `tsc --strict` (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Hooks: `claude plugin validate --strict`, which checks the engine's types without vendoring them | 0 errors |
 | Lint | ESLint + `typescript-eslint` *strict-type-checked* + `eslint-plugin-security` | 0 warnings |
 | Formatting | Prettier | `--check` |
@@ -311,7 +312,7 @@ Every change enters `main` through a **pull request** under the `main` ruleset; 
 - `$.session.model`, `$.store.get`/`set`, `$.ui.invalidate`/`resolve` and `$.clock.now`;
 - `$.state.get`/`set`, **bounded** to `model-meter`'s own state and to the keys its contract declares (`types/index.d.ts`). The Maintainer decided this on 2026-11-18, in T-003.
 
-It admits **no** environment variable, and every hook that can block an event must carry a `.catch`.
+It admits **no** environment variable, and every hook that can block an event must carry a `.catch`. Among the components the report's `provides` block lists, the plugin may declare only its hooks module, `hooks/register.tsx`; every other list must be empty (T-014).
 
 ### 6.1 Extra controls because the repository is public
 

@@ -38,7 +38,8 @@ Any way around that is a security bug. So is injecting control sequences into wh
 ## Controls in place
 
 - **Capabilities:**
-  - a closed allowlist of engine calls (`npm run capabilities`);
+  - a closed allowlist of engine calls, and of the components the plugin declares: its one hooks module, and no classic hooks, MCP or LSP servers, `bin` or other components (`npm run capabilities`);
+  - the marketplace entry, which is what installers read, tied to the plugin folder those checks cover, with closed lists of keys (`npm run marketplace`);
   - `claude plugin validate --strict`;
   - pass-through checks on every hook that can gate an event.
 - **Supply chain:**

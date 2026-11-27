@@ -22,7 +22,7 @@
       "errors": [],
       "warnings": [],
       "notes": [
-        "./register.tsx hooks: session.start, classic.SessionStart, turn.step, config.set{key=model}, command.run{command=effort}, ui.render{component=PromptHint}, ui.render{component=SessionMode}",
+        "./register.tsx hooks: session.start, classic.SessionStart, turn.step, config.set{key=model}, command.run{command=effort}, ui.render{component=PromptHint}, ui.render{component=SessionMode}, ui.render{component=AbovePrompt} (default matcher key: plugin)",
         "./register.tsx gating hook with .catch: classic.SessionStart",
         "./register.tsx gating hook with .catch: config.set{key=model}",
         "./register.tsx gating hook with .catch: command.run{command=effort}",
@@ -194,6 +194,19 @@
               "defaultKeys": [],
               "isGate": false,
               "hasCatch": false
+            },
+            {
+              "pattern": "ui.render",
+              "matcher": {
+                "has": {
+                  "component": {
+                    "is": "AbovePrompt"
+                  }
+                }
+              },
+              "defaultKeys": ["plugin"],
+              "isGate": false,
+              "hasCatch": false
             }
           ],
           "nextTo": [],
@@ -228,5 +241,28 @@
     "themes": [],
     "workflows": [],
     "bin": []
+  },
+  "advice": [],
+  "directory": {
+    "profile": null,
+    "findings": [
+      {
+        "code": "ICON_MISSING",
+        "title": "No icon",
+        "severity": "warning",
+        "blocking": false,
+        "hold": false,
+        "file": ".claude-plugin/plugin.json",
+        "field": "icon",
+        "message": "No icon found in the plugin. The validator looked for `icon` in plugin.json and for a file at .claude-plugin/icon.png or .svg, assets/icon.png or .svg, or a similar path.",
+        "fix": "Add a square PNG to the plugin folder at .claude-plugin/icon.png, or set `icon` in plugin.json to the path of a square PNG or JPEG in the plugin: 512 to 2048 px on each side, under 2 MB. SVG and WebP are not accepted. That file may become the listing icon only once: the first time the plugin is saved or submitted in the developer portal. Adding or changing it later does not change the icon."
+      }
+    ],
+    "undecided": [],
+    "incomplete": true,
+    "failure": null,
+    "notes": [
+      "hooks/hooks.json names a hooks module (a code file listed under `modules`). The plugin directory has rules of its own for such code, and these checks apply none of them, so passing here does not mean the directory accepts the plugin. The developer portal's own validation applies those rules."
+    ]
   }
 }
