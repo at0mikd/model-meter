@@ -71,6 +71,8 @@ jobs:
   package:
     name: package (dry run)
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -87,5 +89,77 @@ jobs:
       - name: Check the digest
         working-directory: dist
         run: sha256sum --check --strict SHA256SUMS
+      # The archive's sha256, as a job output: the only thing later jobs trust.
+      - name: The archive's digest, as a job output
+        id: digest
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(dist/model-meter-*.tar.gz)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "::error::expected exactly one archive in dist/, found ${#archives[@]}"
+            exit 1
+          fi
+          digest=$(sha256sum -- "${archives[0]}" | cut -d ' ' -f 1)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "${archives[0]#dist/}: sha256 $digest"
       - name: The archive's contents
         run: tar -tzvf dist/model-meter-*.tar.gz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-dry-run
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The release's digest check, on every pull request (T-015): a second job
+  # downloads the dry run's artifact and compares it with the package job's
+  # output, with the same step as release.yml's attest and release jobs.
+  package-digest:
+    name: package (digest across jobs)
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package-dry-run
+          path: dist
+      # The archive must be the bytes the package job hashed (T-013 audit, N3): a
+      # replaced artifact, even with a regenerated SHA256SUMS, fails here.
+      - name: The archive is the one the package job built
+        id: archive
+        env:
+          DIGEST: ${{ needs.package.outputs.digest }}
+          TAG: ''
+        run: |
+          set -euo pipefail
+          if ! [[ "$DIGEST" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::the package job gave no sha256 digest"
+            exit 1
+          fi
+          shopt -s nullglob
+          archives=(dist/model-meter-*.tar.gz)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "::error::expected exactly one archive in dist/, found ${#archives[@]}"
+            exit 1
+          fi
+          name=${archives[0]#dist/}
+          if ! [[ "$name" =~ ^model-meter-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz$ ]]; then
+            echo "::error::the archive in dist/ is not named model-meter-X.Y.Z.tar.gz"
+            exit 1
+          fi
+          if [ -n "$TAG" ] && [ "$name" != "model-meter-${TAG#v}.tar.gz" ]; then
+            echo "::error::$name is not the archive of $TAG"
+            exit 1
+          fi
+          actual=$(sha256sum -- "dist/$name" | cut -d ' ' -f 1)
+          if [ "$actual" != "$DIGEST" ]; then
+            echo "::error::$name has sha256 $actual, not the package job's $DIGEST"
+            exit 1
+          fi
+          if ! printf '%s  %s\n' "$DIGEST" "$name" | cmp -s - dist/SHA256SUMS; then
+            echo "::error::dist/SHA256SUMS does not list the package job's digest for $name"
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "$name: sha256 $DIGEST, the package job's digest"
