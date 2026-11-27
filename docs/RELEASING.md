@@ -68,11 +68,13 @@ The tag must be annotated and signed (`git tag -s`), with a key registered on Gi
 
 | Job | What it does | Permissions |
 | --- | --- | --- |
-| `tag matches the manifests` | `release-version.mjs check` on the tag; the tagged commit is on `main`; the tag is annotated, signed, verified by GitHub, and points to that commit | `contents: read` |
+| `tag matches the manifests` | `release-version.mjs check` on the tag; the tagged commit is on `main`; the tag is annotated, signed, verified by GitHub, and points to that commit, which is the run's commit (`GITHUB_SHA`) | `contents: read` |
 | `npm run check` | the whole CI again (`ci.yml` through `workflow_call`) | `contents: read` |
-| `package` | `package.mjs`, `sha256sum --check`, uploads the files as an artifact | `contents: read` |
-| `attest provenance` | `actions/attest-build-provenance` over the archive | `id-token: write`, `attestations: write` |
-| `GitHub release` | creates the release with the archive, `SHA256SUMS` and the notes | `contents: write` |
+| `package` | `package.mjs`, `sha256sum --check`; the archive's sha256 becomes the job's only output; uploads the files as an artifact | `contents: read` |
+| `attest provenance` | checks the downloaded archive against the `package` job's digest, its name against the tag, and `SHA256SUMS` against both; then `actions/attest-build-provenance` attests that name and digest | `id-token: write`, `attestations: write` |
+| `GitHub release` | the same archive check; the tag must still point to the run's commit; creates the release with that archive, `SHA256SUMS` and the notes | `contents: write` |
+
+The digest leaves the `package` job only as a job output, so an artifact replaced after the upload fails the next job's check, even with a `SHA256SUMS` regenerated to match it (T-013 audit, N3). The CI dry run runs the same check on every pull request, in a second job (`package (digest across jobs)`).
 
 If any job fails, nothing is published. A tag on a commit that is not on `main`, a lightweight tag, or a tag whose signature GitHub cannot verify stops the release at the first job. A protected tag cannot be moved or deleted, so a fix means a new patch version: go back to step 1.
 
@@ -82,8 +84,13 @@ If any job fails, nothing is published. A tag on a commit that is not on `main`,
 gh release view vX.Y.Z --repo at0mikd/model-meter
 gh release download vX.Y.Z --repo at0mikd/model-meter --dir /tmp/model-meter-X.Y.Z
 cd /tmp/model-meter-X.Y.Z
+git ls-remote https://github.com/at0mikd/model-meter 'refs/tags/vX.Y.Z^{}'   # the tag's commit
+gh attestation verify model-meter-X.Y.Z.tar.gz --repo at0mikd/model-meter \
+  --signer-workflow at0mikd/model-meter/.github/workflows/release.yml \
+  --source-ref refs/tags/vX.Y.Z --source-digest <the tag's commit>
 sha256sum --check SHA256SUMS
-gh attestation verify model-meter-X.Y.Z.tar.gz --repo at0mikd/model-meter
 ```
 
-`gh attestation verify` must report that the archive was built by `.github/workflows/release.yml` in `at0mikd/model-meter`, from the tag's commit.
+- **The attestation is the trust root.** The pinned `gh attestation verify` must pass. It ties the archive to `release.yml`, to the tag, and to the tag's commit; with `--repo` alone, any workflow in the repository would do (T-013 audit, N4).
+- **`SHA256SUMS` is a convenience.** It comes from the same release assets it checks, so on its own it proves nothing about where the archive came from.
+- **v0.1.0 is not immutable.** Release immutability was turned on after v0.1.0 was published, and it does not apply retroactively. Its attestation still binds the archive to `release.yml@refs/tags/v0.1.0` and commit `e844730986724ab03703b85f1141a4b27a3f2989`, so verify it with the pinned form above. Later releases are immutable.
