@@ -124,7 +124,7 @@ Releases are cut from a tag `v*` (T-012, `release.yml`). Once a tag is published
 
 > **Limit of this ruleset.** The Builder works under the Maintainer's GitHub account, so the admin bypass covers it too. Two more guards keep an agent from publishing a release:
 >
-> - the Builder's local permissions (`.claude/settings.json`) deny pushing tags (`git push --tags`, `git push origin v*`) and `gh release`;
+> - the agents' permission rules (`.claude/settings.json`, §7) deny pushing tags in any spelling, writing releases through `gh release` or `gh api`, and creating refs;
 > - `docs/WORKFLOW.md` §7: only the Maintainer creates and pushes release tags.
 
 **Release flow:** `docs/RELEASING.md` (written in T-012). The Maintainer creates a **signed** tag (`git tag -s v0.1.0`) on `main` and pushes it. The workflow verifies the version, runs the gates again, packages the archive, attests its provenance and publishes the GitHub Release.
@@ -149,3 +149,16 @@ OpenSSF Scorecard's **Code-Review** and the higher tiers of **Branch-Protection*
   - **Technical gates:** 12 required checks, up to date with `main`, signed commits, linear history, and CodeQL code scanning.
 - **The rejected alternative (B).** A second, machine identity for the Builder, so the Maintainer could approve on GitHub and the ruleset could require 1 approval. It would raise the score, at the cost of creating, securing and rotating another account and its signing key. Rejected for now.
 - **When to revisit:** when a second human maintainer joins, or if the project starts publishing to a wider audience.
+
+## 7. Agent credentials and permissions (T-017)
+
+Both agents act as the Maintainer's GitHub account (§6). What bounds each one:
+
+| | Builder (local) | Reviewer (cloud session) |
+| --- | --- | --- |
+| Credential | The Maintainer's local `gh` login and SSH signing key | The cloud session's GitHub connection |
+| Scope | The Maintainer's account | _Recorded by the Maintainer from the GitHub App and the session settings (identity, repository permissions, whether child processes can use it)._ |
+| Narrowing | Not applicable: it is the Maintainer's own login | _The Maintainer's decision, and what the platform allows._ |
+| Permission rules | `.claude/settings.json`: exact allow list, deny list (`docs/WORKFLOW.md` §7) | The same file, when the session's working directory is the repository |
+
+**Limits.** The rules in `.claude/settings.json` match command text. They apply only to a session whose working directory is this repository: the cloud session's working directory can move between its home folder and the clone, and outside the clone the rules do not load. A script, `bash -c` or another tool can still reach the same API. The deterministic control is the credential's scope; the rules are defence in depth, and the `main` and tag rulesets (§1, §4) remain the gate a write must pass.
