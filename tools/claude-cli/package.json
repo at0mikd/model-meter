@@ -4,6 +4,6 @@
   "private": true,
   "description": "Pins the claude CLI that CI's mod job runs. Not a dependency of the project.",
   "dependencies": {
-    "@anthropic-ai/claude-code": "2.1.327"
+    "@anthropic-ai/claude-code": "2.1.329"
   }
 }
