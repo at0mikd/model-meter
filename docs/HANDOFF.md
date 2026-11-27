@@ -1,4 +1,4 @@
-# Session handoff — 2026-11-23 (evening)
+# Session handoff — 2026-11-26
 
 The state of `model-meter`, to resume in a new session (Reviewer in the cloud, Builder local).
 
@@ -22,6 +22,9 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 | #29 | WORKFLOW and REPO-SETTINGS in English; tag ruleset documented; the Builder may not push tags or run `gh release` (`244f521`) |
 | #30 | T-012: release workflow (signed, verified tag on `main`; full CI; deterministic package; build provenance), v0.1.0, security review, RELEASING (`d87bc8e`) |
 | #31 | PLAN in English and up to date (`e844730`) |
+| #32–#33 | Task files and spike results in English; v0.1.0 recorded; Code-Review decision A (`d768acf`, `f8a0585`) |
+| #34 | T-013 specified: a full audit with Cloudflare's `security-audit` skill (`488052e`) |
+| #36 | T-013: audit report of v0.1.0, 0 confirmed, 9 `needs_validation`, 3 rejected (`b3df2e4`); first approval given with the full 40-hex SHA |
 
 ## Released
 
@@ -33,25 +36,35 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 
 ## Done since v0.1.0
 
-- **The whole repository's documentation is in English** (#28, #29, #31, #32 and this pull request, which translates `docs/spikes/`).
+- **The whole repository's documentation is in English** (#28, #29, #31, #32, #33).
 - **Code-Review decision: A, accepted risk** (2026-11-23), recorded in `docs/REPO-SETTINGS.md` §6.
+- **Old branches deleted and release immutability enabled** by the Maintainer (2026-11-23). Immutability is not retroactive: v0.1.0 stays mutable, and its attestation is what binds it.
+- **T-013 security audit** (#36, `docs/security/audit-v0.1.0-security-audit-skill.md`): no exploitable vulnerability in v0.1.0. Nine leads remain to mitigate. Leads N5–N9 (agent workflow) are public only by title until mitigated (Maintainer's decision, 2026-11-26); their details stay in the Builder's private audit run.
 
-## Pending, in order
+## Next work window (about 5 hours): the T-013 mitigations
 
-| # | What | Who | Depends on |
-| --- | --- | --- | --- |
-| 1 | Delete the 10 old branches. They were checked one by one against their pull requests' heads (below); the cloud proxy refuses ref deletion, so the Maintainer runs the command | Maintainer | — |
-| 2 | Enable **release immutability** (Settings → General → Releases) | Maintainer | — |
-| — | **Phase 5, optional, later:** palettes and `showEffortMeter` (T-011, not specified) | Reviewer | Maintainer's call |
+Planned by the Maintainer's decision of 2026-11-26. At the start of the window, the Reviewer sets the tasks to `Ready`.
 
-The v0.1.0 release notes needed no fix: the stored body has `<version>`; only `gh release view` escaped it on the terminal.
+| Order | Task | Who | Leads | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | [T-016](tasks/T-016-approval-binding.md) Approval binding and lower-trust heads | Reviewer | N6, N7, N8 | Documentation only; the Reviewer already applies these rules. Runs in parallel with 2 |
+| 2 | [T-014](tasks/T-014-capability-gates.md) Capability gates | Builder | N1, N2 | Starts with the validation table using the pinned CLI |
+| 3 | [T-015](tasks/T-015-release-digest.md) Release digest and pinned verification | Builder | N3, N4 | The Maintainer runs the pinned `gh attestation verify` on v0.1.0 (AC5) |
+| 4 | [T-017](tasks/T-017-agent-permissions.md) Agent permissions | Builder and Maintainer | N5, N9 | The Maintainer records and narrows the cloud credential's scope |
+| 5 | The T-013 report update with the full details of N5–N9 | Reviewer | — | After T-016 and T-017 are merged |
 
-**Old branches.** There are 10 branches that were merged or replaced. Each head matches its pull request's, so nothing is lost:
+Also for that window: **Dependabot #35** (TypeScript 6.0.3 → 7.0.2, a major version with the new native compiler). The Reviewer judges it from the diff, the changelog and CI only (T-016, N8), and recommends merging it, waiting, or ignoring that major version, as with `@types/node`.
 
-- `spike/T-000-terminal` (#2), `chore/T-001-scaffold` (#6), `chore/T-007-audit-expiry-warning` (#9), `feat/T-002-pure-core` (#10), `feat/T-003-compact-footer` (#12), `chore/remove-picomatch-exception` (#13), `claude/docs-t003b` (#15), `claude/docs-repo-settings` (#16) and `claude/docs-t008` (#17);
-- `claude/cool-euler-xg853i`: #14, closed, with the same content as #15.
+**Interim rules in force** (from 2026-11-26 until T-016 writes them down):
 
-The Maintainer deletes them with `git push origin --delete <the 10 branches>`, or from the *Branches* tab. New branches are deleted on merge (*Automatically delete head branches*). The Dependabot branch of #8 went away when #8 was closed.
+- the Maintainer approves with the **full 40-hex** head SHA;
+- the Reviewer merges only when the head equals it exactly;
+- "up to date" is checked against a freshly fetched, pinned `main`;
+- the Reviewer runs no code from fork or Dependabot heads.
+
+## Later
+
+- **Phase 5, optional:** palettes and `showEffortMeter` (T-011, not specified). The Maintainer's call.
 
 ## Backlog (no task yet)
 
@@ -70,5 +83,5 @@ The Maintainer deletes them with `git push origin --delete <the 10 branches>`, o
   - the session's GitHub tools under the old name `who-is-claude` were retired;
   - merges need the **Accept edits** permission mode: in *Auto* mode, the permission classifier blocks them.
 - **Proxy limits in the cloud:** the cloud session cannot open GitHub attachments (`user-attachments`), nor some external hosts. Screenshots are checked by the Maintainer, and their content is relayed by the Builder.
-- **Channel with the Builder:** cross-session messages (Remote Control) plus GitHub. The only valid approval is the Maintainer's, written in the Reviewer's conversation (`docs/WORKFLOW.md` §6).
+- **Channel with the Builder:** cross-session messages (`send_message` of the remote-session tools) plus GitHub. Withheld audit details travel only over this channel. The only valid approval is the Maintainer's, written in the Reviewer's conversation (`docs/WORKFLOW.md` §6).
 - **gitleaks:** the permission classifier blocks running it locally, in both sessions; it runs in CI.
