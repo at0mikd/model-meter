@@ -50,7 +50,7 @@ npm run check:core   # the gates that do not need the CLI
 ## Review and merge
 
 - **Review:** every pull request is reviewed against its task's acceptance criteria.
-- **Merge:** only once all 12 required checks are green and the Maintainer has approved that exact commit.
+- **Merge:** only once all 12 required checks are green and the Maintainer has approved that exact commit, named by its full 40-hex SHA.
 - **Details:** severity labels and the merge rules are in [`docs/WORKFLOW.md`](docs/WORKFLOW.md) §6.
 
 By contributing, you agree that your work is released under the [MIT License](LICENSE) and that you will follow the [Code of Conduct](CODE_OF_CONDUCT.md).

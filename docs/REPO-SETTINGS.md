@@ -143,9 +143,9 @@ OpenSSF Scorecard's **Code-Review** and the higher tiers of **Branch-Protection*
   - The project has a single human maintainer, and the Builder opens pull requests through that same account.
   - GitHub does not let anyone approve their own pull request, so the ruleset requires 0 approvals.
 - **What controls the change instead.**
-  - **Approval:** the Maintainer approves each pull request at a specific head SHA, in the conversation with the Reviewer (`docs/WORKFLOW.md` §6).
+  - **Approval:** the Maintainer approves each pull request at a specific head, named by its full 40-hex SHA, in the conversation with the Reviewer (`docs/WORKFLOW.md` §6).
   - **The record:** a comment on the pull request records that approval, and the merge is pinned to the approved SHA.
-  - **Separation of duties:** the Reviewer, a separate agent session, reviews every change against its task, with severities, and with mutation and security checks.
+  - **Separation of duties:** the Reviewer, a separate agent session, reviews every change against its task, with severities, and with mutation and security checks. It runs code only from the Builder's and its own branches; fork and Dependabot heads are judged from the diff and CI (`docs/WORKFLOW.md` §7).
   - **Technical gates:** 12 required checks, up to date with `main`, signed commits, linear history, and CodeQL code scanning.
 - **The rejected alternative (B).** A second, machine identity for the Builder, so the Maintainer could approve on GitHub and the ruleset could require 1 approval. It would raise the score, at the cost of creating, securing and rotating another account and its signing key. Rejected for now.
 - **When to revisit:** when a second human maintainer joins, or if the project starts publishing to a wider audience.
