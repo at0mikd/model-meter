@@ -41,9 +41,9 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 - **Old branches deleted and release immutability enabled** by the Maintainer (2026-11-23). Immutability is not retroactive: v0.1.0 stays mutable, and its attestation is what binds it.
 - **T-013 security audit** (#36, `docs/security/audit-v0.1.0-security-audit-skill.md`): no exploitable vulnerability in v0.1.0. Nine leads remain to mitigate. Leads N5–N9 (agent workflow) are public only by title until mitigated (Maintainer's decision, 2026-11-26); their details stay in the Builder's private audit run.
 
-## Next work window (about 5 hours): the T-013 mitigations
+## Current work window (about 5 hours): the T-013 mitigations
 
-Planned by the Maintainer's decision of 2026-11-26. At the start of the window, the Reviewer sets the tasks to `Ready`.
+Planned by the Maintainer's decision of 2026-11-26. **Opened on 2026-11-27:** T-014 to T-017 are `Ready`.
 
 | Order | Task | Who | Leads | Notes |
 | --- | --- | --- | --- | --- |

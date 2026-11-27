@@ -1,6 +1,6 @@
 # T-015 · Release integrity: bind the package digest across jobs and pin the documented check
 
-- **Status:** Planned (next work window)
+- **Status:** Ready
 - **Branch:** `chore/T-015-release-digest`
 - **Plan:** `docs/PLAN.md` §5–§6; T-013 audit, leads N3 and N4 (`docs/security/audit-v0.1.0-security-audit-skill.md`)
 
