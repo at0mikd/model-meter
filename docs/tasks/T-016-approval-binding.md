@@ -1,6 +1,6 @@
 # T-016 · Review and merge rules: approval binding and lower-trust heads
 
-- **Status:** Planned (next work window)
+- **Status:** Ready
 - **Owner:** Reviewer (documentation and its own practice); Maintainer approves
 - **Branch:** `claude/t016-approval-binding`
 - **Plan:** `docs/WORKFLOW.md` §6–§7; T-013 audit, leads N6, N7 and N8 (`docs/security/audit-v0.1.0-security-audit-skill.md`)
