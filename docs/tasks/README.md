@@ -20,7 +20,7 @@ The backlog of the Reviewer–Builder workflow (`docs/WORKFLOW.md`). The Reviewe
 | [T-014](T-014-capability-gates.md) | Capability gates cover everything the plugin and the marketplace declare (audit N1, N2) | 6 | In review |
 | [T-015](T-015-release-digest.md) | Release integrity: bind the package digest across jobs and pin the documented check (audit N3, N4) | 6 | In review |
 | [T-016](T-016-approval-binding.md) | Review and merge rules: approval binding and lower-trust heads (audit N6–N8) | 6 | Ready |
-| [T-017](T-017-agent-permissions.md) | Agent permissions: exact allow rules and a bounded write scope (audit N5, N9) | 6 | Ready |
+| [T-017](T-017-agent-permissions.md) | Agent permissions: exact allow rules and a bounded write scope (audit N5, N9) | 6 | In review |
 
 ## Task format
 

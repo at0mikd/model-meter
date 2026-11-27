@@ -1,6 +1,6 @@
 # T-017 · Agent permissions: exact allow rules and a bounded write scope
 
-- **Status:** Ready
+- **Status:** In review
 - **Branch:** `chore/T-017-agent-permissions`
 - **Plan:** `docs/WORKFLOW.md` §7, `docs/REPO-SETTINGS.md`; T-013 audit, leads N5 and N9 (`docs/security/audit-v0.1.0-security-audit-skill.md`)
 
