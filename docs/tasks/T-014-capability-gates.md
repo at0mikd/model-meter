@@ -1,6 +1,6 @@
 # T-014 · Capability gates cover everything the plugin and the marketplace declare
 
-- **Status:** In review
+- **Status:** Done ([#40](https://github.com/at0mikd/model-meter/pull/40), `544ab68`)
 - **Branch:** `fix/T-014-capability-gates`
 - **Plan:** `docs/PLAN.md` §5–§6; T-013 audit, leads N1 and N2 (`docs/security/audit-v0.1.0-security-audit-skill.md`)
 

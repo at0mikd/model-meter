@@ -1,6 +1,6 @@
 # T-017 · Agent permissions: exact allow rules and a bounded write scope
 
-- **Status:** In review
+- **Status:** Merged ([#43](https://github.com/at0mikd/model-meter/pull/43), `dff671a`); AC2, AC3 and the AC4 re-run pending with the Maintainer, so N9 stays open
 - **Branch:** `chore/T-017-agent-permissions`
 - **Plan:** `docs/WORKFLOW.md` §7, `docs/REPO-SETTINGS.md`; T-013 audit, leads N5 and N9 (`docs/security/audit-v0.1.0-security-audit-skill.md`)
 

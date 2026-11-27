@@ -17,10 +17,10 @@ The backlog of the Reviewer–Builder workflow (`docs/WORKFLOW.md`). The Reviewe
 | T-011 | Palettes (`classic`, `gameboy`, `mono`) and `showEffortMeter` | 5 | Optional, later (not specified yet) |
 | [T-012](T-012-hardening-release.md) | Hardening and the v0.1.0 release | 6 | Done |
 | [T-013](T-013-security-audit.md) | Full security audit with Cloudflare's `security-audit` skill | 6 | Done |
-| [T-014](T-014-capability-gates.md) | Capability gates cover everything the plugin and the marketplace declare (audit N1, N2) | 6 | In review |
-| [T-015](T-015-release-digest.md) | Release integrity: bind the package digest across jobs and pin the documented check (audit N3, N4) | 6 | In review |
-| [T-016](T-016-approval-binding.md) | Review and merge rules: approval binding and lower-trust heads (audit N6–N8) | 6 | Ready |
-| [T-017](T-017-agent-permissions.md) | Agent permissions: exact allow rules and a bounded write scope (audit N5, N9) | 6 | In review |
+| [T-014](T-014-capability-gates.md) | Capability gates cover everything the plugin and the marketplace declare (audit N1, N2) | 6 | Done |
+| [T-015](T-015-release-digest.md) | Release integrity: bind the package digest across jobs and pin the documented check (audit N3, N4) | 6 | Done (AC5 pending) |
+| [T-016](T-016-approval-binding.md) | Review and merge rules: approval binding and lower-trust heads (audit N6–N8) | 6 | Done |
+| [T-017](T-017-agent-permissions.md) | Agent permissions: exact allow rules and a bounded write scope (audit N5, N9) | 6 | Merged (AC2–AC4 pending) |
 
 ## Task format
 

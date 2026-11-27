@@ -1,6 +1,6 @@
 # T-015 · Release integrity: bind the package digest across jobs and pin the documented check
 
-- **Status:** In review
+- **Status:** Done ([#41](https://github.com/at0mikd/model-meter/pull/41), `63be751`); AC5, the Maintainer's pinned verification of v0.1.0, pending
 - **Branch:** `chore/T-015-release-digest`
 - **Plan:** `docs/PLAN.md` §5–§6; T-013 audit, leads N3 and N4 (`docs/security/audit-v0.1.0-security-audit-skill.md`)
 

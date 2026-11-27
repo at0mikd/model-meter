@@ -1,4 +1,4 @@
-# Session handoff — 2026-11-26
+# Session handoff — 2026-11-27
 
 The state of `model-meter`, to resume in a new session (Reviewer in the cloud, Builder local).
 
@@ -25,6 +25,11 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 | #32–#33 | Task files and spike results in English; v0.1.0 recorded; Code-Review decision A (`d768acf`, `f8a0585`) |
 | #34 | T-013 specified: a full audit with Cloudflare's `security-audit` skill (`488052e`) |
 | #36 | T-013: audit report of v0.1.0, 0 confirmed, 9 `needs_validation`, 3 rejected (`b3df2e4`); first approval given with the full 40-hex SHA |
+| #37–#38 | T-013 closed; mitigations T-014 to T-017 planned, then set `Ready` (`b9e0d31`, `7faf7ac`) |
+| #39 | T-016: approvals bound to the full reviewed SHA, `main` pinned for the update check, trusted heads defined (`c0c15d2`) |
+| #40 | T-014: capability gate checks every declared component; new marketplace gate; gate output quoted (`544ab68`) |
+| #41 | T-015: package digest bound across jobs, attested by digest; tag re-checked before publishing; pinned verification documented (`63be751`) |
+| #43 | T-017: exact allow rules for the Builder, a wider deny list, the credential table in REPO-SETTINGS §7 (`dff671a`) |
 
 ## Released
 
@@ -41,26 +46,38 @@ The state of `model-meter`, to resume in a new session (Reviewer in the cloud, B
 - **Old branches deleted and release immutability enabled** by the Maintainer (2026-11-23). Immutability is not retroactive: v0.1.0 stays mutable, and its attestation is what binds it.
 - **T-013 security audit** (#36, `docs/security/audit-v0.1.0-security-audit-skill.md`): no exploitable vulnerability in v0.1.0. Nine leads remain to mitigate. Leads N5–N9 (agent workflow) are public only by title until mitigated (Maintainer's decision, 2026-11-26); their details stay in the Builder's private audit run.
 
-## Current work window (about 5 hours): the T-013 mitigations
+## T-013 mitigations: state at the end of the 2026-11-27 window
 
-Planned by the Maintainer's decision of 2026-11-26. **Opened on 2026-11-27:** T-014 to T-017 are `Ready`.
+| Lead | Task | State |
+| --- | --- | --- |
+| N1, N2 | T-014 | Closed |
+| N3 | T-015 | Closed |
+| N4 | T-015 | Closed in the docs; the Maintainer's pinned verification of v0.1.0 is pending |
+| N5 | T-017 | Closed in source; the engine check (AC2) is pending |
+| N6, N7, N8 | T-016 | Closed (the Builder confirmed each against the private run) |
+| N9 | T-017 | **Open** until AC3 and the AC4 re-run |
 
-| Order | Task | Who | Leads | Notes |
-| --- | --- | --- | --- | --- |
-| 1 | [T-016](tasks/T-016-approval-binding.md) Approval binding and lower-trust heads | Reviewer | N6, N7, N8 | Documentation only; the Reviewer already applies these rules. Runs in parallel with 2 |
-| 2 | [T-014](tasks/T-014-capability-gates.md) Capability gates | Builder | N1, N2 | Starts with the validation table using the pinned CLI |
-| 3 | [T-015](tasks/T-015-release-digest.md) Release digest and pinned verification | Builder | N3, N4 | The Maintainer runs the pinned `gh attestation verify` on v0.1.0 (AC5) |
-| 4 | [T-017](tasks/T-017-agent-permissions.md) Agent permissions | Builder and Maintainer | N5, N9 | The Maintainer records and narrows the cloud credential's scope |
-| 5 | The T-013 report update with the full details of N5–N9 | Reviewer | — | After T-016 and T-017 are merged |
+**Observed hosted controls of the cloud Reviewer session** (2026-11-27, harmless probes against a nonexistent repository, no real write):
 
-Also for that window: **Dependabot #35** (TypeScript 6.0.3 → 7.0.2, a major version with the new native compiler). The Reviewer judges it from the diff, the changelog and CI only (T-016, N8), and recommends merging it, waiting, or ignoring that major version, as with `@types/node`.
+- the project deny list in `.claude/settings.json` did **not** refuse them in the running session;
+- the session's GitHub proxy refused release writes, writes to ref paths (ref deletion included) and repository settings writes;
+- the git proxy injects no credential for a repository outside the session's set, so pushes elsewhere fail;
+- not tested, because it would be a real write: a tag or branch push to `model-meter` itself. `v*` tags are covered by the tag ruleset, and `release.yml` needs a tag signed with the Maintainer's key.
 
-**Interim rules in force** (from 2026-11-26 until T-016 writes them down):
+## Next session: pending, in order
 
-- the Maintainer approves with the **full 40-hex** head SHA;
-- the Reviewer merges only when the head equals it exactly;
-- "up to date" is checked against a freshly fetched, pinned `main`;
-- the Reviewer runs no code from fork or Dependabot heads.
+| # | What | Who | Notes |
+| --- | --- | --- | --- |
+| 1 | **T-017 AC3:** record the Claude GitHub App's repository access and permissions in `REPO-SETTINGS.md` §7, and narrow the access to selected repositories | Maintainer, then the Reviewer writes it down | github.com/settings/installations → Claude → Configure. The App's own permission set is fixed by the App; the repository admin role is the owner's and cannot be removed |
+| 2 | **T-017 AC2:** in a throwaway clone, the Builder's normal flow runs without new prompts, and anything outside the exact allow list prompts | Maintainer | — |
+| 3 | **T-017 AC4 re-run:** a fresh cloud Reviewer session on `main`, with the repository as its working directory, runs the three harmless probes of the #43 review (a release write and a ref deletion against a nonexistent repository, and a tag refspec push to a nonexistent remote), and records what refuses each | Maintainer and Reviewer | Shows whether a fresh session loads the deny list |
+| 4 | **T-015 AC5:** `gh release download v0.1.0 --repo at0mikd/model-meter --pattern 'model-meter-0.1.0.tar.gz'`, then the pinned `gh attestation verify` of `docs/RELEASING.md` §5 | Maintainer, on their own machine | The cloud session cannot initialize the Sigstore verifier |
+| 5 | The Builder's final yes/no per lead (N1–N9), over the private channel | Builder | After 1–3 |
+| 6 | **T-013 report update:** publish the details of every mitigated lead with its mitigation; N9 stays withheld while open | Reviewer | T-016 scope item 4 |
+| 7 | **Dependabot #35** (TypeScript 6.0.3 → 7.0.2, a major version): judged from the diff, the changelog and CI only; recommend merging, waiting, or ignoring that major version | Reviewer | — |
+| 8 | **Optional:** add `package (dry run)` and `package (digest across jobs)` to the `main` ruleset's required checks | Maintainer | Recommended by the Reviewer |
+
+The Builder keeps its private audit run until item 6 is merged.
 
 ## Later
 
@@ -69,6 +86,7 @@ Also for that window: **Dependabot #35** (TypeScript 6.0.3 → 7.0.2, a major ve
 ## Backlog (no task yet)
 
 - **[nit from #22]** An element whose `type` `widthOfTree` does not know, and with no `children`, measures 0, so too little room would be reserved. No known case today: the CLI's types are a closed union. Revisit if that union grows.
+- **[nit from #40]** `JSON.stringify` does not escape C1 control characters (for example `\u009b`) in gate messages. They cannot forge an Actions workflow command, which needs a line start.
 
 ## Recorded incidents
 
@@ -84,4 +102,5 @@ Also for that window: **Dependabot #35** (TypeScript 6.0.3 → 7.0.2, a major ve
   - merges need the **Accept edits** permission mode: in *Auto* mode, the permission classifier blocks them.
 - **Proxy limits in the cloud:** the cloud session cannot open GitHub attachments (`user-attachments`), nor some external hosts. Screenshots are checked by the Maintainer, and their content is relayed by the Builder.
 - **Channel with the Builder:** cross-session messages (`send_message` of the remote-session tools) plus GitHub. Withheld audit details travel only over this channel. The only valid approval is the Maintainer's, written in the Reviewer's conversation (`docs/WORKFLOW.md` §6).
+- **Merging after T-016:** approvals name the full 40-hex SHA, copied from the Reviewer's LGTM; record comments are posted with `-F body=@<file>` (T-017: the deny list matches command text).
 - **gitleaks:** the permission classifier blocks running it locally, in both sessions; it runs in CI.
