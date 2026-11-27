@@ -241,6 +241,19 @@ describe('main', () => {
     assert.match(notAnObject.out, /plugin\.json declares no version/)
   })
 
+  test('reports a failure to read that is not an Error', () => {
+    let out = ''
+    const code = main({
+      readMarketplace: () => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error -- what a reader may throw is not ours to choose
+        throw 'denied'
+      },
+      write: (text) => (out += text),
+    })
+    assert.equal(code, 1)
+    assert.equal(out, 'marketplace: could not read .claude-plugin/marketplace.json: denied\n')
+  })
+
   test('writes to stdout and reads from disk by default', (t) => {
     /** @type {string[]} */
     const written = []
