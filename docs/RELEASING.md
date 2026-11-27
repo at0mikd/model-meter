@@ -37,7 +37,7 @@ The files must match the explicit `PUBLISHED` list in `scripts/package.mjs`. Any
 
 4. **Open the pull request.** CI runs the full check, and the `package (dry run)` job, which builds and lists the package without publishing it.
 
-5. **Get it approved and merged.** The Maintainer approves it in the conversation with the Reviewer, naming the pull request, and it is squash-merged (`docs/WORKFLOW.md` §6).
+5. **Get it approved and merged.** The Maintainer approves it in the conversation with the Reviewer, naming the pull request and its full 40-hex head SHA, and it is squash-merged (`docs/WORKFLOW.md` §6).
 
 ### 2. Check a clean install from `main`
 
