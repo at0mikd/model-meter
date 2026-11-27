@@ -4,8 +4,9 @@
 // under keys its contract (types/index.d.ts) declares (Maintainer, T-003).
 //
 // It reads the structured part of `claude plugin validate --json`
-// (`modules[].uses` and `gatingHooks`), which the engine documents as whole
-// and as a public contract; the `notes` lines are display text, "cleaned and
+// (`modules[].uses`, `gatingHooks` and the `provides` block, where the plugin may
+// declare its one hooks module and nothing else, T-014), which the engine
+// documents as whole and as a public contract; the `notes` lines are display text, "cleaned and
 // cut". Messages name modules as hooks.json spells them and never echo the
 // report's absolute paths (`target`, `file`).
 
@@ -35,6 +36,13 @@ export const ALLOWED_CALLS = Object.freeze([
 
 /** The only plugin whose `$.state` the mod may read or write. */
 export const STATE_PLUGIN = 'model-meter'
+
+/**
+ * The only component the plugin may declare: its hooks module. Every other list in
+ * the report's `provides` block (classic hooks, MCP or LSP servers, bin, skills,
+ * commands, agents, and any list a newer CLI adds) must be empty (T-014, N1).
+ */
+export const ALLOWED_MODULES = Object.freeze(['hooks/register.tsx'])
 
 /** Environment variables the mod may read. None since T-000. */
 export const ALLOWED_ENV = Object.freeze(/** @type {string[]} */ ([]))
@@ -123,6 +131,47 @@ function isStateEntry(entry) {
     typeof key === 'string' &&
     (id === undefined || typeof id === 'string')
   )
+}
+
+/**
+ * @param {unknown} provides
+ * @returns {provides is Record<string, unknown[]> & { modules: { path: string }[] }}
+ */
+function isProvides(provides) {
+  if (!isObject(provides) || Array.isArray(provides)) return false
+  const lists = Object.values(provides)
+  if (!lists.every((list) => Array.isArray(list))) return false
+  const { modules } = /** @type {Record<string, unknown>} */ (provides)
+  return (
+    Array.isArray(modules) &&
+    modules.every(
+      (m) => isObject(m) && typeof (/** @type {{ path?: unknown }} */ (m).path) === 'string',
+    )
+  )
+}
+
+/**
+ * What the plugin declares beyond its one hooks module, one line per list. Names
+ * only the list and a count, never what an entry points at.
+ *
+ * @param {Record<string, unknown[]> & { modules: { path: string }[] }} provides
+ * @returns {string[]}
+ */
+function providesProblems(provides) {
+  /** @type {string[]} */
+  const problems = []
+  const paths = provides.modules.map((m) => m.path)
+  const exact = JSON.stringify(paths) === JSON.stringify(ALLOWED_MODULES)
+  if (!exact) {
+    const found = paths.length === 0 ? 'none' : paths.join(', ')
+    problems.push(`provides.modules: must be exactly ${ALLOWED_MODULES.join(', ')}, found ${found}`)
+  }
+  for (const [list, items] of Object.entries(provides)) {
+    if (list !== 'modules' && items.length > 0) {
+      problems.push(`provides.${list}: the plugin may declare none, found ${String(items.length)}`)
+    }
+  }
+  return problems
 }
 
 /** A member of an object type, `readonly` aside: `name:`, `'name'?:`, `"name":`. */
@@ -228,15 +277,20 @@ export function findViolations(report, allow = {}) {
   const calls = allow.calls ?? ALLOWED_CALLS
   const env = allow.env ?? ALLOWED_ENV
   if (!isObject(report)) return ['unexpected validate report shape']
-  const { success, manifest, contents } = /** @type {Record<string, unknown>} */ (report)
+  const { success, manifest, contents, provides } = /** @type {Record<string, unknown>} */ (report)
   if (!Array.isArray(contents)) return ['unexpected validate report shape']
   const entries = /** @type {unknown[]} */ (contents)
   const files = manifest === null || manifest === undefined ? entries : [manifest, ...entries]
   if (!files.every(isReportFile)) return ['unexpected validate report shape']
+  if (provides === undefined) {
+    return ['the validate report has no provides block, so the plugin components cannot be checked']
+  }
+  if (!isProvides(provides)) return ['unexpected validate report shape']
 
   /** @type {string[]} */
   const problems = []
   if (success !== true) problems.push('claude plugin validate reported failure')
+  problems.push(...providesProblems(provides))
 
   let scanned = 0
   for (const file of files) {

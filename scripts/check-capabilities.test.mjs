@@ -22,7 +22,8 @@ import spikeReport from './fixtures/validate-spike.json' with { type: 'json' }
  * @typedef {{ plugin: unknown, key: unknown, id?: unknown }} StateEntry
  * @typedef {{ module: string, uses: { calls: string[], env?: { reads: string[], writes: string[] }, state?: unknown } }} ModuleEntry
  * @typedef {{ type?: string, file?: string, gatingHooks: GatingHook[], modules: ModuleEntry[] | null }} FileEntry
- * @typedef {{ success: boolean, target?: string, manifest: FileEntry | null, contents: FileEntry[] }} Report
+ * @typedef {Record<string, unknown[]>} Provides
+ * @typedef {{ success: boolean, target?: string, manifest: FileEntry | null, contents: FileEntry[], provides?: unknown }} Report
  */
 
 /**
@@ -71,6 +72,26 @@ function cleanReport() {
   module.uses.calls = ['clock.now', 'session.model', 'store.get', 'store.set', 'ui.resolve']
   module.uses.env = { reads: [], writes: [] }
   for (const g of hooksFile(report).gatingHooks) g.hasCatch = true
+  report.provides = cleanProvides()
+  return report
+}
+
+/** The `provides` block of the mod's real report: one hooks module and nothing else. */
+function cleanProvides() {
+  /** @type {unknown} */
+  const copy = structuredClone(modReport.provides)
+  return /** @type {Provides} */ (copy)
+}
+
+/**
+ * The clean report with one `provides` list replaced.
+ *
+ * @param {string} list
+ * @param {unknown[]} items
+ */
+function providing(list, items) {
+  const report = cleanReport()
+  report.provides = { ...cleanProvides(), [list]: items }
   return report
 }
 
@@ -405,6 +426,103 @@ describe('findViolations', () => {
     const problems = findViolations(report)
     assert.equal(problems.length, 1)
     assert.ok(!problems.join('\n').includes('/home/'))
+  })
+})
+
+describe('findViolations: provides, every component the plugin declares (T-014, N1)', () => {
+  test('the real report declares one hooks module and nothing else, and passes', () => {
+    const provides = cleanProvides()
+    assert.deepEqual(provides.modules, [{ path: 'hooks/register.tsx' }])
+    for (const [list, items] of Object.entries(provides)) {
+      if (list !== 'modules') assert.deepEqual(items, [], list)
+    }
+    assert.deepEqual(findViolations(cleanReport()), [])
+  })
+
+  test('a classic command hook fails', () => {
+    const report = providing('hooks', [{ event: 'SessionStart', type: 'command', command: 'true' }])
+    assert.deepEqual(findViolations(report), [
+      'provides.hooks: the plugin may declare none, found 1',
+    ])
+  })
+
+  test('an MCP server fails', () => {
+    const report = providing('mcpServers', [
+      { name: 'dummy', type: 'stdio', target: 'true', args: [] },
+    ])
+    assert.deepEqual(findViolations(report), [
+      'provides.mcpServers: the plugin may declare none, found 1',
+    ])
+  })
+
+  test('an LSP server fails', () => {
+    const report = providing('lspServers', [{ name: 'dummy', command: 'true' }])
+    assert.deepEqual(findViolations(report), [
+      'provides.lspServers: the plugin may declare none, found 1',
+    ])
+  })
+
+  test('a bin entry fails', () => {
+    const report = providing('bin', [{ name: 'mm', path: 'bin/mm' }, { name: 'mm2' }])
+    assert.deepEqual(findViolations(report), ['provides.bin: the plugin may declare none, found 2'])
+  })
+
+  test('a list the gate does not know fails too, if it is not empty', () => {
+    assert.deepEqual(findViolations(providing('routines', [])), [])
+    assert.deepEqual(findViolations(providing('routines', [{ name: 'x' }])), [
+      'provides.routines: the plugin may declare none, found 1',
+    ])
+  })
+
+  test('an extra hooks module fails', () => {
+    const report = providing('modules', [
+      { path: 'hooks/register.tsx' },
+      { path: 'hooks/extra.tsx' },
+    ])
+    assert.deepEqual(findViolations(report), [
+      'provides.modules: must be exactly hooks/register.tsx, found hooks/register.tsx, hooks/extra.tsx',
+    ])
+  })
+
+  test('another module, or none, fails', () => {
+    assert.deepEqual(findViolations(providing('modules', [{ path: 'hooks/other.tsx' }])), [
+      'provides.modules: must be exactly hooks/register.tsx, found hooks/other.tsx',
+    ])
+    assert.deepEqual(findViolations(providing('modules', [])), [
+      'provides.modules: must be exactly hooks/register.tsx, found none',
+    ])
+  })
+
+  test('a report with no provides block fails closed', () => {
+    const report = cleanReport()
+    delete report.provides
+    assert.deepEqual(findViolations(report), [
+      'the validate report has no provides block, so the plugin components cannot be checked',
+    ])
+  })
+
+  test('a provides block of an unexpected shape fails closed', () => {
+    const shape = ['unexpected validate report shape']
+    for (const provides of [
+      null,
+      'x',
+      [],
+      { ...cleanProvides(), hooks: 'x' },
+      { ...cleanProvides(), modules: ['hooks/register.tsx'] },
+      { ...cleanProvides(), modules: [{ path: 3 }] },
+      { ...cleanProvides(), modules: [null] },
+    ]) {
+      const report = cleanReport()
+      report.provides = provides
+      assert.deepEqual(findViolations(report), shape, JSON.stringify(provides))
+    }
+  })
+
+  test('never echoes what an extra component points at', () => {
+    const report = providing('mcpServers', [
+      { name: 'x', type: 'stdio', target: '/home/someone/secret-server', args: [] },
+    ])
+    assert.ok(!findViolations(report).join('\n').includes('/home/'))
   })
 })
 
