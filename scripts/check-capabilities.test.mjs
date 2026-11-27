@@ -223,20 +223,20 @@ describe('findViolations: $.state, only the mod own declared keys (T-003)', () =
   test("another plugin's state is rejected", () => {
     const report = withState({ reads: [{ plugin: 'sub-meter', key: 'limits' }], writes: [] })
     assert.deepEqual(findViolations(report, { state: KEYS }), [
-      './register.ts: state of another plugin: sub-meter.limits',
+      '"./register.ts": state of another plugin: "sub-meter.limits"',
     ])
   })
 
   test('a key the contract does not declare is rejected', () => {
     const report = withState({ reads: [], writes: [own('secret')] })
     assert.deepEqual(findViolations(report, { state: KEYS }), [
-      './register.ts: state key not declared in types/index.d.ts: model-meter.secret',
+      '"./register.ts": state key not declared in types/index.d.ts: "model-meter.secret"',
     ])
   })
 
   test('state with no readable contract is rejected', () => {
     assert.deepEqual(findViolations(withState({ reads: [own('model')], writes: [] })), [
-      './register.ts: uses $.state, but types/index.d.ts declares no model-meter state',
+      '"./register.ts": uses $.state, but types/index.d.ts declares no model-meter state',
     ])
   })
 
@@ -272,9 +272,9 @@ describe('findViolations', () => {
     const report = cleanReport()
     firstModule(report).uses.calls.push('ui.ask', 'ui.copy', 'ui.selection')
     assert.deepEqual(findViolations(report), [
-      './register.ts: call not allowed: $.ui.ask',
-      './register.ts: call not allowed: $.ui.copy',
-      './register.ts: call not allowed: $.ui.selection',
+      '"./register.ts": call not allowed: "$.ui.ask"',
+      '"./register.ts": call not allowed: "$.ui.copy"',
+      '"./register.ts": call not allowed: "$.ui.selection"',
     ])
   })
 
@@ -288,16 +288,18 @@ describe('findViolations', () => {
   test('CA3: a call outside the allowlist fails, named with its module', () => {
     const report = cleanReport()
     firstModule(report).uses.calls.push('fs.write')
-    assert.deepEqual(findViolations(report), ['./register.ts: call not allowed: $.fs.write'])
+    assert.deepEqual(findViolations(report), ['"./register.ts": call not allowed: "$.fs.write"'])
   })
 
   test('the spike report fails for every capability the product must not use', () => {
     const problems = findViolations(fixture(spikeReport))
     for (const call of ['env.get', 'settings.read', 'tool.register']) {
-      assert.ok(problems.includes(`./register.ts: call not allowed: $.${call}`), call)
+      assert.ok(problems.includes(`"./register.ts": call not allowed: "$.${call}"`), call)
     }
-    assert.ok(problems.includes('./register.ts: env read not allowed: CLAUDE_CODE_EFFORT_LEVEL'))
-    assert.ok(problems.includes('./register.ts: gating hook without .catch: config.set'))
+    assert.ok(
+      problems.includes('"./register.ts": env read not allowed: "CLAUDE_CODE_EFFORT_LEVEL"'),
+    )
+    assert.ok(problems.includes('"./register.ts": gating hook without .catch: "config.set"'))
     assert.ok(!problems.some((p) => p.includes('session.model')))
   })
 
@@ -305,13 +307,13 @@ describe('findViolations', () => {
     const report = cleanReport()
     firstModule(report).uses.env = { reads: ['SOME_VAR'], writes: [] }
     assert.deepEqual(findViolations(report, { env: ['SOME_VAR'] }), [])
-    assert.deepEqual(findViolations(report), ['./register.ts: env read not allowed: SOME_VAR'])
+    assert.deepEqual(findViolations(report), ['"./register.ts": env read not allowed: "SOME_VAR"'])
   })
 
   test('any environment write fails', () => {
     const report = cleanReport()
     firstModule(report).uses.env = { reads: [], writes: ['HOME'] }
-    assert.deepEqual(findViolations(report), ['./register.ts: env write not allowed: HOME'])
+    assert.deepEqual(findViolations(report), ['"./register.ts": env write not allowed: "HOME"'])
   })
 
   test('a module that leaves out the env lists has nothing to report', () => {
@@ -324,7 +326,7 @@ describe('findViolations', () => {
     const report = cleanReport()
     gate(report, 'config.set').hasCatch = false
     assert.deepEqual(findViolations(report), [
-      './register.ts: gating hook without .catch: config.set',
+      '"./register.ts": gating hook without .catch: "config.set"',
     ])
   })
 
@@ -335,7 +337,7 @@ describe('findViolations', () => {
       { module: './other.ts', pattern: 'prompt.submit', hook: 'prompt.submit', hasCatch: false },
     ]
     assert.deepEqual(findViolations(report), [
-      './other.ts: gating hook without .catch: prompt.submit',
+      '"./other.ts": gating hook without .catch: "prompt.submit"',
     ])
   })
 
@@ -349,7 +351,7 @@ describe('findViolations', () => {
     const report = cleanReport()
     hooksFile(report).modules = null
     assert.deepEqual(findViolations(report), [
-      'hooks: validate could not read the hooks module (modules: null)',
+      '"hooks": validate could not read the hooks module (modules: null)',
     ])
   })
 
@@ -359,7 +361,7 @@ describe('findViolations', () => {
     delete file.type
     file.modules = null
     assert.deepEqual(findViolations(report), [
-      'file: validate could not read the hooks module (modules: null)',
+      '"file": validate could not read the hooks module (modules: null)',
     ])
   })
 
@@ -418,6 +420,27 @@ describe('findViolations', () => {
     })
   })
 
+  test('a forged module name cannot add a line or an escape sequence to the log', () => {
+    const forged = './register.ts\n::error title=forged::looks like CI\u001b[31m'
+    const report = cleanReport()
+    const module = firstModule(report)
+    module.module = forged
+    module.uses.calls.push('fs.write')
+    module.uses.env = { reads: [forged], writes: [forged] }
+    module.uses.state = { reads: [{ plugin: forged, key: forged }], writes: [] }
+    const gating = gate(report, 'config.set')
+    gating.module = forged
+    gating.hook = forged
+    gating.hasCatch = false
+    const problems = findViolations(report, { state: KEYS })
+    assert.equal(problems.length, 5)
+    for (const problem of problems) {
+      assert.ok(!problem.includes('\n'), problem)
+      assert.ok(!problem.includes('\u001b'), problem)
+      assert.ok(problem.startsWith(JSON.stringify(forged)), problem)
+    }
+  })
+
   test('never echoes absolute paths from the report', () => {
     const report = cleanReport()
     report.target = '/home/someone/model-meter/plugins/model-meter'
@@ -442,7 +465,7 @@ describe('findViolations: provides, every component the plugin declares (T-014, 
   test('a classic command hook fails', () => {
     const report = providing('hooks', [{ event: 'SessionStart', type: 'command', command: 'true' }])
     assert.deepEqual(findViolations(report), [
-      'provides.hooks: the plugin may declare none, found 1',
+      'provides["hooks"]: the plugin may declare none, found 1',
     ])
   })
 
@@ -451,26 +474,28 @@ describe('findViolations: provides, every component the plugin declares (T-014, 
       { name: 'dummy', type: 'stdio', target: 'true', args: [] },
     ])
     assert.deepEqual(findViolations(report), [
-      'provides.mcpServers: the plugin may declare none, found 1',
+      'provides["mcpServers"]: the plugin may declare none, found 1',
     ])
   })
 
   test('an LSP server fails', () => {
     const report = providing('lspServers', [{ name: 'dummy', command: 'true' }])
     assert.deepEqual(findViolations(report), [
-      'provides.lspServers: the plugin may declare none, found 1',
+      'provides["lspServers"]: the plugin may declare none, found 1',
     ])
   })
 
   test('a bin entry fails', () => {
     const report = providing('bin', [{ name: 'mm', path: 'bin/mm' }, { name: 'mm2' }])
-    assert.deepEqual(findViolations(report), ['provides.bin: the plugin may declare none, found 2'])
+    assert.deepEqual(findViolations(report), [
+      'provides["bin"]: the plugin may declare none, found 2',
+    ])
   })
 
   test('a list the gate does not know fails too, if it is not empty', () => {
     assert.deepEqual(findViolations(providing('routines', [])), [])
     assert.deepEqual(findViolations(providing('routines', [{ name: 'x' }])), [
-      'provides.routines: the plugin may declare none, found 1',
+      'provides["routines"]: the plugin may declare none, found 1',
     ])
   })
 
@@ -558,7 +583,7 @@ describe('main', () => {
     firstModule(report).uses.calls.push('http.fetch')
     const { code, out } = capture(() => JSON.stringify(report))
     assert.equal(code, 1)
-    assert.match(out, /call not allowed: \$\.http\.fetch/)
+    assert.match(out, /call not allowed: "\$\.http\.fetch"/)
   })
 
   test('reads the contract to check $.state, and fails closed when it cannot', () => {

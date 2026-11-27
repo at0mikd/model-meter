@@ -63,6 +63,16 @@ export function isAllowedCall(call, allowed = ALLOWED_CALLS) {
   return allowed.includes(call)
 }
 
+/**
+ * A string from the report, quoted for a message: JSON.stringify escapes newlines
+ * and control characters, so a name taken from the plugin under review cannot
+ * start a line that Actions reads as a workflow command (`::error`) or print an
+ * escape sequence (review of #40).
+ *
+ * @param {string} text
+ */
+const q = (text) => JSON.stringify(text)
+
 /** @param {unknown} value */
 const isObject = (value) => typeof value === 'object' && value !== null
 
@@ -152,8 +162,8 @@ function isProvides(provides) {
 
 /**
  * What the plugin declares beyond its one hooks module, one line per list. Names
- * only the list and a count, never what an entry points at; module paths come
- * from a file under review, so they are quoted with JSON.stringify.
+ * only the list and a count, never what an entry points at; the module
+ * paths it rejects are quoted (`q`).
  *
  * @param {Record<string, unknown[]> & { modules: { path: string }[] }} provides
  * @returns {string[]}
@@ -164,12 +174,14 @@ function providesProblems(provides) {
   const paths = provides.modules.map((m) => m.path)
   const exact = JSON.stringify(paths) === JSON.stringify(ALLOWED_MODULES)
   if (!exact) {
-    const found = paths.length === 0 ? 'none' : paths.map((p) => JSON.stringify(p)).join(', ')
+    const found = paths.length === 0 ? 'none' : paths.map(q).join(', ')
     problems.push(`provides.modules: must be exactly ${ALLOWED_MODULES.join(', ')}, found ${found}`)
   }
   for (const [list, items] of Object.entries(provides)) {
     if (list !== 'modules' && items.length > 0) {
-      problems.push(`provides.${list}: the plugin may declare none, found ${String(items.length)}`)
+      problems.push(
+        `provides[${q(list)}]: the plugin may declare none, found ${String(items.length)}`,
+      )
     }
   }
   return problems
@@ -296,24 +308,26 @@ export function findViolations(report, allow = {}) {
   let scanned = 0
   for (const file of files) {
     for (const gate of file.gatingHooks) {
-      if (!gate.hasCatch) problems.push(`${gate.module}: gating hook without .catch: ${gate.hook}`)
+      if (!gate.hasCatch)
+        problems.push(`${q(gate.module)}: gating hook without .catch: ${q(gate.hook)}`)
     }
     if (file.modules === null) {
       problems.push(
-        `${file.type ?? 'file'}: validate could not read the hooks module (modules: null)`,
+        `${q(file.type ?? 'file')}: validate could not read the hooks module (modules: null)`,
       )
       continue
     }
     for (const { module, uses } of file.modules) {
       scanned += 1
       for (const call of uses.calls) {
-        if (!isAllowedCall(call, calls)) problems.push(`${module}: call not allowed: $.${call}`)
+        if (!isAllowedCall(call, calls))
+          problems.push(`${q(module)}: call not allowed: ${q(`$.${call}`)}`)
       }
       for (const name of uses.env?.reads ?? []) {
-        if (!env.includes(name)) problems.push(`${module}: env read not allowed: ${name}`)
+        if (!env.includes(name)) problems.push(`${q(module)}: env read not allowed: ${q(name)}`)
       }
       for (const name of uses.env?.writes ?? []) {
-        problems.push(`${module}: env write not allowed: ${name}`)
+        problems.push(`${q(module)}: env write not allowed: ${q(name)}`)
       }
       problems.push(...stateProblems(module, uses.state, allow.state))
     }
@@ -338,15 +352,17 @@ function stateProblems(module, state, declared) {
   const entries = [...state.reads, ...state.writes]
   if (entries.length === 0) return []
   if (declared === undefined) {
-    return [`${module}: uses $.state, but types/index.d.ts declares no ${STATE_PLUGIN} state`]
+    return [`${q(module)}: uses $.state, but types/index.d.ts declares no ${STATE_PLUGIN} state`]
   }
   /** @type {Set<string>} */
   const problems = new Set()
   for (const { plugin, key } of entries) {
     if (plugin !== STATE_PLUGIN)
-      problems.add(`${module}: state of another plugin: ${plugin}.${key}`)
+      problems.add(`${q(module)}: state of another plugin: ${q(`${plugin}.${key}`)}`)
     else if (!declared.includes(key)) {
-      problems.add(`${module}: state key not declared in types/index.d.ts: ${plugin}.${key}`)
+      problems.add(
+        `${q(module)}: state key not declared in types/index.d.ts: ${q(`${plugin}.${key}`)}`,
+      )
     }
   }
   return [...problems]
