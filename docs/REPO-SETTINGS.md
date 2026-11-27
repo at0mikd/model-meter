@@ -159,6 +159,11 @@ Both agents act as the Maintainer's GitHub account (§6). What bounds each one:
 | Credential | The Maintainer's local `gh` login and SSH signing key | The cloud session's GitHub connection |
 | Scope | The Maintainer's account | _Recorded by the Maintainer from the GitHub App and the session settings (identity, repository permissions, whether child processes can use it)._ |
 | Narrowing | Not applicable: it is the Maintainer's own login | _The Maintainer's decision, and what the platform allows._ |
-| Permission rules | `.claude/settings.json`: exact allow list, deny list (`docs/WORKFLOW.md` §7) | The same file, when the session's working directory is the repository |
+| Permission rules | `.claude/settings.json`: exact allow list, deny list (`docs/WORKFLOW.md` §7) | Not observed to apply (see below) |
+| Hosted controls | None | Observed: the session's GitHub proxy refuses release writes and writes to ref paths, ref deletion included. Not yet tested: tag and branch pushes |
 
-**Limits.** The rules in `.claude/settings.json` match command text. They apply only to a session whose working directory is this repository: the cloud session's working directory can move between its home folder and the clone, and outside the clone the rules do not load. A script, `bash -c` or another tool can still reach the same API. The deterministic control is the credential's scope; the rules are defence in depth, and the `main` and tag rulesets (§1, §4) remain the gate a write must pass.
+**Limits.**
+- **Text, not effects.** The rules in `.claude/settings.json` match command text, so a script, `bash -c` or another tool can still reach the same API.
+- **The Builder.** They are its main control.
+- **The cloud Reviewer.** Its running session was given the rules (its working directory in the repository, on this pull request's head), and it did not refuse harmless probes that the deny list covers. The session's proxy refused two of them, and git ran the third. So the cloud session's deterministic controls are the hosted proxy and the credential's scope (the rows above). The deny list counts for it only as defence in depth, and only once a fresh session started on `main` is shown to load it.
+- **Behind all of this:** the `main` and tag rulesets (§1, §4) remain the gate a write must pass.

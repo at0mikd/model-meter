@@ -198,6 +198,7 @@ describe("N9: the Reviewer's writes", () => {
         `gh api -X DELETE ${REPO}/git/refs/heads/x`,
         `gh api --method=DELETE ${REPO}/pulls/40`,
         `gh api ${REPO}/statuses/${SHA} -f state=success -f context=ci`,
+        `gh api ${REPO}/pulls/40/reviews -f event=APPROVE`,
         "gh api graphql -f query='mutation { x }'",
         'gh workflow run ci.yml',
         'gh repo edit --visibility private',
@@ -207,6 +208,12 @@ describe("N9: the Reviewer's writes", () => {
       ],
       'deny',
     )
+  })
+
+  test('a known residual: a tag pushed by its bare name is not denied', () => {
+    // A rule cannot tell a tag name from a branch name; release.yml runs only on v* tags.
+    assert.notEqual(decide('git push origin probe-tag'), 'deny')
+    assert.equal(decide('git push origin v9.9.9'), 'deny')
   })
 
   test('a known limit: an inline body that names a denied path is denied too', () => {

@@ -124,6 +124,7 @@
       "Bash(gh api */lfs*)",
       "Bash(gh api */codespaces*)",
       "Bash(gh api */properties*)",
+      "Bash(gh api */reviews*)",
       "Bash(gh api graphql*)",
       "Bash(gh api *--method DELETE*)",
       "Bash(gh api *--method=DELETE*)",
