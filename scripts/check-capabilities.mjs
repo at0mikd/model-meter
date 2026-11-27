@@ -4,8 +4,9 @@
 // under keys its contract (types/index.d.ts) declares (Maintainer, T-003).
 //
 // It reads the structured part of `claude plugin validate --json`
-// (`modules[].uses` and `gatingHooks`), which the engine documents as whole
-// and as a public contract; the `notes` lines are display text, "cleaned and
+// (`modules[].uses`, `gatingHooks` and the `provides` block, where the plugin may
+// declare its one hooks module and nothing else, T-014), which the engine
+// documents as whole and as a public contract; the `notes` lines are display text, "cleaned and
 // cut". Messages name modules as hooks.json spells them and never echo the
 // report's absolute paths (`target`, `file`).
 
@@ -36,6 +37,13 @@ export const ALLOWED_CALLS = Object.freeze([
 /** The only plugin whose `$.state` the mod may read or write. */
 export const STATE_PLUGIN = 'model-meter'
 
+/**
+ * The only component the plugin may declare: its hooks module. Every other list in
+ * the report's `provides` block (classic hooks, MCP or LSP servers, bin, skills,
+ * commands, agents, and any list a newer CLI adds) must be empty (T-014, N1).
+ */
+export const ALLOWED_MODULES = Object.freeze(['hooks/register.tsx'])
+
 /** Environment variables the mod may read. None since T-000. */
 export const ALLOWED_ENV = Object.freeze(/** @type {string[]} */ ([]))
 
@@ -54,6 +62,16 @@ export const ALLOWED_ENV = Object.freeze(/** @type {string[]} */ ([]))
 export function isAllowedCall(call, allowed = ALLOWED_CALLS) {
   return allowed.includes(call)
 }
+
+/**
+ * A string from the report, quoted for a message: JSON.stringify escapes newlines
+ * and control characters, so a name taken from the plugin under review cannot
+ * start a line that Actions reads as a workflow command (`::error`) or print an
+ * escape sequence (review of #40).
+ *
+ * @param {string} text
+ */
+const q = (text) => JSON.stringify(text)
 
 /** @param {unknown} value */
 const isObject = (value) => typeof value === 'object' && value !== null
@@ -123,6 +141,50 @@ function isStateEntry(entry) {
     typeof key === 'string' &&
     (id === undefined || typeof id === 'string')
   )
+}
+
+/**
+ * @param {unknown} provides
+ * @returns {provides is Record<string, unknown[]> & { modules: { path: string }[] }}
+ */
+function isProvides(provides) {
+  if (!isObject(provides) || Array.isArray(provides)) return false
+  const lists = Object.values(provides)
+  if (!lists.every((list) => Array.isArray(list))) return false
+  const { modules } = /** @type {Record<string, unknown>} */ (provides)
+  return (
+    Array.isArray(modules) &&
+    modules.every(
+      (m) => isObject(m) && typeof (/** @type {{ path?: unknown }} */ (m).path) === 'string',
+    )
+  )
+}
+
+/**
+ * What the plugin declares beyond its one hooks module, one line per list. Names
+ * only the list and a count, never what an entry points at; the module
+ * paths it rejects are quoted (`q`).
+ *
+ * @param {Record<string, unknown[]> & { modules: { path: string }[] }} provides
+ * @returns {string[]}
+ */
+function providesProblems(provides) {
+  /** @type {string[]} */
+  const problems = []
+  const paths = provides.modules.map((m) => m.path)
+  const exact = JSON.stringify(paths) === JSON.stringify(ALLOWED_MODULES)
+  if (!exact) {
+    const found = paths.length === 0 ? 'none' : paths.map(q).join(', ')
+    problems.push(`provides.modules: must be exactly ${ALLOWED_MODULES.join(', ')}, found ${found}`)
+  }
+  for (const [list, items] of Object.entries(provides)) {
+    if (list !== 'modules' && items.length > 0) {
+      problems.push(
+        `provides[${q(list)}]: the plugin may declare none, found ${String(items.length)}`,
+      )
+    }
+  }
+  return problems
 }
 
 /** A member of an object type, `readonly` aside: `name:`, `'name'?:`, `"name":`. */
@@ -228,37 +290,44 @@ export function findViolations(report, allow = {}) {
   const calls = allow.calls ?? ALLOWED_CALLS
   const env = allow.env ?? ALLOWED_ENV
   if (!isObject(report)) return ['unexpected validate report shape']
-  const { success, manifest, contents } = /** @type {Record<string, unknown>} */ (report)
+  const { success, manifest, contents, provides } = /** @type {Record<string, unknown>} */ (report)
   if (!Array.isArray(contents)) return ['unexpected validate report shape']
   const entries = /** @type {unknown[]} */ (contents)
   const files = manifest === null || manifest === undefined ? entries : [manifest, ...entries]
   if (!files.every(isReportFile)) return ['unexpected validate report shape']
+  if (provides === undefined) {
+    return ['the validate report has no provides block, so the plugin components cannot be checked']
+  }
+  if (!isProvides(provides)) return ['unexpected validate report shape']
 
   /** @type {string[]} */
   const problems = []
   if (success !== true) problems.push('claude plugin validate reported failure')
+  problems.push(...providesProblems(provides))
 
   let scanned = 0
   for (const file of files) {
     for (const gate of file.gatingHooks) {
-      if (!gate.hasCatch) problems.push(`${gate.module}: gating hook without .catch: ${gate.hook}`)
+      if (!gate.hasCatch)
+        problems.push(`${q(gate.module)}: gating hook without .catch: ${q(gate.hook)}`)
     }
     if (file.modules === null) {
       problems.push(
-        `${file.type ?? 'file'}: validate could not read the hooks module (modules: null)`,
+        `${q(file.type ?? 'file')}: validate could not read the hooks module (modules: null)`,
       )
       continue
     }
     for (const { module, uses } of file.modules) {
       scanned += 1
       for (const call of uses.calls) {
-        if (!isAllowedCall(call, calls)) problems.push(`${module}: call not allowed: $.${call}`)
+        if (!isAllowedCall(call, calls))
+          problems.push(`${q(module)}: call not allowed: ${q(`$.${call}`)}`)
       }
       for (const name of uses.env?.reads ?? []) {
-        if (!env.includes(name)) problems.push(`${module}: env read not allowed: ${name}`)
+        if (!env.includes(name)) problems.push(`${q(module)}: env read not allowed: ${q(name)}`)
       }
       for (const name of uses.env?.writes ?? []) {
-        problems.push(`${module}: env write not allowed: ${name}`)
+        problems.push(`${q(module)}: env write not allowed: ${q(name)}`)
       }
       problems.push(...stateProblems(module, uses.state, allow.state))
     }
@@ -283,15 +352,17 @@ function stateProblems(module, state, declared) {
   const entries = [...state.reads, ...state.writes]
   if (entries.length === 0) return []
   if (declared === undefined) {
-    return [`${module}: uses $.state, but types/index.d.ts declares no ${STATE_PLUGIN} state`]
+    return [`${q(module)}: uses $.state, but types/index.d.ts declares no ${STATE_PLUGIN} state`]
   }
   /** @type {Set<string>} */
   const problems = new Set()
   for (const { plugin, key } of entries) {
     if (plugin !== STATE_PLUGIN)
-      problems.add(`${module}: state of another plugin: ${plugin}.${key}`)
+      problems.add(`${q(module)}: state of another plugin: ${q(`${plugin}.${key}`)}`)
     else if (!declared.includes(key)) {
-      problems.add(`${module}: state key not declared in types/index.d.ts: ${plugin}.${key}`)
+      problems.add(
+        `${q(module)}: state key not declared in types/index.d.ts: ${q(`${plugin}.${key}`)}`,
+      )
     }
   }
   return [...problems]
